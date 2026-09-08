@@ -94,7 +94,7 @@
         "@types/pg": "^8.23.1",
         "@types/secp256k1": "^4.0.7",
         "@types/supertest": "^6.0.3",
-        "@vitest/coverage-v8": "3.2.6",
+        "@vitest/coverage-v8": "5.0.0",
         "@vitest/runner": "^3.2.6",
         "@vitest/ui": "^3.2.6",
         "drizzle-kit": "0.31.10",
