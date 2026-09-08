@@ -1,0 +1,2 @@
+ALTER TABLE "contract_permissions" DROP CONSTRAINT "contract_permissions_unique_attributes";--> statement-breakpoint
+ALTER TABLE "contract_permissions" ADD CONSTRAINT "contract_permissions_unique_attributes" UNIQUE("contract_address","method_selector");

@@ -1,0 +1,2 @@
+ALTER TABLE "contract_function_permissions" ADD COLUMN "organization_only" boolean DEFAULT true NOT NULL;--> statement-breakpoint
+ALTER TABLE "contract_template_permissions" ADD COLUMN "organization_only" boolean DEFAULT true NOT NULL;

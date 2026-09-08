@@ -1,0 +1,1 @@
+ALTER TABLE "contracts" ADD COLUMN "disclose_bytecode" boolean DEFAULT false NOT NULL;

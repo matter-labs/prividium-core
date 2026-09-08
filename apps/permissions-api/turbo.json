@@ -1,0 +1,12 @@
+{
+    "extends": ["//"],
+    "tasks": {
+        "export-openapi-spec": {
+            "dependsOn": ["@repo/prividium-sdk#build"],
+            // Writes the spec into @repo/api-types, so turbo cannot declare it as an output and a
+            // cache hit would silently leave the spec missing.
+            "cache": false,
+            "outputLogs": "errors-only"
+        }
+    }
+}

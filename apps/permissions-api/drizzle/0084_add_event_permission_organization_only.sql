@@ -1,0 +1,1 @@
+ALTER TABLE "contract_event_permissions" ADD COLUMN "organization_only" boolean DEFAULT true NOT NULL;

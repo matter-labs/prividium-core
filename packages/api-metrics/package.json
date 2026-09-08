@@ -1,0 +1,22 @@
+{
+    "name": "@repo/api-metrics",
+    "version": "0.0.0",
+    "description": "Common code to expose api metrics",
+    "type": "module",
+    "private": true,
+    "exports": {
+        ".": "./src/index.ts"
+    },
+    "scripts": {
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "prom-client": "^15.1.0"
+    },
+    "peerDependencies": {
+        "fastify": "^5.12.1"
+    },
+    "devDependencies": {
+        "typescript": "^5.8.3"
+    }
+}

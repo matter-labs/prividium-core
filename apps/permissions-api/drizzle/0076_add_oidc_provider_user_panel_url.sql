@@ -1,0 +1,1 @@
+ALTER TABLE "oidc_providers" ADD COLUMN "user_panel_url" text;

@@ -1,0 +1,1 @@
+ALTER TABLE "contracts" ADD COLUMN "is_system_contract" boolean DEFAULT false NOT NULL;

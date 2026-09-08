@@ -1,0 +1,121 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# Packages must be at least 3 days old to be installed
+minimumReleaseAge: 4320
+# Trusted packages
+minimumReleaseAgeExclude:
+  - "@matterlabs/zksync-js"
+
+# Allow exotic sources for direct dependencies only
+blockExoticSubdeps: true
+
+# Helps preventing trust level downgrades when updating dependencies
+trustPolicy: no-downgrade
+# 1 month in minutes: 24 * 60 * 30
+trustPolicyIgnoreAfter: 43200
+# Exclude verified packages that lost provenance attestation
+trustPolicyExclude:
+  - "@coinbase/cdp-sdk"
+
+# Always use TLS
+strictSsl: true
+
+# Verify integrity of packages in the store
+verifyStoreIntegrity: true
+
+# Disable running third-party postinstall scripts
+ignoreDepScripts: true
+
+overrides:
+  # zod 4.4 makes bare z.unknown() object keys required — hold 4.3.5 until callers are audited.
+  "zod@^4.3.5": 4.3.5
+  # Type identity, not a security pin. `@repo/api-kit` belongs to two workspaces, so
+  # only one owns its node_modules, and a type crossing that boundary unifies only
+  # when both resolve the same version. Drizzle's peer set is part of its identity: a
+  # `pg` or OpenTelemetry drift splits `drizzle-orm` in two and its `Table` and
+  # `PgTransaction` types stop being assignable.
+  "@opentelemetry/api": 1.9.1
+  "pg": 8.23.0
+  "semver@<7": ^7.7.3
+  "@noble/curves@<1.9": ^1.9.7
+  "@noble/hashes@<1.8": ^1.8.0
+  "fast-uri@<3.1.5": ^3.1.5
+  "flatted@<3.4.2": ^3.4.2
+  "axios@<1.18.0": ^1.18.0
+  "shell-quote@<1.9.0": ^1.9.0
+  "viem>ws@<8.21.0": ^8.21.0
+  "engine.io-client>ws@<8.21.0": ^8.21.0
+  "lodash-es@<4.18.0": ^4.18.0
+  "abitype@>=1.0.0 <1.2.0": ^1.2.4
+  "@actions/http-client@<3.0.2": ^3.0.2
+  "h3@<1.15.6": ^1.15.6
+  "basic-ftp@<5.2.0": ^5.2.0
+  "@esbuild-kit/core-utils>esbuild@<0.25.0": ^0.25.9
+  "tar@<7.5.19": ^7.5.19
+  "js-yaml@<3.15.0": ^3.15.0
+  "js-yaml@>=4 <4.3.0": ^4.3.0
+  "brace-expansion@>=2 <2.1.4": ^2.1.4
+  "brace-expansion@>=5 <5.0.9": ^5.0.9
+  "linkify-it@<5.0.2": ^5.0.2
+  "socket.io-parser@<4.2.7": ^4.2.7
+  "ip-address@>=10 <10.3.1": ^10.3.1
+  "undici@>=7 <7.29.0": ^7.29.0
+  "postcss@<8.5.18": ^8.5.18
+
+auditConfig:
+  ignoreCves:
+    - CVE-2026-31802
+    - CVE-2025-64756
+    - CVE-2025-15284
+    - CVE-2026-22028
+    - CVE-2026-23527
+    - CVE-2026-23745
+    - CVE-2026-23950
+    - CVE-2026-24842
+    - CVE-2026-25223
+    - CVE-2026-25547
+    - CVE-2026-25639
+    - CVE-2026-26960
+    - CVE-2026-26996
+    - CVE-2026-27606
+    - CVE-2026-27903
+    - CVE-2026-27904
+    - CVE-2026-29045
+    - CVE-2026-29786
+    - CVE-2026-33937
+    - CVE-2026-33938
+    - CVE-2026-33939
+    - CVE-2026-33940
+    - CVE-2026-33941
+    - CVE-2026-41242
+    - CVE-2026-1528
+    - CVE-2026-1526
+    - CVE-2026-2229
+    - CVE-2026-4800
+    - CVE-2026-33671
+    - CVE-2026-32141
+    - CVE-2026-33228
+    - CVE-2026-33151
+    - CVE-2026-35209
+    - CVE-2026-41324
+    - CVE-2026-33806
+    - CVE-2026-39356
+    - CVE-2026-39363
+    - CVE-2026-39364
+    - CVE-2026-42033
+    - CVE-2026-42035
+    - CVE-2026-42043
+    - CVE-2026-42264
+    - CVE-2026-44240
+    - CVE-2026-44902
+    - CVE-2026-47429
+    - CVE-2026-47219
+  ignoreGhsas:
+    - GHSA-6v7q-wjvx-w8wg
+    - GHSA-q7rr-3cgh-j5r3
+    - GHSA-5xrq-8626-4rwp
+    - GHSA-45rx-2jwx-cxfr
+    - GHSA-w5hq-g745-h8pq # Not reachable: vulnerable uuid v3/v5/v6 path needs a caller-supplied output buffer, which no consumer passes; only a transitive dep of wallet SDKs
+    - GHSA-xcpc-8h2w-3j85

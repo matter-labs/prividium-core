@@ -1,0 +1,25 @@
+{
+    "name": "@repo/test-deps",
+    "version": "0.0.0",
+    "description": "Test dependencies and utilities for integration testing",
+    "type": "module",
+    "private": true,
+    "exports": {
+        ".": "./src/index.ts"
+    },
+    "scripts": {
+        "deps:up": "docker compose up -d --wait",
+        "deps:down": "docker compose down -v",
+        "deps:logs": "docker compose logs --no-color",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "drizzle-orm": "^0.45.2",
+        "pg": "^8.13.1",
+        "pino": "^9.6.0"
+    },
+    "devDependencies": {
+        "@types/pg": "^8.23.1",
+        "typescript": "^5.8.3"
+    }
+}

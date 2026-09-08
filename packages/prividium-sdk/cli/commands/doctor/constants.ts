@@ -1,0 +1,1 @@
+export const DEFAULT_DOCTOR_CALLBACK_PORT = 24101;

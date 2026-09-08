@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+.pnp.*
+
+# Environment variables (.env.example files are committed and carry no real secrets)
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Build outputs
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Cache directories
+.npm/
+.pnpm-store/
+.cache/
+.turbo/
+
+# IDE and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+._*
+Thumbs.db
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Generated API client
+packages/api-types/permissions-api/generated/
+packages/api-types/permissions-api/spec/

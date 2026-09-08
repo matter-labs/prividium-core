@@ -1,0 +1,23 @@
+{
+    "$schema": "https://turborepo.com/schema.json",
+    "tasks": {
+        "dev": {
+            "persistent": true,
+            "cache": false,
+            "dependsOn": ["@repo/prividium-sdk#build"],
+            "inputs": ["$TURBO_DEFAULT$", ".env", ".env.local"]
+        },
+        "build": {
+            "inputs": ["$TURBO_DEFAULT$"],
+            "dependsOn": ["^build"],
+            "outputs": ["build/**", "dist/**"]
+        },
+        "typecheck": {
+            "dependsOn": ["@repo/prividium-sdk#build"]
+        },
+        "@repo/prividium-sdk#build": {
+            "inputs": ["$TURBO_DEFAULT$"],
+            "outputs": ["dist/**"]
+        }
+    }
+}

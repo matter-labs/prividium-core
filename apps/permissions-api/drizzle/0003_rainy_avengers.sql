@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS "user_wallets_unique_address" ON "user_wallets" USING btree ("wallet_address");

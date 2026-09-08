@@ -1,0 +1,29 @@
+# Dependencies
+node_modules
+.prettier-cache
+
+# Build outputs
+dist
+build
+*.min.js
+
+# Generated files
+*.generated.*
+*.d.ts
+
+# Large files that don't need formatting
+*.min.css
+*.bundle.js
+
+# Project specific
+packages/api-types/**/generated/**
+packages/api-types/**/spec/**
+
+# Foundry/Soldeer managed
+**/dependencies/**
+
+# Licence text is verbatim -- prettier rewraps it
+LICENSE.md
+
+# Legal text is verbatim -- prettier rewraps it
+CLA/*.md

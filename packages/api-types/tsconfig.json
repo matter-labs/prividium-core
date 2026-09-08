@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+        "outDir": "./dist",
+        "rootDir": "./",
+        "declaration": true,
+        "declarationMap": true,
+        "composite": true,
+        "module": "preserve",
+        "noEmit": true,
+        "lib": ["ES2022"]
+    },
+    "exclude": ["node_modules", "dist", "**/generated/**"]
+}

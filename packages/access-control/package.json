@@ -1,0 +1,23 @@
+{
+    "name": "@repo/access-control",
+    "version": "0.0.0",
+    "description": "Permissions API for zksync-prividium",
+    "type": "module",
+    "exports": {
+        ".": "./src/index.ts",
+        "./src/actor-types": "./src/actor-types.ts",
+        "./src/audit-actions": "./src/audit-actions.ts",
+        "./src/constants": "./src/constants.ts"
+    },
+    "scripts": {
+        "typecheck": "tsc --noEmit",
+        "test": "vitest run"
+    },
+    "dependencies": {
+        "permix": "^3.5.0"
+    },
+    "devDependencies": {
+        "typescript": "^5.8.3",
+        "vitest": "^3.2.6"
+    }
+}

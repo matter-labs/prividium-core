@@ -1,0 +1,15 @@
+batcher:
+  batch_timeout: 100ms
+
+prover_api:
+  fake_fri_provers:
+    compute_time: 0ms
+    min_age: 0ms
+  fake_snark_provers:
+    max_batch_age: 0ms
+
+l1_provider:
+  rpc_poll_interval: 200ms
+
+rpc:
+  send_raw_transaction_sync_timeout: 10s

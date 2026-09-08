@@ -1,0 +1,608 @@
+{
+    "version": "7",
+    "dialect": "postgresql",
+    "entries": [
+        {
+            "idx": 0,
+            "version": "7",
+            "when": 1750704697611,
+            "tag": "0000_large_gauntlet",
+            "breakpoints": true
+        },
+        {
+            "idx": 1,
+            "version": "7",
+            "when": 1751602974896,
+            "tag": "0001_reflective_starhawk",
+            "breakpoints": true
+        },
+        {
+            "idx": 2,
+            "version": "7",
+            "when": 1752548243686,
+            "tag": "0002_mature_emma_frost",
+            "breakpoints": true
+        },
+        {
+            "idx": 3,
+            "version": "7",
+            "when": 1753452945576,
+            "tag": "0003_rainy_avengers",
+            "breakpoints": true
+        },
+        {
+            "idx": 4,
+            "version": "7",
+            "when": 1754327387363,
+            "tag": "0004_exotic_epoch",
+            "breakpoints": true
+        },
+        {
+            "idx": 5,
+            "version": "7",
+            "when": 1754498329440,
+            "tag": "0005_clammy_exiles",
+            "breakpoints": true
+        },
+        {
+            "idx": 6,
+            "version": "7",
+            "when": 1755007747862,
+            "tag": "0006_adorable_shockwave",
+            "breakpoints": true
+        },
+        {
+            "idx": 7,
+            "version": "7",
+            "when": 1755019272577,
+            "tag": "0007_keen_apocalypse",
+            "breakpoints": true
+        },
+        {
+            "idx": 8,
+            "version": "7",
+            "when": 1755894895662,
+            "tag": "0008_lovely_odin",
+            "breakpoints": true
+        },
+        {
+            "idx": 9,
+            "version": "7",
+            "when": 1755916920627,
+            "tag": "0009_mighty_kronos",
+            "breakpoints": true
+        },
+        {
+            "idx": 10,
+            "version": "7",
+            "when": 1756161658156,
+            "tag": "0010_broad_malcolm_colcord",
+            "breakpoints": true
+        },
+        {
+            "idx": 11,
+            "version": "7",
+            "when": 1756728026798,
+            "tag": "0011_small_wild_child",
+            "breakpoints": true
+        },
+        {
+            "idx": 12,
+            "version": "7",
+            "when": 1756730996893,
+            "tag": "0012_icy_mimic",
+            "breakpoints": true
+        },
+        {
+            "idx": 13,
+            "version": "7",
+            "when": 1756744458819,
+            "tag": "0013_even_lockjaw",
+            "breakpoints": true
+        },
+        {
+            "idx": 14,
+            "version": "7",
+            "when": 1756822224760,
+            "tag": "0014_parched_alice",
+            "breakpoints": true
+        },
+        {
+            "idx": 15,
+            "version": "7",
+            "when": 1756992281948,
+            "tag": "0015_colorful_golden_guardian",
+            "breakpoints": true
+        },
+        {
+            "idx": 16,
+            "version": "7",
+            "when": 1757002159430,
+            "tag": "0016_wild_obadiah_stane",
+            "breakpoints": true
+        },
+        {
+            "idx": 17,
+            "version": "7",
+            "when": 1757936453532,
+            "tag": "0017_cheerful_layla_miller",
+            "breakpoints": true
+        },
+        {
+            "idx": 18,
+            "version": "7",
+            "when": 1759763440933,
+            "tag": "0018_little_betty_ross",
+            "breakpoints": true
+        },
+        {
+            "idx": 19,
+            "version": "7",
+            "when": 1759778494798,
+            "tag": "0019_lonely_wilson_fisk",
+            "breakpoints": true
+        },
+        {
+            "idx": 20,
+            "version": "7",
+            "when": 1760613487564,
+            "tag": "0020_lyrical_jean_grey",
+            "breakpoints": true
+        },
+        {
+            "idx": 21,
+            "version": "7",
+            "when": 1761756503526,
+            "tag": "0021_broad_iron_patriot",
+            "breakpoints": true
+        },
+        {
+            "idx": 22,
+            "version": "7",
+            "when": 1761844238839,
+            "tag": "0022_outgoing_rage",
+            "breakpoints": true
+        },
+        {
+            "idx": 23,
+            "version": "7",
+            "when": 1762281022412,
+            "tag": "0023_clear_black_tom",
+            "breakpoints": true
+        },
+        {
+            "idx": 24,
+            "version": "7",
+            "when": 1762828545031,
+            "tag": "0024_flawless_prowler",
+            "breakpoints": true
+        },
+        {
+            "idx": 25,
+            "version": "7",
+            "when": 1763148371012,
+            "tag": "0025_glossy_franklin_storm",
+            "breakpoints": true
+        },
+        {
+            "idx": 26,
+            "version": "7",
+            "when": 1763737769646,
+            "tag": "0026_married_agent_brand",
+            "breakpoints": true
+        },
+        {
+            "idx": 27,
+            "version": "7",
+            "when": 1764092833500,
+            "tag": "0027_plain_agent_brand",
+            "breakpoints": true
+        },
+        {
+            "idx": 28,
+            "version": "7",
+            "when": 1764785018069,
+            "tag": "0028_public_quentin_quire",
+            "breakpoints": true
+        },
+        {
+            "idx": 29,
+            "version": "7",
+            "when": 1765393312576,
+            "tag": "0029_chilly_obadiah_stane",
+            "breakpoints": true
+        },
+        {
+            "idx": 30,
+            "version": "7",
+            "when": 1765400000000,
+            "tag": "0030_dark_kabuki",
+            "breakpoints": true
+        },
+        {
+            "idx": 31,
+            "version": "7",
+            "when": 1765500000000,
+            "tag": "0031_contracts_template_key_index",
+            "breakpoints": true
+        },
+        {
+            "idx": 32,
+            "version": "7",
+            "when": 1765600000000,
+            "tag": "0032_template_id_refactor",
+            "breakpoints": true
+        },
+        {
+            "idx": 33,
+            "version": "7",
+            "when": 1765960148036,
+            "tag": "0033_remove_application_from_tenant",
+            "breakpoints": true
+        },
+        {
+            "idx": 34,
+            "version": "7",
+            "when": 1766156274631,
+            "tag": "0034_contract-event-permission-support",
+            "breakpoints": true
+        },
+        {
+            "idx": 35,
+            "version": "7",
+            "when": 1766159974171,
+            "tag": "0035_add_transaction_value_to_allowances",
+            "breakpoints": true
+        },
+        {
+            "idx": 36,
+            "version": "7",
+            "when": 1767879568359,
+            "tag": "0036_add_full_read_access_system_permission",
+            "breakpoints": true
+        },
+        {
+            "idx": 37,
+            "version": "7",
+            "when": 1768385889791,
+            "tag": "0037_change_allowances_value_to_bigint",
+            "breakpoints": true
+        },
+        {
+            "idx": 38,
+            "version": "7",
+            "when": 1768401813364,
+            "tag": "0038_validate_constraint",
+            "breakpoints": true
+        },
+        {
+            "idx": 39,
+            "version": "7",
+            "when": 1769619991155,
+            "tag": "0039_add_passkeys",
+            "breakpoints": true
+        },
+        {
+            "idx": 40,
+            "version": "7",
+            "when": 1770377486803,
+            "tag": "0040_add_tenant_api_keys",
+            "breakpoints": true
+        },
+        {
+            "idx": 41,
+            "version": "7",
+            "when": 1770735595300,
+            "tag": "0041_add_contract_deployments_table",
+            "breakpoints": true
+        },
+        {
+            "idx": 42,
+            "version": "7",
+            "when": 1771433167824,
+            "tag": "0042_add_wallets_deleted_at",
+            "breakpoints": true
+        },
+        {
+            "idx": 43,
+            "version": "7",
+            "when": 1772060043975,
+            "tag": "0043_hard_famine",
+            "breakpoints": true
+        },
+        {
+            "idx": 44,
+            "version": "7",
+            "when": 1772481721115,
+            "tag": "0044_add_is_system_contract",
+            "breakpoints": true
+        },
+        {
+            "idx": 45,
+            "version": "7",
+            "when": 1773277709263,
+            "tag": "0045_add_display_name_not_null_check",
+            "breakpoints": true
+        },
+        {
+            "idx": 46,
+            "version": "7",
+            "when": 1773277735696,
+            "tag": "0046_validate_display_name_not_nullable",
+            "breakpoints": true
+        },
+        {
+            "idx": 47,
+            "version": "7",
+            "when": 1773328907165,
+            "tag": "0047_add_token_hash_to_sessions",
+            "breakpoints": true
+        },
+        {
+            "idx": 48,
+            "version": "7",
+            "when": 1773685876220,
+            "tag": "0048_drop_siwe_messages_and_add_siwe_hmac_support",
+            "breakpoints": true
+        },
+        {
+            "idx": 49,
+            "version": "7",
+            "when": 1774638294000,
+            "tag": "0049_audit_logging_spec",
+            "breakpoints": true
+        },
+        {
+            "idx": 50,
+            "version": "7",
+            "when": 1774968731993,
+            "tag": "0050_add_m2m_apps",
+            "breakpoints": true
+        },
+        {
+            "idx": 51,
+            "version": "7",
+            "when": 1774968761811,
+            "tag": "0051_rename_api_keys_tables",
+            "breakpoints": true
+        },
+        {
+            "idx": 52,
+            "version": "7",
+            "when": 1774997928150,
+            "tag": "0052_add_organizations",
+            "breakpoints": true
+        },
+        {
+            "idx": 53,
+            "version": "7",
+            "when": 1775002000000,
+            "tag": "0053_audit_skip_columns",
+            "breakpoints": true
+        },
+        {
+            "idx": 54,
+            "version": "7",
+            "when": 1776169860881,
+            "tag": "0054_selective_disclosure_renames",
+            "breakpoints": true
+        },
+        {
+            "idx": 55,
+            "version": "7",
+            "when": 1776794989181,
+            "tag": "0055_married_ben_urich",
+            "breakpoints": true
+        },
+        {
+            "idx": 56,
+            "version": "7",
+            "when": 1776945737844,
+            "tag": "0056_add_step_up_proofs",
+            "breakpoints": true
+        },
+        {
+            "idx": 57,
+            "version": "7",
+            "when": 1777453169784,
+            "tag": "0057_drop_token_column",
+            "breakpoints": true
+        },
+        {
+            "idx": 58,
+            "version": "7",
+            "when": 1777465932221,
+            "tag": "0058_add_faucet",
+            "breakpoints": true
+        },
+        {
+            "idx": 59,
+            "version": "7",
+            "when": 1779087555082,
+            "tag": "0059_is_umbrella",
+            "breakpoints": true
+        },
+        {
+            "idx": 60,
+            "version": "7",
+            "when": 1779347608958,
+            "tag": "0060_selective_disclosure_min_block",
+            "breakpoints": true
+        },
+        {
+            "idx": 61,
+            "version": "7",
+            "when": 1779801370502,
+            "tag": "0061_add_role_name_indexes",
+            "breakpoints": true
+        },
+        {
+            "idx": 62,
+            "version": "7",
+            "when": 1780315148097,
+            "tag": "0062_add_multi_org_data_model",
+            "breakpoints": true
+        },
+        {
+            "idx": 63,
+            "version": "7",
+            "when": 1780330211739,
+            "tag": "0063_add_user_oidc_issuer",
+            "breakpoints": true
+        },
+        {
+            "idx": 64,
+            "version": "7",
+            "when": 1780662455316,
+            "tag": "0064_add_user_oidc_sub_no_issuer_unique",
+            "breakpoints": true
+        },
+        {
+            "idx": 65,
+            "version": "7",
+            "when": 1781102427026,
+            "tag": "0065_add_org_only_flags_for_function_permissions",
+            "breakpoints": true
+        },
+        {
+            "idx": 66,
+            "version": "7",
+            "when": 1781515050450,
+            "tag": "0066_drop_oidc_provider_org_fk_cascade",
+            "breakpoints": true
+        },
+        {
+            "idx": 67,
+            "version": "7",
+            "when": 1781515050451,
+            "tag": "0067_validate_oidc_provider_org_fk",
+            "breakpoints": true
+        },
+        {
+            "idx": 68,
+            "version": "7",
+            "when": 1781618674194,
+            "tag": "0068_decouple_audit_logs_actor_fks",
+            "breakpoints": true
+        },
+        {
+            "idx": 69,
+            "version": "7",
+            "when": 1781707513132,
+            "tag": "0069_align_disclose_erc20_total_supply_casing",
+            "breakpoints": true
+        },
+        {
+            "idx": 70,
+            "version": "7",
+            "when": 1781719146878,
+            "tag": "0070_drop_org_fk_cascade",
+            "breakpoints": true
+        },
+        {
+            "idx": 71,
+            "version": "7",
+            "when": 1781719146879,
+            "tag": "0071_validate_org_fk",
+            "breakpoints": true
+        },
+        {
+            "idx": 72,
+            "version": "7",
+            "when": 1781719146880,
+            "tag": "0072_convert_allowance_tx_hash_to_bytea",
+            "breakpoints": true
+        },
+        {
+            "idx": 73,
+            "version": "7",
+            "when": 1782317557566,
+            "tag": "0073_allow_deployments_in_allowances",
+            "breakpoints": true
+        },
+        {
+            "idx": 74,
+            "version": "7",
+            "when": 1783347235168,
+            "tag": "0074_normalize_application_origins",
+            "breakpoints": true
+        },
+        {
+            "idx": 75,
+            "version": "7",
+            "when": 1783347335168,
+            "tag": "0075_add_m2m_application_owner_organization_id",
+            "breakpoints": true
+        },
+        {
+            "idx": 76,
+            "version": "7",
+            "when": 1783684662560,
+            "tag": "0076_add_oidc_provider_user_panel_url",
+            "breakpoints": true
+        },
+        {
+            "idx": 77,
+            "version": "7",
+            "when": 1783696682222,
+            "tag": "0077_roles_surrogate_id",
+            "breakpoints": true
+        },
+        {
+            "idx": 78,
+            "version": "7",
+            "when": 1783936488458,
+            "tag": "0078_add_transaction_status_api",
+            "breakpoints": true
+        },
+        {
+            "idx": 79,
+            "version": "7",
+            "when": 1784107991058,
+            "tag": "0079_add_org_siwe_settings",
+            "breakpoints": true
+        },
+        {
+            "idx": 80,
+            "version": "7",
+            "when": 1784126172878,
+            "tag": "0080_enforce_org_scoped_role_assignments",
+            "breakpoints": true
+        },
+        {
+            "idx": 81,
+            "version": "7",
+            "when": 1784888072574,
+            "tag": "0081_add_submission_outcome",
+            "breakpoints": true
+        },
+        {
+            "idx": 82,
+            "version": "7",
+            "when": 1785772492947,
+            "tag": "0082_add_sessions_renewable_until",
+            "breakpoints": true
+        },
+        {
+            "idx": 83,
+            "version": "7",
+            "when": 1786626444139,
+            "tag": "0083_add_users_organization_id_index",
+            "breakpoints": true
+        },
+        {
+            "idx": 84,
+            "version": "7",
+            "when": 1787041641330,
+            "tag": "0084_add_event_permission_organization_only",
+            "breakpoints": true
+        },
+        {
+            "idx": 85,
+            "version": "7",
+            "when": 1788445823074,
+            "tag": "0085_release_transaction_status_ledger",
+            "breakpoints": true
+        }
+    ]
+}

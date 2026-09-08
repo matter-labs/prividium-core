@@ -1,0 +1,77 @@
+{
+    "name": "@repo/prividium-sdk",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "bin": {
+        "prividium": "bin/cli.js"
+    },
+    "exports": {
+        ".": {
+            "import": "./dist/sdk/index.js",
+            "types": "./dist/sdk/index.d.ts"
+        },
+        "./siwe": {
+            "import": "./dist/sdk/siwe.js",
+            "types": "./dist/sdk/siwe.d.ts"
+        }
+    },
+    "imports": {
+        "#sdk": {
+            "import": "./dist/sdk/index.js",
+            "types": "./dist/sdk/index.d.ts"
+        },
+        "#sdk/siwe": {
+            "import": "./dist/sdk/siwe.js",
+            "types": "./dist/sdk/siwe.d.ts"
+        }
+    },
+    "license": "MIT OR Apache-2.0",
+    "files": [
+        "dist",
+        "LICENSE-MIT",
+        "LICENSE-APACHE",
+        "README.md"
+    ],
+    "scripts": {
+        "build": "tsc -b && pnpm copy-static-files",
+        "copy-static-files": "cp -r cli/static dist/cli",
+        "dev": "tsc -b --watch",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "typecheck": "tsc -b && pnpm typecheck:test",
+        "cli": "tsc -b tsconfig.sdk.json && tsx bin/cli.js",
+        "typecheck:test": "tsc --project tsconfig.test.json --noEmit",
+        "verify-publish-shape": "tsx scripts/verify-publish-shape.ts",
+        "prepublishOnly": "pnpm build && pnpm verify-publish-shape"
+    },
+    "dependencies": {
+        "@clack/prompts": "^0.11.0",
+        "@fastify/http-proxy": "^11.4.4",
+        "@fastify/static": "^10.1.2",
+        "appdirsjs": "^1.2.7",
+        "blakejs": "^1.2.1",
+        "date-fns": "^4.1.0",
+        "fastify": "^5.12.1",
+        "fastify-type-provider-zod": "^6.1.0",
+        "kleur": "^4.1.5",
+        "open": "^10.1.0",
+        "yargs": "^18.0.0",
+        "zod": "^4.1.12"
+    },
+    "peerDependencies": {
+        "viem": ">=2.0.0"
+    },
+    "devDependencies": {
+        "@repo/api-types": "workspace:*",
+        "@semantic-release/exec": "^7.1.0",
+        "@types/node": "^22.8.6",
+        "@types/yargs": "^17.0.34",
+        "@vitest/coverage-v8": "3.2.6",
+        "jsdom": "^25.0.0",
+        "semantic-release": "^25.0.2",
+        "tsx": "^4.20.6",
+        "typescript": "^5.8.3",
+        "vitest": "^3.2.6"
+    }
+}

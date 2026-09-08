@@ -1,0 +1,29 @@
+{
+    "name": "@repo/api-types",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "exports": {
+        "./permissions-api": "./permissions-api/generated/index.ts",
+        "./permissions-api/export-openapi-spec": "./permissions-api/scripts/export-openapi-spec.ts"
+    },
+    "files": [
+        "permissions-api/**/*"
+    ],
+    "scripts": {
+        "build": "pnpm run generate",
+        "generate": "pnpm run generate:permissions-api",
+        "dev": "pnpm run generate:watch:permissions-api",
+        "generate:check": "pnpm run generate:check:permissions-api",
+        "generate:permissions-api": "tsx permissions-api/scripts/export-openapi-spec.ts",
+        "generate:watch:permissions-api": "tsx watch --exclude 'permissions-api/generated/**/*' permissions-api/scripts/export-openapi-spec.ts",
+        "generate:check:permissions-api": "tsx permissions-api/scripts/export-openapi-spec.ts --check"
+    },
+    "devDependencies": {
+        "@hey-api/openapi-ts": "^0.80.8",
+        "@types/node": "^22.15.31",
+        "pino": "^9.9.5",
+        "tsx": "4.20.3",
+        "typescript": "^5.4.2"
+    }
+}

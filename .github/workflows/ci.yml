@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      # A `services:` block cannot set --shm-size or pass server flags, and the suite needs both:
+      # packages/test-deps hardcodes postgres://postgres:notsecurepassword@localhost:5500, clones a
+      # template database per test, and runs up to 16 workers against it.
+      - name: Start PostgreSQL
+        run: |
+          docker run -d --name prividium-test-postgres \
+            --shm-size=1g \
+            -p 127.0.0.1:5500:5432 \
+            -e POSTGRES_PASSWORD=notsecurepassword \
+            postgres:18 \
+            -c max_connections=1000 \
+            -c fsync=off \
+            -c synchronous_commit=off \
+            -c full_page_writes=off
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Check dependency licences
+        run: ./scripts/check-licences.sh
+
+      # The export loads the permissions API, which imports the SDK's built dist/.
+      - name: Build SDK
+        run: pnpm --filter @repo/prividium-sdk build
+
+      # turbo.json does not make @repo/api-types#build depend on this, and the spec it reads is not
+      # committed, so a clean checkout fails the build without this step.
+      - name: Export OpenAPI spec
+        run: pnpm --filter @repo/permissions-api run export-openapi-spec
+
+      - name: Build
+        run: pnpm build
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Wait for PostgreSQL
+        run: |
+          until docker exec prividium-test-postgres pg_isready -U postgres; do
+            sleep 1
+          done
+
+      - name: Test
+        run: pnpm test
+
+      - name: Print PostgreSQL logs
+        if: failure()
+        run: docker logs prividium-test-postgres
