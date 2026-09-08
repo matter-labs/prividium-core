@@ -14,7 +14,7 @@
         "test": "vitest run"
     },
     "dependencies": {
-        "permix": "^3.5.0"
+        "permix": "^4.1.2"
     },
     "devDependencies": {
         "typescript": "^5.8.3",
