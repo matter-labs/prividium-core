@@ -16,11 +16,11 @@
     "description": "Permissioned RPC proxy and permissions API for ZKsync networks",
     "packageManager": "pnpm@10.28.1",
     "devDependencies": {
-        "@biomejs/biome": "^2.4.4",
+        "@biomejs/biome": "^2.5.12",
         "@vitest/coverage-v8": "3.2.6",
         "prettier": "^3.6.2",
-        "tsx": "^4.22.4",
-        "turbo": "^2.9.18",
+        "tsx": "^4.23.13",
+        "turbo": "^2.10.12",
         "vitest": "^3.2.6"
     }
 }
