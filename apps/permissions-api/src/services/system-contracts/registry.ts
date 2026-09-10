@@ -104,6 +104,13 @@ export const SYSTEM_CONTRACTS_REGISTRY: readonly SystemContractDefinition[] = [
             },
             {
                 type: 'function',
+                inputs: [{ name: '_token', internalType: 'address', type: 'address' }],
+                name: 'assetId',
+                outputs: [{ name: '', internalType: 'bytes32', type: 'bytes32' }],
+                stateMutability: 'view'
+            },
+            {
+                type: 'function',
                 inputs: [{ name: 'assetId', internalType: 'bytes32', type: 'bytes32' }],
                 name: 'originChainId',
                 outputs: [{ name: 'originChainId', internalType: 'uint256', type: 'uint256' }],
