@@ -233,6 +233,7 @@ describe('verifyAccountPropertiesProof', () => {
                 stateCommitment,
                 BigInt(l1VerificationData.numberOfLayer1Txs),
                 l1VerificationData.priorityOperationsHash,
+                l1VerificationData.dependencyRootsRollingHash,
                 l1VerificationData.l2ToL1LogsRootHash,
                 l1VerificationData.commitment
             )

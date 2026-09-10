@@ -183,6 +183,7 @@ export async function verifyEthCallDisclosure({
         stateCommitment,
         BigInt(disclosure.l1VerificationData.numberOfLayer1Txs),
         disclosure.l1VerificationData.priorityOperationsHash,
+        disclosure.l1VerificationData.dependencyRootsRollingHash,
         disclosure.l1VerificationData.l2ToL1LogsRootHash,
         disclosure.l1VerificationData.commitment
     );

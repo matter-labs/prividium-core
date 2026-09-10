@@ -8,7 +8,7 @@ const mockDeps = {
     logger: pino({ level: 'silent' }),
     healthCheckIntervalMs: 1_000,
     siwe: {
-        chainId: 6565,
+        chainId: 506,
         expirationMs: 60_000,
         validDomains: ['localhost:3000'],
         challengeRateLimitCount: 10,

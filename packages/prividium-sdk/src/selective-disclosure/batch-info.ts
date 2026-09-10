@@ -1,10 +1,11 @@
-import { encodeAbiParameters, type Hex, pad, parseAbiParameters } from 'viem';
+import { encodeAbiParameters, type Hex, parseAbiParameters } from 'viem';
 
 export function encodeBatchInfo(
     batchNumber: bigint,
     stateCommitment: Hex,
     numberOfLayer1Txs: bigint,
     priorityOperationsHash: Hex,
+    dependencyRootsRollingHash: Hex,
     l2ToL1LogsRootHash: Hex,
     commitment: Hex
 ): Hex {
@@ -16,7 +17,7 @@ export function encodeBatchInfo(
             0n, // indexRepeatedStorageChanges
             numberOfLayer1Txs,
             priorityOperationsHash,
-            pad('0x00'), // dependencyRootsRollingHash
+            dependencyRootsRollingHash,
             l2ToL1LogsRootHash,
             0n, // timestamp
             commitment

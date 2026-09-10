@@ -234,6 +234,7 @@ describe('encodeBatchInfo', () => {
             expectedStateCommitment,
             BigInt(proof.l1VerificationData.numberOfLayer1Txs),
             proof.l1VerificationData.priorityOperationsHash,
+            proof.l1VerificationData.dependencyRootsRollingHash,
             proof.l1VerificationData.l2ToL1LogsRootHash,
             proof.l1VerificationData.commitment
         );

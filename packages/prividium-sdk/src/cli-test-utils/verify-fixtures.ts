@@ -157,6 +157,7 @@ export const ACCOUNT_DATA_L1_BATCH_HASH: Hex = keccak256(
         accountDataStateCommitment,
         BigInt(accountDataL1VerificationData.numberOfLayer1Txs),
         accountDataL1VerificationData.priorityOperationsHash,
+        accountDataL1VerificationData.dependencyRootsRollingHash,
         accountDataL1VerificationData.l2ToL1LogsRootHash,
         accountDataL1VerificationData.commitment
     )

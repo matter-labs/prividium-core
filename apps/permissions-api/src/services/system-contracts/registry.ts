@@ -18,7 +18,7 @@ type NarrowSystemContractDefinition = SystemContractDefinition & { isSystemContr
  * To add a new system contract, append an entry to this array.
  */
 export const SYSTEM_CONTRACTS_REGISTRY: readonly SystemContractDefinition[] = [
-    // ETH withdrawals: zksync-js calls withdraw(address) on this contract to initiate an L2→L1 ETH transfer.
+    // ETH withdrawals on protocol v31 only; v33 routes them through InteropCenter.sendBundle.
     {
         contractAddress: '0x000000000000000000000000000000000000800A',
         abi: JSON.stringify([
@@ -39,7 +39,7 @@ export const SYSTEM_CONTRACTS_REGISTRY: readonly SystemContractDefinition[] = [
         templateId: null,
         disclosureStartBlock: '0x0'
     },
-    // ERC-20 withdrawals: zksync-js calls withdraw(assetId, assetData) here to burn tokens on L2 and send the L2→L1 message.
+    // ERC-20 withdrawals on protocol v31 only; v33 routes them through InteropCenter.sendBundle.
     {
         contractAddress: '0x0000000000000000000000000000000000010003',
         abi: JSON.stringify([
@@ -119,6 +119,50 @@ export const SYSTEM_CONTRACTS_REGISTRY: readonly SystemContractDefinition[] = [
         ]),
         name: 'L2NativeTokenVault',
         description: 'Keeps track of registered native assets used by the bridge',
+        discloseBytecode: false,
+        discloseErc20TotalSupply: false,
+        isSystemContract: true,
+        organizationId: null,
+        templateId: null,
+        disclosureStartBlock: '0x0'
+    },
+    // ETH and ERC-20 withdrawals on protocol v33+: one L1-bound bundle through sendBundle.
+    {
+        contractAddress: '0x000000000000000000000000000000000001000d',
+        abi: JSON.stringify([
+            {
+                type: 'function',
+                name: 'sendBundle',
+                inputs: [
+                    { name: '_destinationChainId', internalType: 'bytes', type: 'bytes' },
+                    {
+                        name: '_callStarters',
+                        internalType: 'struct InteropCallStarter[]',
+                        type: 'tuple[]',
+                        components: [
+                            { name: 'to', internalType: 'bytes', type: 'bytes' },
+                            { name: 'data', internalType: 'bytes', type: 'bytes' },
+                            { name: 'callAttributes', internalType: 'bytes[]', type: 'bytes[]' }
+                        ]
+                    },
+                    { name: '_bundleAttributes', internalType: 'bytes[]', type: 'bytes[]' }
+                ],
+                outputs: [{ name: 'bundleHash', internalType: 'bytes32', type: 'bytes32' }],
+                stateMutability: 'payable'
+            },
+            {
+                type: 'function',
+                name: 'isInteropBundleSaltUsed',
+                inputs: [
+                    { name: 'user', internalType: 'address', type: 'address' },
+                    { name: 'salt', internalType: 'bytes32', type: 'bytes32' }
+                ],
+                outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+                stateMutability: 'view'
+            }
+        ]),
+        name: 'InteropCenter',
+        description: 'Sends cross-chain bundles, including L2→L1 withdrawals on protocol v33 and later',
         discloseBytecode: false,
         discloseErc20TotalSupply: false,
         isSystemContract: true,
