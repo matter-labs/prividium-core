@@ -110,6 +110,11 @@ A healthy service answers `200` with the database probe passing:
 
 `/readyz` returns the same payload. `500` on either means a probe failed — `checks` says which one.
 
+## Withdrawal permissions
+
+For chains using interop withdrawals, see [Authorize interop withdrawals](docs/interop-withdrawals.md) for the
+InteropCenter method permission required by the watchdog and SDK.
+
 ## Build and typecheck
 
 `pnpm build` and `pnpm typecheck` need the TypeScript client in `packages/api-types`, which is generated from an OpenAPI
