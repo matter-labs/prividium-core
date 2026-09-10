@@ -396,6 +396,41 @@ describe('WalletTransactionAllowancesRepository', () => {
             expect(latest?.walletAddress).toBe(walletB);
         });
 
+        it('should return a re-authorized allowance, not the one inserted last', async () => {
+            const a1: NewWalletTransactionAllowance = {
+                userId: testUser.id,
+                walletAddress: walletA,
+                toAddress: contract1,
+                transactionNonce: 10,
+                transactionCalldata: calldata1,
+                transactionValue: 0n,
+                activeUntil: new Date(Date.now() + 60_000)
+            };
+            const a2: NewWalletTransactionAllowance = {
+                userId: testUser.id,
+                walletAddress: walletB,
+                toAddress: contract2,
+                transactionNonce: 11,
+                transactionCalldata: calldata2,
+                transactionValue: 0n,
+                activeUntil: new Date(Date.now() + 60_000)
+            };
+
+            await repository.createOrUpdate(a1);
+            await new Promise((r) => setTimeout(r, 10));
+            await repository.createOrUpdate(a2);
+            await new Promise((r) => setTimeout(r, 10));
+
+            // Re-authorizing walletA hits the same primary key, so this updates the existing row
+            // rather than inserting a new one. walletB's row keeps the later createdAt.
+            await repository.createOrUpdate({ ...a1, activeUntil: new Date(Date.now() + 60_000) });
+
+            const latest = await repository.latestForUser(testUser.id);
+            expect(latest).toBeDefined();
+            expect(latest?.walletAddress).toBe(walletA);
+            expect(latest?.transactionNonce).toBe(10);
+        });
+
         it('should treat activeUntil === now as expired (boundary)', async () => {
             const now = new Date();
             const allowance: NewWalletTransactionAllowance = {

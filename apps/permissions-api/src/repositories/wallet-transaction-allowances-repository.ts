@@ -70,8 +70,11 @@ export class WalletTransactionAllowancesRepository extends BaseRepository {
                 eq(walletTransactionAllowancesTable.userId, userId),
                 gt(walletTransactionAllowancesTable.activeUntil, now)
             ),
+            // updatedAt, not createdAt: re-authorizing a wallet upserts onto the existing
+            // (userId, walletAddress, transactionNonce) row, so createdAt still holds the first
+            // authorization's time and would rank a stale allowance above the current one.
             orderBy: (f, { desc }) => {
-                return [desc(f.createdAt)];
+                return [desc(f.updatedAt)];
             }
         });
     }
