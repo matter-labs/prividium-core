@@ -5,6 +5,7 @@ import type { UserWithRoles } from '../repositories/users-repository';
 import type { ExternalRpc } from '../rpc/target-rpc';
 import { ChainUnavailableError, ForbiddenError, InvalidInputError } from '../utils/error-types';
 import { hexListIncludes } from '../utils/hex';
+import { isReservedContractAddress } from '../utils/reserved-contract-address';
 
 export const CODE_CHECK_TIMEOUT_MS = 5_000;
 
@@ -22,8 +23,6 @@ export async function assertAddressHasCode(chainRpc: ExternalRpc, address: Addre
         throw new ChainUnavailableError('Cannot reach the chain to verify the contract address', { cause: err });
     }
     if (!deployed) {
-        // The 400 here vs the 403 from the deployer check is a deliberate split: the 403 alone
-        // already reveals a foreign deploy, so collapsing them would not hide anything.
         throw new InvalidInputError(`No contract is deployed at ${address}`);
     }
 }
@@ -47,6 +46,12 @@ export type OrgRegistrationCheck = {
     caller: UserWithRoles;
 };
 
+export function assertOrgContractAddress(address: Address): void {
+    if (isReservedContractAddress(address)) {
+        throw new InvalidInputError('Cannot register a reserved contract address to an organization');
+    }
+}
+
 /**
  * Guard for the org routes (org admin or zone operator). Operators skip the deployer
  * match: they can already assign any contract to any organization.
@@ -55,6 +60,7 @@ export async function assertOrgContractRegisterable(
     address: Address,
     { chainRpc, repos, organizationId, caller }: OrgRegistrationCheck
 ): Promise<void> {
+    assertOrgContractAddress(address);
     await assertAddressHasCode(chainRpc, address);
     if (hasZoneSystemPermission(caller, 'admin_write')) {
         return;
@@ -65,7 +71,6 @@ export async function assertOrgContractRegisterable(
     });
 }
 
-// A missing record is normal (factory, CREATE2, pre-existing contract), so it cannot be required.
 // Pending rows count as claims: a timed-out sync deploy may still mine, so skipping pending rows
 // would let another org claim the address in that window.
 async function assertDeployerAllowed(
@@ -79,7 +84,9 @@ async function assertDeployerAllowed(
             succeeded !== undefined ? [succeeded] : repos.contractDeployments.findAllPendingByAddress(address)
         );
     if (claims.length === 0) {
-        return;
+        throw new ForbiddenError(
+            "Cannot verify this organization's ownership; ask a zone operator to review the registration."
+        );
     }
     if (claims.some((claim) => hexListIncludes(callerWallets, claim.deployerAddress))) {
         return;
@@ -92,5 +99,7 @@ async function assertDeployerAllowed(
         }
     }
 
-    throw new ForbiddenError('This address was deployed by another organization');
+    throw new ForbiddenError(
+        "Cannot verify this organization's ownership; ask a zone operator to review the registration."
+    );
 }

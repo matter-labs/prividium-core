@@ -16,6 +16,7 @@ import type { EventPermissionVerifier } from '../../services/event-permission-ve
 import { EntityNotFound } from '../../utils/error-types';
 import { areHexEqual } from '../../utils/hex';
 import type { PinoLogger } from '../../utils/logger';
+import { isReservedContractAddress } from '../../utils/reserved-contract-address';
 import { AddressSet } from '../address-set';
 import { ForbiddenRpcError, UnauthorizedRpcError } from '../errors';
 import type { GetLogsFilter } from '../methods/handlers';
@@ -492,7 +493,7 @@ export class RpcAuthorizer implements Authorizer {
     private async orgContractAddresses(roleHolder: RoleHolder) {
         const orgIds = allOrgsWithFullVisibility(roleHolder, ['rpc_read_eth_getLogs']);
         const queries = orgIds.map((orgId) => this.repos.contracts.allContractAddressesForOrg(orgId));
-        return Promise.all(queries).then((queries) => queries.flat());
+        return Promise.all(queries).then((queries) => queries.flat().filter((a) => !isReservedContractAddress(a)));
     }
 
     async couldQueryMatchPermissions(filter: GetLogsFilter): Promise<boolean> {
@@ -571,6 +572,9 @@ export class RpcAuthorizer implements Authorizer {
         includeUsers: boolean,
         extraGrantPermissions: SystemPermission[]
     ): Promise<boolean> {
+        if (isReservedContractAddress(toAddress)) {
+            return false;
+        }
         const contract = await this.findContractWithCache(toAddress);
         const orgId = contract?.organizationId;
 
@@ -595,10 +599,10 @@ export class RpcAuthorizer implements Authorizer {
     }
 
     private async contractOrgsWithCache(addresses: Address[]): Promise<Map<string, string | null>> {
-        if (!this.eventVerifier.multiOrgEnabled) {
-            return this._contractOrgs;
-        }
-        const missing = [...new Set(addresses.map((a) => a.toLowerCase()))].filter(
+        const scopedAddresses = this.eventVerifier.multiOrgEnabled
+            ? addresses
+            : addresses.filter(isReservedContractAddress);
+        const missing = [...new Set(scopedAddresses.map((a) => a.toLowerCase()))].filter(
             (key) => !this._contractOrgs.has(key)
         );
         if (missing.length > 0) {

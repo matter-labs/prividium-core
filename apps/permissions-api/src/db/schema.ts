@@ -519,7 +519,11 @@ export const contractsTable = pgTable(
     },
     (t) => [
         index('idx_contracts_template_id').on(t.templateId),
-        index('idx_contracts_organization_id').on(t.organizationId)
+        index('idx_contracts_organization_id').on(t.organizationId),
+        check(
+            'chk_contracts_no_reserved_org_address',
+            sql`${t.organizationId} IS NULL OR ${t.contractAddress} NOT BETWEEN decode('0000000000000000000000000000000000008000', 'hex') AND decode('000000000000000000000000000000000001ffff', 'hex')`
+        )
     ]
 );
 

@@ -1,4 +1,4 @@
-import type { Address } from 'viem';
+import { type Address, pad } from 'viem';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TestExternalRpc } from '../../test/rpc/test-external-rpc';
 import type { Repositories } from '../db';
@@ -170,9 +170,7 @@ describe('assertOrgContractRegisterable', () => {
         expect(lookups).toEqual([]);
     });
 
-    it('accepts a foreign org for an address whose deployment row was errored by the TTL sweep', async () => {
-        // An errored row matches no authorship query, so the original deployer's claim is
-        // gone. The cleanup sweep reconciles mined deploys before erroring to keep this rare.
+    it('rejects an address whose only deployment record failed', async () => {
         const { repos } = reposWith({ deployerAddress: OTHER_WALLET, deployer: { organizationId: ORG_B } }, 'errored');
 
         await expect(
@@ -182,10 +180,14 @@ describe('assertOrgContractRegisterable', () => {
                 organizationId: ORG_A,
                 caller: orgAdminOfA
             })
-        ).resolves.toBeUndefined();
+        ).rejects.toThrowError(
+            new ForbiddenError(
+                "Cannot verify this organization's ownership; ask a zone operator to review the registration."
+            )
+        );
     });
 
-    it('accepts a deployed address with no deployment record', async () => {
+    it('rejects a deployed address with no deployment record', async () => {
         const { repos } = reposWith(null);
 
         await expect(
@@ -195,7 +197,11 @@ describe('assertOrgContractRegisterable', () => {
                 organizationId: ORG_A,
                 caller: orgAdminOfA
             })
-        ).resolves.toBeUndefined();
+        ).rejects.toThrowError(
+            new ForbiddenError(
+                "Cannot verify this organization's ownership; ask a zone operator to review the registration."
+            )
+        );
     });
 
     describe('when a deployment record exists', () => {
@@ -209,7 +215,11 @@ describe('assertOrgContractRegisterable', () => {
                     organizationId: ORG_A,
                     caller: orgAdminOfA
                 })
-            ).rejects.toThrowError(new ForbiddenError('This address was deployed by another organization'));
+            ).rejects.toThrowError(
+                new ForbiddenError(
+                    "Cannot verify this organization's ownership; ask a zone operator to review the registration."
+                )
+            );
         });
 
         it('accepts an org admin whose own organization deployed it', async () => {
@@ -250,7 +260,11 @@ describe('assertOrgContractRegisterable', () => {
                     organizationId: ORG_A,
                     caller: orgAdminOfA
                 })
-            ).rejects.toThrowError(new ForbiddenError('This address was deployed by another organization'));
+            ).rejects.toThrowError(
+                new ForbiddenError(
+                    "Cannot verify this organization's ownership; ask a zone operator to review the registration."
+                )
+            );
             expect(lookups).toEqual([`findByAddress:${CONTRACT}`, 'findById:deployer-user']);
         });
 
@@ -333,5 +347,31 @@ describe('assertOrgContractRegisterable', () => {
                 })
             ).rejects.toBeInstanceOf(ForbiddenError);
         });
+    });
+});
+
+describe('reserved organization registration', () => {
+    it.each([
+        '0x8000',
+        '0x8008',
+        '0xffff',
+        '0x10003',
+        '0x10004',
+        '0x1000d',
+        '0x1ffff'
+    ] as const)('rejects %s before checking code or deployment provenance for every caller', async (value) => {
+        const address = pad(value, { size: 20 });
+        const { repos, lookups } = reposWith(null);
+        for (const caller of [orgAdminOfA, zoneOperator]) {
+            await expect(
+                assertOrgContractRegisterable(address, {
+                    chainRpc: new UnreachableRpc(),
+                    repos,
+                    organizationId: ORG_A,
+                    caller
+                })
+            ).rejects.toThrow(InvalidInputError);
+        }
+        expect(lookups).toEqual([]);
     });
 });

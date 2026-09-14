@@ -26,12 +26,12 @@ import type { ApiKeyService } from '../services/api-key-service';
 import { assertOrgContractRegisterable } from '../services/contract-registration-guard';
 import type { M2mAppActionsService } from '../services/m2m-app-actions-service';
 import { deleteOrganizationAndRevokeAccess } from '../services/organizations-service';
-import { isSystemContractAddress } from '../services/system-contracts/registry';
 import { withOverbroadFlag } from '../utils/cidr';
 import { EntityNotFound, ForbiddenError, InvalidInputError, OrgQuotaExceededError } from '../utils/error-types';
 import { areHexEqual } from '../utils/hex';
 import { orgCountGauge } from '../utils/metrics';
 import { assertValidJwksUri, assertValidUserPanelUrl } from '../utils/oidc-provider-validation';
+import { isReservedContractAddress } from '../utils/reserved-contract-address';
 import { addressSchema } from '../utils/schemas/address';
 import { ErrorResponseSchema, PaginationQuerySchema, SearchQuerySchema } from '../utils/schemas/fastify-common';
 import { paginatedResult } from '../utils/schemas/pagination';
@@ -1395,7 +1395,7 @@ export function organizationsRoutes(
                 },
                 async (req, reply) => {
                     await req.repos.organizations.getById(req.params.id);
-                    if (isSystemContractAddress(req.body.contractAddress)) {
+                    if (isReservedContractAddress(req.body.contractAddress)) {
                         throw new InvalidInputError('Cannot create a contract at a system contract address');
                     }
                     await assertTemplateHasNoUmbrella(req, req.body);
@@ -1431,6 +1431,9 @@ export function organizationsRoutes(
                 },
                 async (req, reply) => {
                     await req.repos.organizations.getById(req.params.id);
+                    if (isReservedContractAddress(req.params.contractAddress)) {
+                        throw new EntityNotFound('Contract', { contractAddress: req.params.contractAddress });
+                    }
                     const contract = await req.repos.contracts.findByAddress(req.params.contractAddress, {
                         organizationId: req.params.id
                     });
@@ -1460,10 +1463,10 @@ export function organizationsRoutes(
                 },
                 async (req, reply) => {
                     await req.repos.organizations.getById(req.params.id);
-                    if (isSystemContractAddress(req.params.contractAddress)) {
+                    if (isReservedContractAddress(req.params.contractAddress)) {
                         throw new InvalidInputError('Cannot modify a system contract');
                     }
-                    if (isSystemContractAddress(req.body.contractAddress)) {
+                    if (isReservedContractAddress(req.body.contractAddress)) {
                         throw new InvalidInputError('Cannot use a system contract address');
                     }
                     // 404s unless the contract belongs to this org.
@@ -1539,7 +1542,7 @@ export function organizationsRoutes(
                 },
                 async (req, reply) => {
                     await req.repos.organizations.getById(req.params.id);
-                    if (isSystemContractAddress(req.params.contractAddress)) {
+                    if (isReservedContractAddress(req.params.contractAddress)) {
                         throw new InvalidInputError('Cannot delete a system contract');
                     }
                     // 404s unless the contract belongs to this org.
@@ -1808,6 +1811,9 @@ async function assertOrgOwnsRole(req: FastifyRequest, organizationId: string, ro
 
 async function assertOrgOwnsContract(req: FastifyRequest, organizationId: string, contractAddress: Hex): Promise<void> {
     await req.repos.organizations.getById(organizationId);
+    if (isReservedContractAddress(contractAddress)) {
+        throw new EntityNotFound('Contract', { contractAddress });
+    }
     await req.repos.contracts.findByAddress(contractAddress, { organizationId });
 }
 

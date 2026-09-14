@@ -7,6 +7,7 @@ import type { BarePermission } from '../repositories/contract-events-permissions
 import type { GetLogsFilter } from '../rpc/methods/handlers';
 import { EntityNotFound } from '../utils/error-types';
 import { areHexEqual } from '../utils/hex';
+import { isReservedContractAddress } from '../utils/reserved-contract-address';
 import { hexSizedSchema } from '../utils/schemas/hex-schema';
 import { stableStringify } from '../utils/stable-stringify';
 
@@ -129,10 +130,8 @@ export class EventPermissionVerifier {
     }
 
     private async contractOrganizations(addresses: Address[]): Promise<Map<string, string | null>> {
-        if (!this.multiOrgEnabled) {
-            return new Map();
-        }
-        return this.repos.contracts.organizationIdsByAddresses([...new Set(addresses)]);
+        const scopedAddresses = this.multiOrgEnabled ? addresses : addresses.filter(isReservedContractAddress);
+        return this.repos.contracts.organizationIdsByAddresses([...new Set(scopedAddresses)]);
     }
 
     /**
@@ -144,6 +143,9 @@ export class EventPermissionVerifier {
         permission: BarePermission,
         contractOrg: string | null
     ): Hex[] | null {
+        if (contractOrg !== null && isReservedContractAddress(permission.contractAddress)) {
+            return null;
+        }
         if (!this.multiOrgEnabled || contractOrg === null || !permission.organizationOnly) {
             return reader.wallets;
         }
@@ -160,8 +162,9 @@ export class EventPermissionVerifier {
         contractOrgs: Map<string, string | null>,
         orgAddresses: Address[] = []
     ): boolean {
-        if (orgAddresses.some((a1) => areHexEqual(a1, definition.contractAddress))) {
-            return true;
+        const isOrgAddress = orgAddresses.some((a1) => areHexEqual(a1, definition.contractAddress));
+        if (isOrgAddress) {
+            return !isReservedContractAddress(definition.contractAddress);
         }
 
         const contractOrg = contractOrgs.get(definition.contractAddress.toLowerCase()) ?? null;
@@ -208,7 +211,7 @@ export class EventPermissionVerifier {
     }
 
     async couldQueryMatch(userId: string, filter: GetLogsFilter, orgAddresses: Address[] = []): Promise<boolean> {
-        if (orgAddresses.some((a) => this.isAddressCompatible(a, filter.address))) {
+        if (orgAddresses.some((a) => !isReservedContractAddress(a) && this.isAddressCompatible(a, filter.address))) {
             return true;
         }
 
@@ -228,7 +231,7 @@ export class EventPermissionVerifier {
         filter: GetLogsFilter,
         orgAddresses: Address[] = []
     ): Promise<boolean> {
-        if (orgAddresses.some((a) => this.isAddressCompatible(a, filter.address))) {
+        if (orgAddresses.some((a) => !isReservedContractAddress(a) && this.isAddressCompatible(a, filter.address))) {
             return true;
         }
 

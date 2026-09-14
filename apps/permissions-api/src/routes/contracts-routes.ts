@@ -10,7 +10,7 @@ import {
 } from '../repositories/contracts-repository';
 import type { UserWithRoles } from '../repositories/users-repository';
 import type { ExternalRpc } from '../rpc/target-rpc';
-import { assertAddressHasCode } from '../services/contract-registration-guard';
+import { assertAddressHasCode, assertOrgContractAddress } from '../services/contract-registration-guard';
 import { isSystemContractAddress } from '../services/system-contracts/registry';
 import { ForbiddenError, InvalidInputError } from '../utils/error-types';
 import { areHexEqual } from '../utils/hex';
@@ -128,6 +128,9 @@ export function contractsRoutes(server: FastifyServer, { chainRpc }: Deps) {
                 request.auth.currentUser(),
                 request.body.organizationId
             );
+            if (organizationId !== null) {
+                assertOrgContractAddress(request.body.contractAddress);
+            }
             // These routes require zone-level `admin_write`, so the caller is always an operator and
             // the deployer match does not apply. See `assertOrgContractRegisterable`.
             await assertAddressHasCode(chainRpc, request.body.contractAddress);
@@ -180,6 +183,11 @@ export function contractsRoutes(server: FastifyServer, { chainRpc }: Deps) {
             }
             if (isSystemContractAddress(request.body.contractAddress)) {
                 throw new InvalidInputError('Cannot use a system contract address');
+            }
+            const existing = await request.repos.contracts.findByAddress(contractAddress);
+            if (existing.organizationId !== null) {
+                assertOrgContractAddress(contractAddress);
+                assertOrgContractAddress(request.body.contractAddress);
             }
             // A rewrite moves the permissions onto the new address, so it has to clear the same
             // bar as a fresh registration.

@@ -21,6 +21,7 @@ import { extractSelector } from '../utils/extract-selector';
 import { fetchChunked } from '../utils/fetch-chunked';
 import { belongsToDeletedOrganization } from '../utils/organization-membership';
 import { fetchArgMap, fetchRoleSet } from '../utils/permission-reads';
+import { isReservedContractAddress } from '../utils/reserved-contract-address';
 import type { MethodSelector } from '../utils/schemas/hex-schema';
 import { userHasWallet } from '../utils/user-wallets';
 
@@ -120,7 +121,7 @@ type DecidablePermission = {
  * The contract row a decision reads. `undefined` means the address is not registered at all,
  * which is a different thing from a registered zone-level contract (`organizationId: null`).
  */
-type RegisteredContract = { organizationId: string | null };
+type RegisteredContract = { contractAddress: Address; organizationId: string | null };
 
 /**
  * Outcome of evaluating one call in {@link AuthorizationService.checkUserAuthorizationForCalls}.
@@ -262,7 +263,7 @@ export class AuthorizationService implements MethodAuthorizer {
         // Step 2: Get the contract to check if it has a template and which organization owns it
         const contract = await this.repos.db.query.contractsTable.findFirst({
             where: (f, { eq }) => eq(f.contractAddress, contractAddress),
-            columns: { templateId: true, organizationId: true }
+            columns: { contractAddress: true, templateId: true, organizationId: true }
         });
 
         // Step 3: Query both contract permission and template permission
@@ -334,6 +335,10 @@ export class AuthorizationService implements MethodAuthorizer {
         // A dead org's id still matches its contracts', so the org check below would allow.
         if (belongsToDeletedOrganization(user)) {
             return { authorized: false, ruleId: 'user.organization_deleted' };
+        }
+
+        if (contract?.organizationId && isReservedContractAddress(contract.contractAddress)) {
+            return { authorized: false, ruleId: 'permission.missing' };
         }
 
         // Judge routes frames beneath an umbrella row here rather than skipping them, so the
