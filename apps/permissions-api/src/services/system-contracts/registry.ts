@@ -176,6 +176,18 @@ export const SYSTEM_CONTRACTS_REGISTRY: readonly SystemContractDefinition[] = [
         organizationId: null,
         templateId: null,
         disclosureStartBlock: '0x0'
+    },
+    {
+        contractAddress: '0x0000000000000000000000000000000000007001',
+        abi: JSON.stringify([]),
+        name: 'L1MessengerHook',
+        description: 'Hook invoked while sending messages to L1',
+        discloseBytecode: false,
+        discloseErc20TotalSupply: false,
+        isSystemContract: true,
+        organizationId: null,
+        templateId: null,
+        disclosureStartBlock: '0x0'
     }
 ] satisfies NarrowSystemContractDefinition[];
 
