@@ -274,6 +274,7 @@ export interface AppConfig {
     tenantsEnabled: boolean;
     multiOrgEnabled: boolean;
     orgRoutingByDomain: boolean;
+    passkeyRegistrationEnabled: boolean;
     maxOrganizations: number;
     maxWalletsPerUser: number;
     auditLogsPaginationMaxItems: number;
@@ -580,7 +581,8 @@ export async function buildApp(db: DB, config: AppConfig) {
                 app.register(webauthnAdminRoutes, { prefix: '/admin/webauthn', stepUpService });
                 app.register(webauthnUserRoutes, {
                     passkeyService,
-                    stepUpService
+                    stepUpService,
+                    registrationEnabled: config.passkeyRegistrationEnabled
                 });
                 app.register(stepUpRoutes, { stepUpService });
                 if (faucetWalletClient && faucetServiceConfig) {
@@ -765,7 +767,8 @@ export async function buildApp(db: DB, config: AppConfig) {
                     policyEnabled: config.policyEnabled,
                     features: config.featureNames ?? [],
                     multiOrgEnabled: config.multiOrgEnabled,
-                    orgRoutingByDomain: config.orgRoutingByDomain
+                    orgRoutingByDomain: config.orgRoutingByDomain,
+                    passkeyRegistrationEnabled: config.passkeyRegistrationEnabled
                 });
                 app.register(organizationsPublicRoutes, {
                     prefix: '/organizations',

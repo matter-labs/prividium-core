@@ -179,6 +179,8 @@ export const loadEnv = () =>
             DISCLOSURE_METHODS_ENABLED: booleanFromString.default(false),
             MULTI_ORG_ENABLED: booleanFromString.default(false),
             ORG_ROUTING_BY_DOMAIN: booleanFromString.default(false),
+            // Off blocks new enrollment only; accounts that already hold a passkey are still challenged.
+            PASSKEY_REGISTRATION_ENABLED: booleanFromString.default(true),
             // Off (the default) writes nothing and does not register the endpoints.
             MAX_ORGANIZATIONS: z.coerce.number().int().min(1).default(100),
             MAX_WALLETS_PER_USER: z.coerce.number().int().min(1).default(100),

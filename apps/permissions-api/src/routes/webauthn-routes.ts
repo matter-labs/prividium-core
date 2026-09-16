@@ -16,9 +16,18 @@ import { CredentialSchema } from './schemas/webauthn';
 interface WebAuthnUserRoutesDeps {
     passkeyService: PasskeyService;
     stepUpService: StepUpService;
+    registrationEnabled: boolean;
 }
 
 export const PASSKEY_REGISTER_STEP_UP_ACTION = 'passkey:register';
+
+function rejectWhenRegistrationDisabled(registrationEnabled: boolean) {
+    return async () => {
+        if (!registrationEnabled) {
+            throw new ForbiddenError('Passkey registration is disabled on this deployment.');
+        }
+    };
+}
 
 type CredentialResponse = z.infer<typeof CredentialSchema>;
 
@@ -38,18 +47,24 @@ function formatCredential(c: {
     };
 }
 
-export function webauthnUserRoutes(server: FastifyServer, { passkeyService, stepUpService }: WebAuthnUserRoutesDeps) {
+export function webauthnUserRoutes(
+    server: FastifyServer,
+    { passkeyService, stepUpService, registrationEnabled }: WebAuthnUserRoutesDeps
+) {
     server.post(
         '/webauthn/register/begin',
         {
-            preHandler: requireStepUpIfApplicable(
-                PASSKEY_REGISTER_STEP_UP_ACTION,
-                async (req) => {
-                    const count = await req.repos.passkeyCredentials.countByUserId(req.auth.currentUser().id);
-                    return count > 0;
-                },
-                { stepUpService }
-            ),
+            preHandler: [
+                rejectWhenRegistrationDisabled(registrationEnabled),
+                requireStepUpIfApplicable(
+                    PASSKEY_REGISTER_STEP_UP_ACTION,
+                    async (req) => {
+                        const count = await req.repos.passkeyCredentials.countByUserId(req.auth.currentUser().id);
+                        return count > 0;
+                    },
+                    { stepUpService }
+                )
+            ],
             config: { audit_action: AUDIT_ACTIONS.PASSKEY_REGISTER_BEGIN },
             schema: {
                 description: 'Begin passkey registration for the authenticated user',
@@ -58,6 +73,7 @@ export function webauthnUserRoutes(server: FastifyServer, { passkeyService, step
                     200: WebAuthnRegistrationOptionsSchema,
                     400: ErrorResponseSchema,
                     401: z.union([ErrorResponseSchema, StepUpRequiredResponseSchema]),
+                    403: ErrorResponseSchema,
                     429: ErrorResponseSchema
                 }
             }
@@ -81,6 +97,7 @@ export function webauthnUserRoutes(server: FastifyServer, { passkeyService, step
     server.post(
         '/webauthn/register/finish',
         {
+            preHandler: rejectWhenRegistrationDisabled(registrationEnabled),
             config: { audit_action: AUDIT_ACTIONS.PASSKEY_REGISTER },
             schema: {
                 description: 'Complete passkey registration for the authenticated user',
@@ -92,7 +109,8 @@ export function webauthnUserRoutes(server: FastifyServer, { passkeyService, step
                 response: {
                     200: CredentialSchema,
                     400: ErrorResponseSchema,
-                    401: ErrorResponseSchema
+                    401: ErrorResponseSchema,
+                    403: ErrorResponseSchema
                 }
             }
         },

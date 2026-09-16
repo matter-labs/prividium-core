@@ -199,6 +199,7 @@ export async function start(features: ServiceFeatures = {}) {
         tenantsEnabled: env.TENANTS_ENABLED,
         multiOrgEnabled: env.MULTI_ORG_ENABLED,
         orgRoutingByDomain: env.ORG_ROUTING_BY_DOMAIN,
+        passkeyRegistrationEnabled: env.PASSKEY_REGISTRATION_ENABLED,
         maxOrganizations: env.MAX_ORGANIZATIONS,
         maxWalletsPerUser: env.MAX_WALLETS_PER_USER,
         auditLogsPaginationMaxItems: env.AUDIT_LOGS_PAGINATION_MAX_ITEMS,

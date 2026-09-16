@@ -6,6 +6,7 @@ type Deps = {
     features: readonly string[];
     multiOrgEnabled: boolean;
     orgRoutingByDomain: boolean;
+    passkeyRegistrationEnabled: boolean;
 };
 
 // Stamped by trusted ingress from the serving domain; selects pre-auth branding/IdP discovery only,
@@ -35,6 +36,7 @@ export function infoRoutes(server: FastifyServer, deps: Deps) {
                 features: [...deps.features],
                 multiOrgEnabled: deps.multiOrgEnabled,
                 orgRoutingByDomain: deps.orgRoutingByDomain,
+                passkeyRegistrationEnabled: deps.passkeyRegistrationEnabled,
                 orgId: typeof header === 'string' && ORG_ID_PATTERN.test(header) ? header : null
             });
         }

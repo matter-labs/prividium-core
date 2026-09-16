@@ -6,6 +6,7 @@ export const InfoSchema = z.object({
     features: z.array(z.string()),
     multiOrgEnabled: z.boolean(),
     orgRoutingByDomain: z.boolean(),
+    passkeyRegistrationEnabled: z.boolean(),
     // Org bound to the serving domain (ingress-stamped X-Org-Id request header); null = zone.
     orgId: z.string().nullable()
 });

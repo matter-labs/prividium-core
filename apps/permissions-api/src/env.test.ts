@@ -143,6 +143,16 @@ describe('loadEnv', () => {
         process.env.SWAGGER_DOCS_REDIRECT_URLS = 'not-a-url';
         expect(() => loadEnv()).toThrow();
     });
+
+    it('defaults PASSKEY_REGISTRATION_ENABLED to true when unset', () => {
+        delete process.env.PASSKEY_REGISTRATION_ENABLED;
+        expect(loadEnv().PASSKEY_REGISTRATION_ENABLED).toBe(true);
+    });
+
+    it('turns PASSKEY_REGISTRATION_ENABLED off only on an explicit false', () => {
+        process.env.PASSKEY_REGISTRATION_ENABLED = 'false';
+        expect(loadEnv().PASSKEY_REGISTRATION_ENABLED).toBe(false);
+    });
 });
 
 describe('policy listener validation (via loadEnv)', () => {

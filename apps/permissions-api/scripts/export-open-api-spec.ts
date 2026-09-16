@@ -46,6 +46,7 @@ const mockDeps = {
     disclosureMethodsEnabled: true,
     multiOrgEnabled: true,
     orgRoutingByDomain: false,
+    passkeyRegistrationEnabled: true,
     maxOrganizations: 100,
     maxWalletsPerUser: 100,
     auditLogsPaginationMaxItems: 10_000,
