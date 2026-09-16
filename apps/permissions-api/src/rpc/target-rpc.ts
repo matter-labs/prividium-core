@@ -1,4 +1,5 @@
 import { nanoid } from 'nanoid';
+import { Agent, fetch as undiciFetch } from 'undici';
 import { type Address, createPublicClient, type Hex, hexToNumber, http, type PublicClient } from 'viem';
 import { type TypeOf, type ZodTypeAny, z } from 'zod/v4';
 import type { BlockTag } from '../utils/schemas/block-tag';
@@ -7,6 +8,21 @@ import { SUBMISSION_CONFIRMS_INCLUSION, type TargetChainType } from '../utils/ta
 import { INTERNAL_RPC_ERROR, METHOD_NOT_FOUND_ERROR_CODE } from './constants';
 import { WrongArguments } from './errors';
 import { errorResponse, type JsonRpcRequest, type JsonRpcResponse, request, response } from './json-rpc';
+
+/**
+ * Upstream connects are bounded; the request itself is not.
+ *
+ * `sequencer-leader` resolves to a single pod, so while that pod is NotReady the Service has no
+ * endpoints and a connect attempt hangs for undici's 10s default, holding the caller the whole
+ * time. 2s is ~3 orders of magnitude above a healthy in-cluster connect and below typical client
+ * timeouts, so callers get a JSON-RPC error instead of timing out on their own side.
+ *
+ * Deliberately `connect.timeout` and not a request deadline: eth_sendRawTransactionSync waits for
+ * inclusion and legitimately takes seconds.
+ */
+const CONNECT_TIMEOUT_MS = 2_000;
+
+const upstreamAgent = new Agent({ connect: { timeout: CONNECT_TIMEOUT_MS } });
 
 const SUCCESS_RESPONSE_SCHEMA = z.object({
     jsonrpc: z.literal('2.0'),
@@ -239,11 +255,12 @@ export class TargetRpc implements ExternalRpc {
         return normalizeUpstreamResponse(parsed);
     }
 
-    async rawDelegate(body: string | Uint8Array): ReturnType<typeof fetch> {
-        return await fetch(this.url, {
+    async rawDelegate(body: string | Uint8Array): ReturnType<typeof undiciFetch> {
+        return await undiciFetch(this.url, {
             method: 'POST',
             body: body,
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            dispatcher: upstreamAgent
         });
     }
 
@@ -276,10 +293,11 @@ export class TargetRpc implements ExternalRpc {
         params: unknown[],
         schema: T
     ): Promise<TypeOf<T>> {
-        const response = await fetch(this.url, {
+        const response = await undiciFetch(this.url, {
             method: 'POST',
             body: JSON.stringify(request({ id, method, params })),
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            dispatcher: upstreamAgent
         }).catch((err: unknown) => {
             throw new Error(`error calling target rpc: "${method}"`, {
                 cause: { method, params, rpcReqId: id, err }
