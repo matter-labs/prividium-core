@@ -10,15 +10,9 @@ import { WrongArguments } from './errors';
 import { errorResponse, type JsonRpcRequest, type JsonRpcResponse, request, response } from './json-rpc';
 
 /**
- * Upstream connects are bounded; the request itself is not.
- *
- * `sequencer-leader` resolves to a single pod, so while that pod is NotReady the Service has no
- * endpoints and a connect attempt hangs for undici's 10s default, holding the caller the whole
- * time. 2s is ~3 orders of magnitude above a healthy in-cluster connect and below typical client
- * timeouts, so callers get a JSON-RPC error instead of timing out on their own side.
- *
- * Deliberately `connect.timeout` and not a request deadline: eth_sendRawTransactionSync waits for
- * inclusion and legitimately takes seconds.
+ * Connect only, never a request deadline: eth_sendRawTransactionSync waits for inclusion and
+ * legitimately takes seconds. Without this, a connect with no ready endpoint behind it hangs
+ * for undici's 10s default.
  */
 const CONNECT_TIMEOUT_MS = 2_000;
 
