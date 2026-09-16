@@ -66,6 +66,7 @@ export const AUDIT_ACTIONS = {
     M2M_APP_CREATE: 'm2m-app.create',
     M2M_APP_UPDATE: 'm2m-app.update',
     M2M_APP_DELETE: 'm2m-app.delete',
+    M2M_APP_ORGANIZATIONS_UPDATE: 'm2m-app.organizations.update',
     M2M_APP_API_KEY_AUTH_FAILURE_INVALID_KEY: 'm2m-app.api-key.auth-failure.invalid-key',
     M2M_APP_API_KEY_AUTH_IP_BLOCKED: 'm2m-app.api-key.auth-failure.ip-blocked',
     ORGANIZATION_CREATE: 'organization.create',

@@ -1,3 +1,4 @@
+import { AUDIT_ACTIONS } from '@repo/access-control';
 import { z } from 'zod/v4';
 import type { FastifyServer } from '../build-app';
 import { ErrorResponseSchema, PaginationQuerySchema, PublicIdSchema } from '../utils/schemas/fastify-common';
@@ -21,6 +22,7 @@ export function m2mAppRoutes(server: FastifyServer) {
     server.post(
         '/',
         {
+            config: { audit_action: AUDIT_ACTIONS.M2M_APP_CREATE },
             schema: {
                 description: 'Create a new m2m application',
                 tags: ['m2m-applications'],
@@ -35,6 +37,7 @@ export function m2mAppRoutes(server: FastifyServer) {
         },
         async (req, reply) => {
             const m2mApp = await req.repos.m2mApps.create(req.body);
+            req.auditEventDetails = { resourceType: 'm2m-app', resourceId: m2mApp.id };
             return reply.send(m2mApp);
         }
     );
@@ -87,6 +90,7 @@ export function m2mAppRoutes(server: FastifyServer) {
     server.put(
         '/:id',
         {
+            config: { audit_action: AUDIT_ACTIONS.M2M_APP_UPDATE },
             schema: {
                 description: 'Update an m2m application by id',
                 tags: ['m2m-applications'],
@@ -102,6 +106,7 @@ export function m2mAppRoutes(server: FastifyServer) {
             }
         },
         async (req, reply) => {
+            req.auditEventDetails = { resourceType: 'm2m-app', resourceId: req.params.id };
             const updated = await req.repos.m2mApps.update(req.params.id, req.body);
             return reply.send(updated);
         }
@@ -110,6 +115,7 @@ export function m2mAppRoutes(server: FastifyServer) {
     server.delete(
         '/:id',
         {
+            config: { audit_action: AUDIT_ACTIONS.M2M_APP_DELETE },
             schema: {
                 description: 'Delete an m2m application by id',
                 tags: ['m2m-applications'],
@@ -123,6 +129,7 @@ export function m2mAppRoutes(server: FastifyServer) {
             }
         },
         async (req, reply) => {
+            req.auditEventDetails = { resourceType: 'm2m-app', resourceId: req.params.id };
             await req.repos.m2mApps.delete(req.params.id);
             return reply.status(204).send();
         }
@@ -152,6 +159,7 @@ export function m2mAppRoutes(server: FastifyServer) {
     server.put(
         '/:id/organizations',
         {
+            config: { audit_action: AUDIT_ACTIONS.M2M_APP_ORGANIZATIONS_UPDATE },
             schema: {
                 description: 'Replace selected organizations for an m2m application',
                 tags: ['m2m-applications'],
@@ -167,6 +175,7 @@ export function m2mAppRoutes(server: FastifyServer) {
             }
         },
         async (req, reply) => {
+            req.auditEventDetails = { resourceType: 'm2m-app', resourceId: req.params.id };
             const organizations = await req.repos.m2mApps.replaceOrganizations(req.params.id, req.body.organizationIds);
             return reply.send(organizations);
         }

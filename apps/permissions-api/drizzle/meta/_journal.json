@@ -610,6 +610,13 @@
             "when": 1789129487769,
             "tag": "0086_reject_reserved_org_contracts",
             "breakpoints": true
+        },
+        {
+            "idx": 87,
+            "version": "7",
+            "when": 1789572700514,
+            "tag": "0087_add_access_control_audit_triggers",
+            "breakpoints": true
         }
     ]
 }

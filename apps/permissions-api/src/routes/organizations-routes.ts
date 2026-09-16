@@ -208,6 +208,7 @@ export function organizationsRoutes(
         server.post(
             '/',
             {
+                config: { audit_action: AUDIT_ACTIONS.ORGANIZATION_CREATE },
                 schema: {
                     description: 'Creates a new organization',
                     tags: ['organizations'],
@@ -226,6 +227,7 @@ export function organizationsRoutes(
                     throw new OrgQuotaExceededError(maxOrganizations);
                 }
                 const organization = await req.repos.organizations.create(req.body, roleScope);
+                req.auditEventDetails = { resourceType: 'organization', resourceId: organization.id };
                 orgCountGauge.inc();
                 return reply.send(organization);
             }
@@ -275,6 +277,7 @@ export function organizationsRoutes(
         server.put(
             '/:id',
             {
+                config: { audit_action: AUDIT_ACTIONS.ORGANIZATION_UPDATE },
                 schema: {
                     description: 'Update an organization by id',
                     tags: ['organizations'],
@@ -290,6 +293,7 @@ export function organizationsRoutes(
                 }
             },
             async (req, reply) => {
+                req.auditEventDetails = { resourceType: 'organization', resourceId: req.params.id };
                 const organization = await req.repos.organizations.update(req.params.id, req.body, roleScope);
                 return reply.send(organization);
             }
@@ -1084,6 +1088,7 @@ export function organizationsRoutes(
                 async (req, reply) => {
                     await req.repos.organizations.getById(req.params.id);
                     const app = await req.repos.m2mApps.createForOrg(req.params.id, req.body);
+                    req.auditEventDetails = { resourceType: 'm2m-app', resourceId: app.id };
                     return reply.status(201).send(app);
                 }
             );
@@ -1108,6 +1113,7 @@ export function organizationsRoutes(
                     }
                 },
                 async (req, reply) => {
+                    req.auditEventDetails = { resourceType: 'm2m-app', resourceId: req.params.appId };
                     await req.repos.organizations.getById(req.params.id);
                     const app = await req.repos.m2mApps.updateForOrg(req.params.id, req.params.appId, req.body);
                     return reply.send(app);
@@ -1132,6 +1138,7 @@ export function organizationsRoutes(
                     }
                 },
                 async (req, reply) => {
+                    req.auditEventDetails = { resourceType: 'm2m-app', resourceId: req.params.appId };
                     await req.repos.organizations.getById(req.params.id);
                     await req.repos.m2mApps.deleteForOrg(req.params.id, req.params.appId);
                     return reply.status(204).send();
