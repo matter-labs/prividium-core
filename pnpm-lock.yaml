@@ -158,6 +158,9 @@ importers:
       toad-scheduler:
         specifier: ^3.1.0
         version: 3.1.0
+      undici:
+        specifier: ^7.29.0
+        version: 7.29.0
       viem:
         specifier: ^2.30.4
         version: 2.55.10(typescript@5.9.3)(zod@4.3.5)

@@ -1,4 +1,5 @@
 import { nanoid } from 'nanoid';
+import { Agent } from 'undici';
 import { type Address, createPublicClient, type Hex, hexToNumber, http, type PublicClient } from 'viem';
 import { type TypeOf, type ZodTypeAny, z } from 'zod/v4';
 import type { BlockTag } from '../utils/schemas/block-tag';
@@ -7,6 +8,18 @@ import { SUBMISSION_CONFIRMS_INCLUSION, type TargetChainType } from '../utils/ta
 import { INTERNAL_RPC_ERROR, METHOD_NOT_FOUND_ERROR_CODE } from './constants';
 import { WrongArguments } from './errors';
 import { errorResponse, type JsonRpcRequest, type JsonRpcResponse, request, response } from './json-rpc';
+
+/**
+ * Connect only, never a request deadline: eth_sendRawTransactionSync waits for inclusion and
+ * legitimately takes seconds. Without this, a connect with no ready endpoint behind it hangs
+ * for undici's 10s default.
+ */
+const CONNECT_TIMEOUT_MS = 2_000;
+
+const upstreamAgent = new Agent({ connect: { timeout: CONNECT_TIMEOUT_MS } });
+
+// The global fetch honours undici's `dispatcher`; @types/node just doesn't model it on RequestInit.
+const withUpstreamAgent = { dispatcher: upstreamAgent } as unknown as RequestInit;
 
 const SUCCESS_RESPONSE_SCHEMA = z.object({
     jsonrpc: z.literal('2.0'),
@@ -243,7 +256,8 @@ export class TargetRpc implements ExternalRpc {
         return await fetch(this.url, {
             method: 'POST',
             body: body,
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            ...withUpstreamAgent
         });
     }
 
@@ -279,7 +293,8 @@ export class TargetRpc implements ExternalRpc {
         const response = await fetch(this.url, {
             method: 'POST',
             body: JSON.stringify(request({ id, method, params })),
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            ...withUpstreamAgent
         }).catch((err: unknown) => {
             throw new Error(`error calling target rpc: "${method}"`, {
                 cause: { method, params, rpcReqId: id, err }
