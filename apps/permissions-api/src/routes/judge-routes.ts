@@ -29,12 +29,13 @@ export function judgeRoutes(server: FastifyServer, { judgeService, protocolVersi
             }
         },
         async (req, reply) => {
-            const { protocolVersion: reqProtocolVersion, trace, accessType } = req.body;
+            const { protocolVersion: reqProtocolVersion, trace, accessType, txHash } = req.body;
 
             const decision = await judgeService.judge({
                 protocolVersion: reqProtocolVersion,
                 trace: trace as unknown as JudgeTrace,
-                accessType
+                accessType,
+                txHash
             });
 
             policyDecisionCounter.inc({

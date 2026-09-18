@@ -44,6 +44,11 @@ export type JudgeInput = {
      * classification governs mid-trace.
      */
     accessType: 'read' | 'write';
+    /**
+     * The transaction this trace belongs to, where the boundary holds one. Absent, an
+     * inner call's recorded decision cannot be bound to a single transaction.
+     */
+    txHash?: Hex;
 };
 
 /** A frame plus whether an umbrella row above it waived the permission gate for it. */
@@ -178,7 +183,9 @@ export class JudgeService {
      * Read-through cache wrapper around {@link evaluate}. The decision is a pure
      * function of the inputs and policy state, so a hit is safe. Only successful
      * evaluations are cached: an internal error throws out of `evaluate` before
-     * `set`, so it stays fail-closed and uncached.
+     * `set`, so it stays fail-closed and uncached. `txHash` is left out of the key for
+     * the same reason as on admit: it would make every key unique, and its only reader
+     * is the overlay, which runs outside this cache.
      */
     async judge(input: JudgeInput): Promise<AuthorizationResult> {
         const capability = await withDecisionCache(
@@ -203,7 +210,7 @@ export class JudgeService {
         // not honoured here: the row that prunes a subtree is what would hide a routed
         // transfer, so a limit a permission row can switch off is not a limit.
         for (const overlay of this.overlays) {
-            const verdict = await this.overlayTraceVerdict(overlay, rootFrame, rootFrame.caller);
+            const verdict = await this.overlayTraceVerdict(overlay, rootFrame, rootFrame.caller, input.txHash);
             if (verdict !== undefined && !verdict.authorized) {
                 return verdict;
             }
@@ -216,10 +223,11 @@ export class JudgeService {
     private async overlayTraceVerdict(
         overlay: AuthorizationOverlay,
         root: TraceFrame,
-        signerAddress: Address
+        signerAddress: Address,
+        txHash: Hex | undefined
     ): Promise<AuthorizationResult | undefined> {
         try {
-            return await overlay.checkTrace({ signerAddress, root });
+            return await overlay.checkTrace({ signerAddress, root, txHash });
         } catch (error) {
             if (error instanceof OverlayRefusal) {
                 return error.verdict;

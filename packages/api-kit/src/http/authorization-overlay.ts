@@ -58,6 +58,8 @@ export type OverlayFrame = {
 export type OverlayTraceSubject = {
     signerAddress: Address;
     root: OverlayFrame;
+    /** Absent where the boundary holds no single transaction. See {@link OverlaySubject.txHash}. */
+    txHash?: Hex;
 };
 
 export interface AuthorizationOverlay {

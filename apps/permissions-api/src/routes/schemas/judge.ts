@@ -1,6 +1,6 @@
 import { z } from 'zod/v4';
 import { addressSchema } from '../../utils/schemas/address';
-import { hexSchema, u256HexSchema } from '../../utils/schemas/hex-schema';
+import { hexSchema, hexSizedSchema, u256HexSchema } from '../../utils/schemas/hex-schema';
 
 // value is a 0x-hex U256; calldata is 0x-hex ("0x" when empty); deploys are CREATE/CREATE2 addresses
 interface TraceFrameInput {
@@ -30,7 +30,11 @@ export const TraceSchema = z.object({
 export const JudgeRequestSchema = z.object({
     protocolVersion: z.string().min(1),
     trace: TraceSchema,
-    accessType: z.enum(['read', 'write'])
+    accessType: z.enum(['read', 'write']),
+    // Optional so a sequencer that predates it stays compatible. See the same field on
+    // `/admit`: without it a decision recorded for an inner call admits every
+    // transaction that makes the same call.
+    txHash: hexSizedSchema(32).optional()
 });
 
 export const JudgeResponseSchema = z.object({
