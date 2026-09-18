@@ -50,6 +50,8 @@ export type AdmitDenial = {
     reason: string | null;
     ruleId: string | null;
     requestId: string | null;
+    /** Null on the paths that admit an operation rather than one transaction. */
+    txHash: Hex | null;
 };
 
 export type AdmitDeniedHook = (denial: AdmitDenial) => Promise<void>;

@@ -31,7 +31,16 @@ export function admitRoutes(server: FastifyServer, { admitService, protocolVersi
             }
         },
         async (req, reply) => {
-            const { protocolVersion: reqProtocolVersion, from, to, value, calldata, gasLimit, accessType } = req.body;
+            const {
+                protocolVersion: reqProtocolVersion,
+                from,
+                to,
+                value,
+                calldata,
+                gasLimit,
+                accessType,
+                txHash
+            } = req.body;
 
             const decision = await admitService.admit({
                 protocolVersion: reqProtocolVersion,
@@ -40,7 +49,8 @@ export function admitRoutes(server: FastifyServer, { admitService, protocolVersi
                 value: BigInt(value),
                 calldata,
                 gasLimit,
-                accessType
+                accessType,
+                txHash
             });
 
             policyDecisionCounter.inc({
@@ -57,6 +67,7 @@ export function admitRoutes(server: FastifyServer, { admitService, protocolVersi
                         to,
                         methodSelector: calldata.slice(0, 10),
                         accessType,
+                        txHash,
                         ruleId: decision.ruleId,
                         reason: decision.reason
                     },
@@ -67,7 +78,8 @@ export function admitRoutes(server: FastifyServer, { admitService, protocolVersi
                     targetAddress: to ?? null,
                     reason: decision.reason ?? null,
                     ruleId: decision.ruleId ?? null,
-                    requestId: req.id ?? null
+                    requestId: req.id ?? null,
+                    txHash: txHash ?? null
                 });
             }
 

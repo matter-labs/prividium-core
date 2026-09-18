@@ -1,6 +1,6 @@
 import { z } from 'zod/v4';
 import { addressSchema } from '../../utils/schemas/address';
-import { hexSchema, u256HexSchema } from '../../utils/schemas/hex-schema';
+import { hexSchema, hexSizedSchema, u256HexSchema } from '../../utils/schemas/hex-schema';
 
 // to is omitted (not null) for contract-creation txs; value is a 0x-hex U256; calldata is 0x-hex ("0x" when empty)
 export const AdmitRequestSchema = z.object({
@@ -10,7 +10,10 @@ export const AdmitRequestSchema = z.object({
     value: u256HexSchema,
     calldata: hexSchema,
     gasLimit: z.number().int().nonnegative(),
-    accessType: z.enum(['read', 'write'])
+    accessType: z.enum(['read', 'write']),
+    // Optional so a sequencer that predates it stays compatible: omitted on the
+    // gas-estimation and block-build paths, which hold no single transaction.
+    txHash: hexSizedSchema(32).optional()
 });
 
 export const AdmitResponseSchema = z.object({

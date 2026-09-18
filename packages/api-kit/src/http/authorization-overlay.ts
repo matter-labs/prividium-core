@@ -18,6 +18,8 @@ export type OverlaySubject = {
     to?: Address;
     value: bigint;
     calldata: Hex;
+    /** The transaction this subject is about; absent where the caller holds no single one. */
+    txHash?: Hex;
 };
 
 /**

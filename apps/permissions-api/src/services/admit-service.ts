@@ -28,6 +28,11 @@ export type AdmitInput = {
      * covers `Read` intents.
      */
     accessType: 'read' | 'write';
+    /**
+     * The transaction this call is about, where one exists. Gas estimation and the
+     * block-build path omit it: they admit an operation, not a transaction.
+     */
+    txHash?: Hex;
 };
 
 type Deps = {
@@ -93,10 +98,11 @@ export class AdmitService {
      * Read-through cache wrapper around {@link evaluate}. The decision is a pure
      * function of the inputs and policy state, so a hit is safe. Only successful
      * evaluations are cached: an internal error throws out of `evaluate` before
-     * `set`, so it stays fail-closed and uncached. Every request field is part
-     * of the key, so the key is always a superset of the decision inputs: the
-     * cache stays correct even if the policy starts reading a field it ignores
-     * today.
+     * `set`, so it stays fail-closed and uncached. Every request field the
+     * capability gate can read is part of the key, so the key is always a superset
+     * of the decision inputs: the cache stays correct even if the gate starts
+     * reading a field it ignores today. `txHash` is kept out of `evaluate` entirely, so
+     * a per-transaction discriminator cannot creep into a cached decision.
      */
     async admit(input: AdmitInput): Promise<AuthorizationResult> {
         const capability = await withDecisionCache(
@@ -138,7 +144,13 @@ export class AdmitService {
     /** Fail-closed: a throwing overlay is a denial. An `OverlayRefusal` carries its own
      * rule id so it is not reported as an outage; this reason reaches the sequencer. */
     private async overlayVerdict(input: AdmitInput): Promise<AuthorizationResult | undefined> {
-        const subject = { from: input.from, to: input.to, value: input.value, calldata: input.calldata };
+        const subject = {
+            from: input.from,
+            to: input.to,
+            value: input.value,
+            calldata: input.calldata,
+            txHash: input.txHash
+        };
 
         // A conjunction: the first denial wins and the rest are not consulted, so
         // several features can each narrow without any of them being able to widen.
@@ -162,7 +174,7 @@ export class AdmitService {
         return undefined;
     }
 
-    private async evaluate(input: AdmitInput): Promise<AuthorizationResult> {
+    private async evaluate(input: Omit<AdmitInput, 'txHash'>): Promise<AuthorizationResult> {
         if (!this.protocolVersions.includes(input.protocolVersion)) {
             return {
                 authorized: false,
