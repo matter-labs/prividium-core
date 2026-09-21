@@ -20,10 +20,10 @@
         "generate:check:permissions-api": "tsx permissions-api/scripts/export-openapi-spec.ts --check"
     },
     "devDependencies": {
-        "@hey-api/openapi-ts": "^0.80.8",
+        "@hey-api/openapi-ts": "^0.99.0",
         "@types/node": "^22.15.31",
         "pino": "^9.9.5",
-        "tsx": "4.20.3",
+        "tsx": "4.23.13",
         "typescript": "^5.4.2"
     }
 }
