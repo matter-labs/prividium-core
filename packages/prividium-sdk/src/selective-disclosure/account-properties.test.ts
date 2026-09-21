@@ -228,15 +228,15 @@ describe('verifyAccountPropertiesProof', () => {
             BigInt(stateCommitmentPreimage.lastBlockTimestamp)
         );
         const expectedBatchHash = keccak256(
-            encodeBatchInfo(
-                BigInt(batchNumber),
+            encodeBatchInfo({
+                batchNumber: BigInt(batchNumber),
                 stateCommitment,
-                BigInt(l1VerificationData.numberOfLayer1Txs),
-                l1VerificationData.priorityOperationsHash,
-                l1VerificationData.dependencyRootsRollingHash,
-                l1VerificationData.l2ToL1LogsRootHash,
-                l1VerificationData.commitment
-            )
+                numberOfLayer1Txs: BigInt(l1VerificationData.numberOfLayer1Txs),
+                priorityOperationsHash: l1VerificationData.priorityOperationsHash,
+                dependencyRootsRollingHash: l1VerificationData.dependencyRootsRollingHash,
+                l2ToL1LogsRootHash: l1VerificationData.l2ToL1LogsRootHash,
+                commitment: l1VerificationData.commitment
+            })
         );
 
         return { disclosure, expectedBatchHash };

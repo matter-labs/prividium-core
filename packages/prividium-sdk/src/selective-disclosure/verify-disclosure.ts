@@ -178,15 +178,15 @@ export async function verifyEthCallDisclosure({
     );
 
     // Step 5: Encode batch info and keccak256 hash it.
-    const batchInfoHex = encodeBatchInfo(
-        BigInt(batchNumber),
+    const batchInfoHex = encodeBatchInfo({
+        batchNumber: BigInt(batchNumber),
         stateCommitment,
-        BigInt(disclosure.l1VerificationData.numberOfLayer1Txs),
-        disclosure.l1VerificationData.priorityOperationsHash,
-        disclosure.l1VerificationData.dependencyRootsRollingHash,
-        disclosure.l1VerificationData.l2ToL1LogsRootHash,
-        disclosure.l1VerificationData.commitment
-    );
+        numberOfLayer1Txs: BigInt(disclosure.l1VerificationData.numberOfLayer1Txs),
+        priorityOperationsHash: disclosure.l1VerificationData.priorityOperationsHash,
+        dependencyRootsRollingHash: disclosure.l1VerificationData.dependencyRootsRollingHash,
+        l2ToL1LogsRootHash: disclosure.l1VerificationData.l2ToL1LogsRootHash,
+        commitment: disclosure.l1VerificationData.commitment
+    });
     const batchInfoHash = keccak256(batchInfoHex);
 
     // Step 6: Verify against L1 diamond proxy.

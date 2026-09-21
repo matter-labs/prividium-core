@@ -1,14 +1,17 @@
 import * as fs from 'node:fs';
 import path from 'node:path';
 import { pino } from 'pino';
+import { numberToHex } from 'viem';
 import { type AppConfig, buildApp } from '../src/build-app';
+
+const MOCK_CHAIN_ID = 506;
 
 // Mock dependencies - we just need the app structure to generate the OpenAPI spec
 const mockDeps = {
     logger: pino({ level: 'silent' }),
     healthCheckIntervalMs: 1_000,
     siwe: {
-        chainId: 506,
+        chainId: MOCK_CHAIN_ID,
         expirationMs: 60_000,
         validDomains: ['localhost:3000'],
         challengeRateLimitCount: 10,
@@ -71,7 +74,7 @@ const mockDeps = {
     },
     prividiumInfo: {
         blockExplorerUrl: 'http://localhost:3010',
-        chainId: '0x19a5',
+        chainId: numberToHex(MOCK_CHAIN_ID),
         chainName: 'local-dev',
         baseToken: { name: 'Ether', symbol: 'ETH', decimals: 18, l1Address: null },
         rpcUrl: 'http://localhost:8000/rpc',

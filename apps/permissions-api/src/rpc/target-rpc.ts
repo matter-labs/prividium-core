@@ -98,13 +98,15 @@ const zksGetProofSchema = z.object({
             proof: proofSchema
         })
     ),
+    // The four hashes are `bytes32` in L1's `StoredBatchInfo`. Sized here so a malformed upstream
+    // value fails validation instead of throwing an opaque ABI size mismatch inside the SDK.
     l1VerificationData: z.object({
         batchNumber: z.number(),
         numberOfLayer1Txs: z.number(),
-        priorityOperationsHash: hexSchema,
-        dependencyRootsRollingHash: hexSchema,
-        l2ToL1LogsRootHash: hexSchema,
-        commitment: hexSchema
+        priorityOperationsHash: hexSizedSchema(32),
+        dependencyRootsRollingHash: hexSizedSchema(32),
+        l2ToL1LogsRootHash: hexSizedSchema(32),
+        commitment: hexSizedSchema(32)
     })
 });
 

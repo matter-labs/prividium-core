@@ -1,4 +1,15 @@
-import { type Address, bytesToHex, type Hex, hexToBytes, keccak256, numberToHex, type PublicClient, pad } from 'viem';
+import {
+    type Address,
+    bytesToHex,
+    decodeAbiParameters,
+    type Hex,
+    hexToBytes,
+    keccak256,
+    numberToHex,
+    type PublicClient,
+    pad,
+    parseAbiParameters
+} from 'viem';
 import { describe, expect, it, vi } from 'vitest';
 import { selectiveDisclosureActions } from './actions';
 import { encodeBatchInfo } from './batch-info';
@@ -228,18 +239,37 @@ describe('computeStateCommitment', () => {
 });
 
 describe('encodeBatchInfo', () => {
+    const batchInfo = {
+        batchNumber: BigInt(proof.l1VerificationData.batchNumber),
+        stateCommitment: expectedStateCommitment,
+        numberOfLayer1Txs: BigInt(proof.l1VerificationData.numberOfLayer1Txs),
+        priorityOperationsHash: proof.l1VerificationData.priorityOperationsHash,
+        dependencyRootsRollingHash: proof.l1VerificationData.dependencyRootsRollingHash,
+        l2ToL1LogsRootHash: proof.l1VerificationData.l2ToL1LogsRootHash,
+        commitment: proof.l1VerificationData.commitment
+    };
+
     it('keccak256 of encoded batch info matches L1 storedBatchHash', () => {
-        const encoded = encodeBatchInfo(
-            BigInt(proof.l1VerificationData.batchNumber),
-            expectedStateCommitment,
-            BigInt(proof.l1VerificationData.numberOfLayer1Txs),
-            proof.l1VerificationData.priorityOperationsHash,
-            proof.l1VerificationData.dependencyRootsRollingHash,
-            proof.l1VerificationData.l2ToL1LogsRootHash,
-            proof.l1VerificationData.commitment
+        expect(keccak256(encodeBatchInfo(batchInfo))).toEqual(expectedL1BatchHash);
+    });
+
+    // Every stored fixture has a zero rolling hash, which is indistinguishable from hardcoding zero.
+    // v33 imports interop roots into every batch, so a non-zero value must reach the L1 struct slot.
+    it('carries a non-zero dependencyRootsRollingHash into the L1 struct slot', () => {
+        const dependencyRootsRollingHash = keccak256('0xdeadbeef');
+        const encoded = encodeBatchInfo({ ...batchInfo, dependencyRootsRollingHash });
+
+        const fields = decodeAbiParameters(
+            parseAbiParameters('uint64, bytes32, uint64, uint256, bytes32, bytes32, bytes32, uint256, bytes32'),
+            encoded
         );
 
-        expect(keccak256(encoded)).toEqual(expectedL1BatchHash);
+        // Slots 4-6 are the three consecutive bytes32 hashes; assert all three so a shift into a
+        // neighbouring slot fails too, not just a dropped value.
+        expect(fields[4]).toEqual(batchInfo.priorityOperationsHash);
+        expect(fields[5]).toEqual(dependencyRootsRollingHash);
+        expect(fields[6]).toEqual(batchInfo.l2ToL1LogsRootHash);
+        expect(keccak256(encoded)).not.toEqual(expectedL1BatchHash);
     });
 });
 

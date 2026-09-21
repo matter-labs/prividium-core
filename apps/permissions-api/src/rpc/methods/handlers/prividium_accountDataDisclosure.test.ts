@@ -34,10 +34,10 @@ const fakeProof: ZksGetProofResponse = {
     l1VerificationData: {
         batchNumber: fakeBatchNumber,
         numberOfLayer1Txs: 0,
-        priorityOperationsHash: '0x00',
-        dependencyRootsRollingHash: '0x00',
-        l2ToL1LogsRootHash: '0x00',
-        commitment: '0x00'
+        priorityOperationsHash: '0x0000000000000000000000000000000000000000000000000000000000000000',
+        dependencyRootsRollingHash: '0x0000000000000000000000000000000000000000000000000000000000000000',
+        l2ToL1LogsRootHash: '0x0000000000000000000000000000000000000000000000000000000000000000',
+        commitment: '0x0000000000000000000000000000000000000000000000000000000000000000'
     }
 };
 

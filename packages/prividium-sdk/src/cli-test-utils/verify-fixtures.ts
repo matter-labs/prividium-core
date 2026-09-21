@@ -152,13 +152,13 @@ const accountDataStateCommitment = computeStateCommitment(
 );
 
 export const ACCOUNT_DATA_L1_BATCH_HASH: Hex = keccak256(
-    encodeBatchInfo(
-        BigInt(ACCOUNT_DATA_BATCH_NUMBER),
-        accountDataStateCommitment,
-        BigInt(accountDataL1VerificationData.numberOfLayer1Txs),
-        accountDataL1VerificationData.priorityOperationsHash,
-        accountDataL1VerificationData.dependencyRootsRollingHash,
-        accountDataL1VerificationData.l2ToL1LogsRootHash,
-        accountDataL1VerificationData.commitment
-    )
+    encodeBatchInfo({
+        batchNumber: BigInt(ACCOUNT_DATA_BATCH_NUMBER),
+        stateCommitment: accountDataStateCommitment,
+        numberOfLayer1Txs: BigInt(accountDataL1VerificationData.numberOfLayer1Txs),
+        priorityOperationsHash: accountDataL1VerificationData.priorityOperationsHash,
+        dependencyRootsRollingHash: accountDataL1VerificationData.dependencyRootsRollingHash,
+        l2ToL1LogsRootHash: accountDataL1VerificationData.l2ToL1LogsRootHash,
+        commitment: accountDataL1VerificationData.commitment
+    })
 );
