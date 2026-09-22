@@ -28,6 +28,7 @@ export type PolicyAppConfig = {
     /** When true, the authorization service enforces organization isolation on contract calls
      * (org users reach only their org's contracts + zone-level contracts). */
     multiOrgEnabled: boolean;
+    allowUmbrellaSystemReads?: boolean;
     /** Chain RPC URL used to classify bare value transfers (eth_getCode on the
      * recipient). A transfer to an EOA runs no code and is allowed without a
      * permission row; a transfer to a contract stays gated. Same URL the main
@@ -75,7 +76,16 @@ export function buildPolicyApp(db: DB, config: PolicyAppConfig) {
     }
 
     const repos = new Repositories(db);
-    const authorizationService = new AuthorizationService({ repos, multiOrgEnabled: config.multiOrgEnabled });
+    const authorizationService = new AuthorizationService({
+        repos,
+        multiOrgEnabled: config.multiOrgEnabled,
+        allowUmbrellaSystemReads: config.allowUmbrellaSystemReads
+    });
+    if (config.multiOrgEnabled && config.allowUmbrellaSystemReads) {
+        app.log.warn(
+            'ALLOW_UMBRELLA_SYSTEM_READS=true: umbrella-covered calls can inherit access to code-allowlisted optional system-contract reads (currently four L2AssetTracker getters), exposing shared accounting across organizations without method permissions.'
+        );
+    }
     const transactionClassifier = new TransactionClassifier(new TargetRpc(config.targetRpcUrl, 'zksync-os'));
     const cache = config.decisionCache ? new InMemoryDecisionCache(config.decisionCache) : undefined;
     const runtime: FeatureRuntime = {

@@ -120,6 +120,17 @@ describe('loadEnv', () => {
         expect(() => loadEnv()).toThrow();
     });
 
+    it.each([undefined, '', 'false', 'true'])('parses the umbrella read opt-in %s', (value) => {
+        if (value === undefined) delete process.env.ALLOW_UMBRELLA_SYSTEM_READS;
+        else process.env.ALLOW_UMBRELLA_SYSTEM_READS = value;
+        expect(loadEnv().ALLOW_UMBRELLA_SYSTEM_READS).toBe(value === 'true');
+    });
+
+    it.each(['1', 'yes', 'TRUE'])('rejects an invalid umbrella read opt-in %s', (value) => {
+        process.env.ALLOW_UMBRELLA_SYSTEM_READS = value;
+        expect(() => loadEnv()).toThrow();
+    });
+
     it('treats SWAGGER_DOCS_REDIRECT_URLS as optional, defaulting to an empty list', () => {
         delete process.env.SWAGGER_DOCS_REDIRECT_URLS;
         expect(loadEnv().SWAGGER_DOCS_REDIRECT_URLS).toEqual([]);

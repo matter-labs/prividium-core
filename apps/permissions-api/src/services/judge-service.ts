@@ -132,6 +132,7 @@ function serializeFrame(frame: TraceFrame | null): unknown {
  *   umbrella row cannot consent on another organization's behalf, so collapsing
  *   the subtree would let one organization reach another's contracts through any
  *   contract that forwards calls.
+ *   Shared bridge dependencies further limit the permission waiver by method selector.
  *
  * Either way the umbrella frame itself is evaluated normally, sibling frames at
  * the same depth are unaffected, and coverage is inherited all the way down.

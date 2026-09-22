@@ -41,6 +41,23 @@ describe('syncSystemContracts', () => {
         });
     });
 
+    it('registers shared contracts without granting method access or data disclosure', async ({ db }) => {
+        await syncSystemContracts(db, logger);
+        const contracts = await db.query.contractsTable.findMany();
+        expect(contracts).toHaveLength(SYSTEM_CONTRACTS_REGISTRY.length);
+        for (const contract of contracts) {
+            expect(contract).toMatchObject({
+                isSystemContract: true,
+                organizationId: null,
+                templateId: null,
+                discloseBytecode: false,
+                discloseErc20TotalSupply: false
+            });
+        }
+        expect(await db.query.contractFunctionPermissionsTable.findMany()).toEqual([]);
+        expect(await db.query.contractEventPermissionsTable.findMany()).toEqual([]);
+    });
+
     it('overwrites conflicting existing contract at same address', async ({ db }) => {
         // Pre-insert a regular contract at the same address with different metadata
         await db.insert(contractsTable).values({

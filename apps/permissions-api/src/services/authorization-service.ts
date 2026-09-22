@@ -24,6 +24,7 @@ import { fetchArgMap, fetchRoleSet } from '../utils/permission-reads';
 import { isReservedContractAddress } from '../utils/reserved-contract-address';
 import type { MethodSelector } from '../utils/schemas/hex-schema';
 import { userHasWallet } from '../utils/user-wallets';
+import { canInheritSystemContractUmbrella } from './system-contracts/umbrella-policy';
 
 export const methodAuthorizationSchema = z.object({
     authorized: z.boolean()
@@ -102,6 +103,7 @@ export type AuthorizationResult = {
 type Deps = {
     repos: Repositories;
     multiOrgEnabled?: boolean;
+    allowUmbrellaSystemReads?: boolean;
 };
 
 /**
@@ -211,10 +213,12 @@ function checkArgumentRestrictions(
 export class AuthorizationService implements MethodAuthorizer {
     private repos: Repositories;
     private multiOrgEnabled: boolean;
+    private allowUmbrellaSystemReads: boolean;
 
-    constructor({ repos, multiOrgEnabled = false }: Deps) {
+    constructor({ repos, multiOrgEnabled = false, allowUmbrellaSystemReads = false }: Deps) {
         this.repos = repos;
         this.multiOrgEnabled = multiOrgEnabled;
+        this.allowUmbrellaSystemReads = allowUmbrellaSystemReads;
     }
 
     async checkForTenant(
@@ -301,6 +305,7 @@ export class AuthorizationService implements MethodAuthorizer {
             permission: permission ?? undefined,
             isContractPermission: !!contractPermission,
             contract,
+            selector,
             accessTypeCheck,
             roleOk: (perm, isContractPermission) => this.checkRoleAuthorization(user, perm.id, isContractPermission),
             argsOk: async (perm, isContractPermission) => {
@@ -324,13 +329,23 @@ export class AuthorizationService implements MethodAuthorizer {
         permission: DecidablePermission | undefined;
         isContractPermission: boolean;
         contract: RegisteredContract | undefined;
+        selector: MethodSelector;
         accessTypeCheck: AccessTypeCheck;
         umbrellaCovered?: boolean;
         roleOk: (permission: DecidablePermission, isContractPermission: boolean) => Promise<boolean>;
         argsOk: (permission: DecidablePermission, isContractPermission: boolean) => Promise<ArgumentCheckOutcome>;
     }): Promise<AuthorizationResult> {
-        const { user, permission, isContractPermission, contract, accessTypeCheck, umbrellaCovered, roleOk, argsOk } =
-            params;
+        const {
+            user,
+            permission,
+            isContractPermission,
+            contract,
+            selector,
+            accessTypeCheck,
+            umbrellaCovered,
+            roleOk,
+            argsOk
+        } = params;
 
         // A dead org's id still matches its contracts', so the org check below would allow.
         if (belongsToDeletedOrganization(user)) {
@@ -341,11 +356,24 @@ export class AuthorizationService implements MethodAuthorizer {
             return { authorized: false, ruleId: 'permission.missing' };
         }
 
-        // Judge routes frames beneath an umbrella row here rather than skipping them, so the
-        // permission gate is waived but organization isolation is not. Keyed to this service's
-        // own flag so a divergence from judge's copy fails closed onto the normal path.
+        // Apply umbrella isolation before any explicit grant. A flag mismatch with judge falls
+        // back to normal authorization instead of waiving permission checks.
         if (umbrellaCovered && this.multiOrgEnabled) {
-            return this.decideUnderUmbrella({ user, contract, permission, isContractPermission, argsOk });
+            const decision = await this.decideUnderUmbrella({
+                user,
+                contract,
+                permission,
+                isContractPermission,
+                argsOk
+            });
+            if (
+                !decision.authorized ||
+                !contract ||
+                canInheritSystemContractUmbrella(contract.contractAddress, selector, this.allowUmbrellaSystemReads)
+            ) {
+                return decision;
+            }
+            // Unlisted methods need their own permission after the umbrella's stricter org/argument checks.
         }
 
         // Step 5: If no permission exists at all, return unauthorized
@@ -433,9 +461,8 @@ export class AuthorizationService implements MethodAuthorizer {
     }
 
     /**
-     * Decides a frame beneath an umbrella permission. The umbrella waives the permission and
-     * role gates, not organization isolation: the callee must be registered and either
-     * zone-level or the signer's own organization, and argument restrictions still apply.
+     * Evaluates umbrella inheritance for registered callees in the zone or the signer's organization.
+     * Waives permission and role gates; argument checks run only for configured restriction rules.
      */
     private async decideUnderUmbrella(params: {
         user: User;
@@ -569,6 +596,7 @@ export class AuthorizationService implements MethodAuthorizer {
                         permission: m.permission,
                         isContractPermission: m.isContractPermission,
                         contract,
+                        selector,
                         accessTypeCheck,
                         umbrellaCovered: it.umbrellaCovered,
                         roleOk: (perm, isContractPermission) =>

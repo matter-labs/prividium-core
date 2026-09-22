@@ -462,7 +462,10 @@ export async function buildApp(db: DB, config: AppConfig) {
         jwksFactory: config.jwksFactory
     });
     const walletTokenService = new WalletTokenService();
-    const authorizationService = new AuthorizationService({ repos, multiOrgEnabled: config.multiOrgEnabled });
+    const authorizationService = new AuthorizationService({
+        repos,
+        multiOrgEnabled: config.multiOrgEnabled
+    });
     const transactionClassifier = new TransactionClassifier(chainRpc);
     const walletAssociationGuard = createWalletAssociationGuard(config.knownDevWalletsAllowlist);
     if (config.knownDevWalletsAllowlist.length > 0) {

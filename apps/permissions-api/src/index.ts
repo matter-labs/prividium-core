@@ -258,6 +258,7 @@ export async function start(features: ServiceFeatures = {}) {
                   protocolVersions: env.POLICY_PROTOCOL_VERSIONS,
                   authToken: env.POLICY_AUTH_TOKEN,
                   multiOrgEnabled: env.MULTI_ORG_ENABLED,
+                  allowUmbrellaSystemReads: env.ALLOW_UMBRELLA_SYSTEM_READS,
                   targetRpcUrl: env.SEQUENCER_RPC_URL,
                   decisionCache: env.POLICY_DECISION_CACHE_ENABLED
                       ? {
