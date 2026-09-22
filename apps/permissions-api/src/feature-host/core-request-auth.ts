@@ -1,4 +1,4 @@
-import type { Permission } from '@repo/access-control';
+import { hasZoneSystemPermission, type Permission } from '@repo/access-control';
 import type {
     AuthenticatedPrincipal,
     CallerKind,
@@ -17,7 +17,8 @@ import { requireOrgAdmin, requireOrgAdminOn } from '../middleware/require-org-ad
 import {
     requireM2mAppOrgAssociation,
     requireOrgMemberForUserCaller,
-    requireOrgPermissionForM2mCaller
+    requireOrgPermissionForM2mCaller,
+    requireZonePermissionForM2mCaller
 } from '../middleware/require-org-membership';
 import type { SessionsAuthValidator } from '../middleware/sessions-auth';
 import { userHasWallet } from '../utils/user-wallets';
@@ -60,6 +61,10 @@ export class CoreRequestAuthGuards implements RequestAuthGuards {
         ];
     }
 
+    zoneMemberSurface({ m2mPermission }: { m2mPermission: Permission }): readonly RequestHook[] {
+        return [requireZonePermissionForM2mCaller(m2mPermission)];
+    }
+
     /** From the session, never the body; `authenticate` has refused every other kind. */
     principalOf(request: FastifyRequest): AuthenticatedPrincipal {
         if (request.auth.type === 'm2m_app') {
@@ -73,6 +78,15 @@ export class CoreRequestAuthGuards implements RequestAuthGuards {
 
     callerOwnsWallet(request: FastifyRequest, address: Address): boolean {
         return request.auth.type === 'user' && userHasWallet(request.auth.currentUser(), address);
+    }
+
+    isZoneAdmin(request: FastifyRequest): Promise<boolean> {
+        if (request.auth.type !== 'user') {
+            return Promise.resolve(false);
+        }
+        // Graded by method, as `adminSurface` is: a read asks less than a write.
+        const permission = request.method === 'GET' ? 'admin_read' : 'admin_write';
+        return Promise.resolve(hasZoneSystemPermission(request.auth.currentUser(), permission));
     }
 
     /** Fail-closed, but logs anything that is not a `ForbiddenError`: a database blip

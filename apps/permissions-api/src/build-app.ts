@@ -206,6 +206,8 @@ export type FeatureContext = {
     chainRpc: ExternalRpc;
     /** The core's scheduler; a job added here stops with the app. */
     scheduler: ToadScheduler;
+    /** Off means there are no organizations for a feature to reason about, only the zone. */
+    multiOrgEnabled: boolean;
     logger: PinoLogger;
 };
 
@@ -215,6 +217,8 @@ export type FeatureRuntime = {
     coreFacts: CoreFacts;
     metrics: MetricsServer;
     logger: PinoLogger;
+    /** Off means there are no organizations for a feature to reason about, only the zone. */
+    multiOrgEnabled: boolean;
 };
 
 export interface AppConfig {
@@ -804,13 +808,18 @@ export async function buildApp(db: DB, config: AppConfig) {
                     await registerFeatures(scope as unknown as FastifyServer, {
                         guards: new CoreRequestAuthGuards({ sessionAuthValidator }),
                         auditContextOf: featureAuditContextOf,
-                        coreFactsFor: (request) => new RepositoriesCoreFacts({ repos: request.repos }),
+                        coreFactsFor: (request) =>
+                            new RepositoriesCoreFacts({
+                                repos: request.repos,
+                                multiOrgEnabled: config.multiOrgEnabled
+                            }),
                         clientFor: requestAuditClient,
                         metrics: metricsServer,
                         pool: db.$client,
                         chainRpc,
                         scheduler: app.scheduler,
-                        logger: config.logger
+                        logger: config.logger,
+                        multiOrgEnabled: config.multiOrgEnabled
                     });
                 });
             }

@@ -38,9 +38,15 @@ export interface RequestAuthGuards {
      */
     orgMemberSurface(opts: { m2mPermission: Permission }): readonly RequestHook[];
 
+    /** The same at zone level, where every user is a member and only the machine is checked. */
+    zoneMemberSurface(opts: { m2mPermission: Permission }): readonly RequestHook[];
+
     principalOf(request: FastifyRequest): AuthenticatedPrincipal;
 
     isOrgAdmin(request: FastifyRequest): Promise<boolean>;
+
+    /** Holds the operator permission zone-wide: what `isOrgAdmin` asks, for the zone. */
+    isZoneAdmin(request: FastifyRequest): Promise<boolean>;
 
     /**
      * An unowned address recorded as the caller's pre-authorizes its real owner's
@@ -62,7 +68,8 @@ export interface FeatureAuditContext {
     logSecurityEvent(
         action: string,
         entityType: string,
-        entityId: string,
+        /** Absent where the event's subject is the zone, which no id names. */
+        entityId: string | undefined,
         details?: Record<string, unknown>
     ): Promise<void>;
 

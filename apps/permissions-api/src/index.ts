@@ -141,9 +141,10 @@ export async function start(features: ServiceFeatures = {}) {
 
     const runtime: FeatureRuntime = {
         pool: db.$client,
-        coreFacts: new RepositoriesCoreFacts({ repos: db.repositories() }),
+        coreFacts: new RepositoriesCoreFacts({ repos: db.repositories(), multiOrgEnabled: env.MULTI_ORG_ENABLED }),
         metrics: metricsServer,
-        logger
+        logger,
+        multiOrgEnabled: env.MULTI_ORG_ENABLED
     };
 
     const app = await buildApp(db, {

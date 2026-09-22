@@ -26,10 +26,14 @@ export type CoreReferences = {
     roleMemberCounts: ReadonlyMap<string, number>;
 };
 
+/**
+ * Facts a feature reads about the core. Where a method takes an organization, `null` is the
+ * zone itself -- the only scope a deployment with organizations switched off has.
+ */
 export interface CoreFacts {
     identityForAddress(address: Address): Promise<SigningIdentity | undefined>;
 
-    classifyAddress(organizationId: string, address: Address): Promise<AddressClass>;
+    classifyAddress(organizationId: string | null, address: Address): Promise<AddressClass>;
 
     /**
      * The one function the selector names, not the contract's whole ABI: the caller
@@ -39,17 +43,17 @@ export interface CoreFacts {
      */
     abiFor(contractAddress: Address, selector: MethodSelector): Promise<AbiFunction | undefined>;
 
-    referencesFor(organizationId: string): Promise<CoreReferences>;
+    referencesFor(organizationId: string | null): Promise<CoreReferences>;
 
     holdersByRole(roleIds: readonly string[]): Promise<Map<string, string[]>>;
 
     userHoldersOfRoles(roleIds: readonly string[]): Promise<string[]>;
 
-    rolesWithPermission(organizationId: string, permission: Permission): Promise<string[]>;
+    rolesWithPermission(organizationId: string | null, permission: Permission): Promise<string[]>;
 
     /** Zone-scoped roles only: their holders act across every organization. */
     zoneRolesWithPermission(permission: Permission): Promise<string[]>;
 
     /** Read-only, unlike the core's get-or-create: `undefined` where that would create. */
-    findOrgAdminRole(organizationId: string): Promise<{ id: string } | undefined>;
+    findOrgAdminRole(organizationId: string | null): Promise<{ id: string } | undefined>;
 }

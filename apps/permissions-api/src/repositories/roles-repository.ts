@@ -244,6 +244,15 @@ export class RolesRepository extends RolesRepositoryBase {
         return adminRole;
     }
 
+    /** By the id {@link createOrUpdateAdminRole} pins and asserts at boot. */
+    // The zone's own, so the organization is part of the identity rather than implied by
+    // the pinned id -- the same structural check its organization sibling makes.
+    async findZoneAdminRole(): Promise<Role | undefined> {
+        return this.db.query.rolesTable.findFirst({
+            where: (t, { eq, and, isNull }) => and(eq(t.id, ADMIN_ROLE_ID), isNull(t.organizationId))
+        });
+    }
+
     // The org admin role is identified structurally (system role owned by the org), not by
     // name: a migrated environment may still carry the legacy "Admin(<orgId>)" name.
     async findOrgAdminRole(orgId: string): Promise<Role | undefined> {

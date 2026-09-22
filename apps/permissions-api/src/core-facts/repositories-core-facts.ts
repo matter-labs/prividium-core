@@ -1,6 +1,7 @@
 import type { Permission } from '@repo/access-control';
 import type { AddressClass, CoreFacts, CoreReferences, MethodSelector, SigningIdentity } from '@repo/api-kit';
 import { and, arrayContains, eq, inArray, isNull, or } from 'drizzle-orm';
+import type { PgColumn } from 'drizzle-orm/pg-core';
 import type { AbiFunction, Address } from 'viem';
 import type { Repositories } from '../db';
 import {
@@ -18,9 +19,26 @@ import { resolveAbiItem } from '../utils/abi';
 
 export class RepositoriesCoreFacts implements CoreFacts {
     private repos: Repositories;
+    private multiOrgEnabled: boolean;
 
-    constructor({ repos }: { repos: Repositories }) {
+    constructor({ repos, multiOrgEnabled = false }: { repos: Repositories; multiOrgEnabled?: boolean }) {
         this.repos = repos;
+        this.multiOrgEnabled = multiOrgEnabled;
+    }
+
+    /**
+     * What the zone's `null` scope reaches. With organizations off the zone governs every
+     * signer, a wallet still carrying an organization from before the switch included, so
+     * its facts have to span the whole deployment: scoped to rows naming no organization,
+     * an org-owned contract classifies as `unknown` and a rule that blocks on
+     * classification silently allows it. With organizations on the zone surface is
+     * unavailable, so a `null` reaching here is not a scope to widen -- it stays exact.
+     */
+    private scope(column: PgColumn, organizationId: string | null, inherits = false) {
+        if (organizationId !== null) {
+            return inherits ? or(eq(column, organizationId), isNull(column)) : eq(column, organizationId);
+        }
+        return this.multiOrgEnabled ? isNull(column) : undefined;
     }
 
     private get db() {
@@ -34,7 +52,7 @@ export class RepositoriesCoreFacts implements CoreFacts {
             : { id: user.id, organizationId: user.organizationId, roleIds: user.roles.map((role) => role.id) };
     }
 
-    async classifyAddress(organizationId: string, address: Address): Promise<AddressClass> {
+    async classifyAddress(organizationId: string | null, address: Address): Promise<AddressClass> {
         const [contract, wallet] = await Promise.all([
             this.db
                 .select({ address: contractsTable.contractAddress })
@@ -42,7 +60,7 @@ export class RepositoriesCoreFacts implements CoreFacts {
                 .where(
                     and(
                         eq(contractsTable.contractAddress, address),
-                        or(eq(contractsTable.organizationId, organizationId), isNull(contractsTable.organizationId))
+                        this.scope(contractsTable.organizationId, organizationId, true)
                     )
                 )
                 .limit(1)
@@ -58,7 +76,7 @@ export class RepositoriesCoreFacts implements CoreFacts {
                     and(
                         eq(walletsTable.walletAddress, address),
                         isNull(walletsTable.deletedAt),
-                        eq(usersTable.organizationId, organizationId)
+                        this.scope(usersTable.organizationId, organizationId)
                     )
                 )
                 .limit(1)
@@ -111,22 +129,31 @@ export class RepositoriesCoreFacts implements CoreFacts {
         }
     }
 
-    async referencesFor(organizationId: string): Promise<CoreReferences> {
+    async referencesFor(organizationId: string | null): Promise<CoreReferences> {
         const [roles, users, ownedApps, sharedApps, contracts] = await Promise.all([
-            this.db.select({ id: rolesTable.id }).from(rolesTable).where(eq(rolesTable.organizationId, organizationId)),
-            this.db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.organizationId, organizationId)),
+            this.db
+                .select({ id: rolesTable.id })
+                .from(rolesTable)
+                .where(this.scope(rolesTable.organizationId, organizationId)),
+            this.db
+                .select({ id: usersTable.id })
+                .from(usersTable)
+                .where(this.scope(usersTable.organizationId, organizationId)),
             this.db
                 .select({ id: m2mApplicationsTable.id })
                 .from(m2mApplicationsTable)
-                .where(eq(m2mApplicationsTable.ownerOrganizationId, organizationId)),
-            this.db
-                .select({ id: m2mApplicationsOrganizationsTable.m2mAppId })
-                .from(m2mApplicationsOrganizationsTable)
-                .where(eq(m2mApplicationsOrganizationsTable.organizationId, organizationId)),
+                .where(this.scope(m2mApplicationsTable.ownerOrganizationId, organizationId)),
+            // An organization's shared apps are named by a membership row; the zone has none.
+            organizationId === null
+                ? Promise.resolve([])
+                : this.db
+                      .select({ id: m2mApplicationsOrganizationsTable.m2mAppId })
+                      .from(m2mApplicationsOrganizationsTable)
+                      .where(eq(m2mApplicationsOrganizationsTable.organizationId, organizationId)),
             this.db
                 .select({ address: contractsTable.contractAddress })
                 .from(contractsTable)
-                .where(or(eq(contractsTable.organizationId, organizationId), isNull(contractsTable.organizationId)))
+                .where(this.scope(contractsTable.organizationId, organizationId, true))
         ]);
 
         const roleIds = roles.map((role) => role.id);
@@ -189,13 +216,13 @@ export class RepositoriesCoreFacts implements CoreFacts {
         return rows.map((row) => row.userId);
     }
 
-    async rolesWithPermission(organizationId: string, permission: Permission): Promise<string[]> {
+    async rolesWithPermission(organizationId: string | null, permission: Permission): Promise<string[]> {
         const rows = await this.db
             .select({ id: rolesTable.id })
             .from(rolesTable)
             .where(
                 and(
-                    or(eq(rolesTable.organizationId, organizationId), isNull(rolesTable.organizationId)),
+                    this.scope(rolesTable.organizationId, organizationId, true),
                     arrayContains(rolesTable.systemPermissions, [permission])
                 )
             );
@@ -212,8 +239,11 @@ export class RepositoriesCoreFacts implements CoreFacts {
         return rows.map((row) => row.id);
     }
 
-    async findOrgAdminRole(organizationId: string): Promise<{ id: string } | undefined> {
-        const role = await this.repos.roles.findOrgAdminRole(organizationId);
+    async findOrgAdminRole(organizationId: string | null): Promise<{ id: string } | undefined> {
+        const role =
+            organizationId === null
+                ? await this.repos.roles.findZoneAdminRole()
+                : await this.repos.roles.findOrgAdminRole(organizationId);
         return role === undefined ? undefined : { id: role.id };
     }
 }

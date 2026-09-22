@@ -51,7 +51,11 @@ export type PolicyAppConfig = {
      * Absent leaves behaviour unchanged. Enabled-but-unreachable is a denial, not
      * an allow: see `AdmitService.overlayVerdict`.
      */
-    authorizationOverlays?: (context: { coreFacts: CoreFacts; pool: Pool }) => readonly AuthorizationOverlay[];
+    authorizationOverlays?: (context: {
+        coreFacts: CoreFacts;
+        pool: Pool;
+        multiOrgEnabled: boolean;
+    }) => readonly AuthorizationOverlay[];
 };
 
 /**
@@ -89,10 +93,11 @@ export function buildPolicyApp(db: DB, config: PolicyAppConfig) {
     const transactionClassifier = new TransactionClassifier(new TargetRpc(config.targetRpcUrl, 'zksync-os'));
     const cache = config.decisionCache ? new InMemoryDecisionCache(config.decisionCache) : undefined;
     const runtime: FeatureRuntime = {
-        coreFacts: new RepositoriesCoreFacts({ repos }),
+        coreFacts: new RepositoriesCoreFacts({ repos, multiOrgEnabled: config.multiOrgEnabled }),
         pool: db.$client,
         metrics: metricsServer,
-        logger: config.logger
+        logger: config.logger,
+        multiOrgEnabled: config.multiOrgEnabled
     };
     const overlays = config.authorizationOverlays?.(runtime);
     const onAdmitDenied = config.onAdmitDenied?.(runtime);
