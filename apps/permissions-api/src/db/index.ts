@@ -1,4 +1,4 @@
-import { createDbPool, type DbLogger, type RawTx, withJobContext } from '@repo/api-kit';
+import { createDbPool, type DbInstrumentation, type DbLogger, type RawTx, withJobContext } from '@repo/api-kit';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { PoolClient } from 'pg';
 import * as schema from '../db/schema';
@@ -12,7 +12,8 @@ export function createDb(
     queryTimeoutMs: number = 10_000,
     statementTimeoutMs: number = 10_000,
     maxConnections: number = 10,
-    connectionTimeoutMs: number = 5_000
+    connectionTimeoutMs: number = 5_000,
+    instrumentation?: DbInstrumentation
 ) {
     const pool = createDbPool(
         databaseUrl,
@@ -22,7 +23,8 @@ export function createDb(
         queryTimeoutMs,
         statementTimeoutMs,
         maxConnections,
-        connectionTimeoutMs
+        connectionTimeoutMs,
+        instrumentation
     );
 
     const rawDb = drizzle(pool, { schema, casing: 'snake_case' });

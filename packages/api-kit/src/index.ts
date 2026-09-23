@@ -1,6 +1,15 @@
 export type { AddressClass, CoreFacts, CoreReferences, SigningIdentity } from './core-facts';
 export { AUDIT_SESSION_VARS, clearAuditSessionVars, setAuditSessionVarsSql } from './db/audit-session';
-export { createDbPool, type DbLogger, type RawTx, withJobContext } from './db/client';
+export {
+    createDbPool,
+    type DbInstrumentation,
+    type DbLogger,
+    type DbQueryOutcome,
+    type PoolState,
+    poolState,
+    type RawTx,
+    withJobContext
+} from './db/client';
 export { createdAt, publicId, timestampTz, updatedAt } from './db/common-schema';
 export {
     addressColumn,

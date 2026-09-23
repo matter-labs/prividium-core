@@ -3,6 +3,7 @@ import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { TestExternalRpc } from '../../test/rpc/test-external-rpc';
 import { TestRpcAuthorizer } from '../../test/rpc/test-rpc-authorizer';
+import { jsonRpcOperationCounter } from '../utils/metrics';
 import { hexSchema } from '../utils/schemas/hex-schema';
 import {
     BAD_RPC_PARAMS_ERROR_CODE,
@@ -283,5 +284,32 @@ describe('RpcCallHandler upstream node errors', () => {
             id: reqId,
             error: { code: INTERNAL_RPC_ERROR, message: 'Internal error' }
         });
+    });
+});
+
+describe('RpcCallHandler per-operation metrics', () => {
+    async function operationsCounted(method: string, statusCode: number): Promise<number> {
+        const { values } = await jsonRpcOperationCounter.get();
+        return values
+            .filter((value) => value.labels.method === method && value.labels.status_code === statusCode)
+            .reduce((total, value) => total + value.value, 0);
+    }
+
+    it('counts each operation of a batch with its own JSON-RPC code', async () => {
+        const handler: MethodHandler<AuthorizedRpcContext, AnyParams> = {
+            name: 'open_method',
+            paramsSchema: anyParams,
+            handle: async (_context, _method, _params, id) => ({ jsonrpc: '2.0', id, result: 'ok' })
+        };
+        const context = { ...makeContext(), targetRpc: new TestExternalRpc(), authorizer: new TestRpcAuthorizer() };
+        const rpc = new RpcCallHandler([handler], context);
+
+        const successBefore = await operationsCounted('open_method', 0);
+        const notFoundBefore = await operationsCounted('does_not_exist', METHOD_NOT_FOUND_ERROR_CODE);
+
+        await rpc.handle([jsonRpcRequest('open_method', [], 1), jsonRpcRequest('does_not_exist', [], 2)]);
+
+        expect(await operationsCounted('open_method', 0)).toBe(successBefore + 1);
+        expect(await operationsCounted('does_not_exist', METHOD_NOT_FOUND_ERROR_CODE)).toBe(notFoundBefore + 1);
     });
 });

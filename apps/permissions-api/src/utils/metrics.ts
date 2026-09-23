@@ -20,13 +20,13 @@ export const httpRequestDuration = metricsServer.histogram(
 export const jsonPrcRequestCounter = metricsServer.counter(
     'json_rpc_requests_total',
     'Total number of JSON-RPC requests',
-    ['method', 'rpcMethod', 'status_code', 'role', 'result']
+    ['method', 'status_code', 'role', 'result']
 );
 
 export const jsonPrcRequestDuration = metricsServer.histogram(
     'json_rpc_request_duration_seconds',
     'Duration of JSON-RPC requests in seconds',
-    ['method', 'rpcMethod', 'status_code', 'role', 'result'],
+    ['method', 'status_code', 'role', 'result'],
     HTTP_REQUEST_DURATION_BUCKETS
 );
 
@@ -59,4 +59,39 @@ export const policyDecisionCacheCounter = metricsServer.counter(
     'policy_decision_cache_total',
     'Policy decision cache lookups by route and outcome (hit/miss)',
     ['route', 'outcome']
+);
+
+export const upstreamRpcDuration = metricsServer.histogram(
+    'prividium_upstream_rpc_duration_seconds',
+    'Duration of one JSON-RPC call from permissions-api to the target chain RPC',
+    ['method', 'outcome'],
+    HTTP_REQUEST_DURATION_BUCKETS
+);
+
+export const DB_QUERY_DURATION_BUCKETS = [0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10];
+
+export const dbQueryDuration = metricsServer.histogram(
+    'prividium_db_query_duration_seconds',
+    'Duration of one SQL query issued through the shared connection pool',
+    ['outcome'],
+    DB_QUERY_DURATION_BUCKETS
+);
+
+export const dbPoolConnections = metricsServer.gauge(
+    'prividium_db_pool_connections',
+    'Shared connection pool: max size, open, checked out (active), idle, and callers waiting for a connection',
+    ['state']
+);
+
+export const jsonRpcOperationCounter = metricsServer.counter(
+    'json_rpc_operations_total',
+    'JSON-RPC operations handled, one per operation inside a batch',
+    ['method', 'status_code']
+);
+
+export const jsonRpcOperationDuration = metricsServer.histogram(
+    'json_rpc_operation_duration_seconds',
+    'Duration of one JSON-RPC operation inside the handler',
+    ['method', 'status_code'],
+    HTTP_REQUEST_DURATION_BUCKETS
 );

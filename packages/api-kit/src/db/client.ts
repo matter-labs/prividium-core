@@ -7,6 +7,12 @@ export interface DbLogger {
     error(obj: unknown, msg?: string): void;
 }
 
+export type DbQueryOutcome = 'ok' | 'error';
+
+export interface DbInstrumentation {
+    onQuery(durationMs: number, outcome: DbQueryOutcome): void;
+}
+
 export type RawTx<TSchema extends Record<string, unknown>> = PgTransaction<
     NodePgQueryResultHKT,
     TSchema,
@@ -21,7 +27,8 @@ export function createDbPool(
     queryTimeoutMs: number = 10_000,
     statementTimeoutMs: number = 10_000,
     maxConnections: number = 10,
-    connectionTimeoutMs: number = 5_000
+    connectionTimeoutMs: number = 5_000,
+    instrumentation?: DbInstrumentation
 ): Pool {
     const ssl = enableSSL ? (rejectUnauthorized ? true : { rejectUnauthorized: false }) : false;
 
@@ -42,7 +49,65 @@ export function createDbPool(
         logger.error(err, 'PostgreSQL pool error (ignored for health)');
     });
 
+    if (instrumentation) {
+        instrumentPool(pool, instrumentation);
+    }
+
     return pool;
+}
+
+export type PoolState = { max: number; total: number; active: number; idle: number; waiting: number };
+
+export function poolState(pool: Pool): PoolState {
+    return {
+        max: pool.options.max,
+        total: pool.totalCount,
+        active: pool.totalCount - pool.idleCount,
+        idle: pool.idleCount,
+        waiting: pool.waitingCount
+    };
+}
+
+type QueryFn = (...args: unknown[]) => unknown;
+
+function instrumentPool(pool: Pool, instrumentation: DbInstrumentation): void {
+    const instrumentedClients = new WeakSet<PoolClient>();
+
+    pool.query = timed(pool.query.bind(pool), instrumentation) as Pool['query'];
+
+    // `acquire` fires on every checkout path; the pool reuses client objects, hence the guard.
+    pool.on('acquire', (client) => {
+        if (instrumentedClients.has(client)) {
+            return;
+        }
+        instrumentedClients.add(client);
+        client.query = timed(client.query.bind(client), instrumentation) as PoolClient['query'];
+    });
+}
+
+// Promise form only: pool.query runs its own callback-form client query, which must not count twice.
+function timed(query: QueryFn, instrumentation: DbInstrumentation): QueryFn {
+    return (...args: unknown[]) => {
+        if (typeof args.at(-1) === 'function' || isSubmittable(args[0])) {
+            return query(...args);
+        }
+        const startedAt = performance.now();
+        const report = (outcome: DbQueryOutcome) => instrumentation.onQuery(performance.now() - startedAt, outcome);
+        return Promise.resolve(query(...args)).then(
+            (result) => {
+                report('ok');
+                return result;
+            },
+            (error: unknown) => {
+                report('error');
+                throw error;
+            }
+        );
+    };
+}
+
+function isSubmittable(value: unknown): boolean {
+    return typeof value === 'object' && value !== null && typeof (value as { submit?: unknown }).submit === 'function';
 }
 
 /**

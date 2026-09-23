@@ -7,7 +7,7 @@ import type { Authorizer } from '../rpc/permissions';
 import type { ExternalRpc } from '../rpc/target-rpc';
 import { metricsServer } from '../utils/metrics';
 import { regularRpcRoutes } from './regular-rpc-routes';
-import { serviceRpcRoutes } from './rpc-routes';
+import { serviceRpcRoutes, walletRpcRoutes } from './rpc-routes';
 
 const apps: FastifyServer[] = [];
 
@@ -63,7 +63,7 @@ describe('JSON-RPC metrics', () => {
         expect(reported).toBe(1);
     });
 
-    it('leaves the service RPC surface unreported, as the preset always has', async () => {
+    it('reports the service RPC surface', async () => {
         const app = buildTestApp();
         app.register(serviceRpcRoutes, {
             prefix: '/service',
@@ -81,6 +81,33 @@ describe('JSON-RPC metrics', () => {
             expect(response.statusCode).toBe(200);
         });
 
-        expect(reported).toBe(0);
+        expect(reported).toBe(1);
+    });
+
+    it('reports the wallet RPC surface', async () => {
+        const app = buildTestApp();
+        app.addHook('onRequest', async (request) => {
+            request.repos = {
+                users: { getByWalletToken: async () => ({ id: 'user-1', organizationId: null }) }
+            } as never;
+        });
+        app.register(walletRpcRoutes, {
+            prefix: '/wallet',
+            methodAuthService: {} as never,
+            targetRpcUrl: 'http://127.0.0.1:1',
+            targetChainType: 'zksync-os',
+            transactionClassifier: {} as never
+        });
+
+        const reported = await requestsReported('wallet-rpc', async () => {
+            const response = await app.inject({
+                method: 'POST',
+                url: '/wallet/some-token',
+                payload: { jsonrpc: '2.0', id: 1, method: 'not_a_method', params: [] }
+            });
+            expect(response.statusCode).toBe(200);
+        });
+
+        expect(reported).toBe(1);
     });
 });

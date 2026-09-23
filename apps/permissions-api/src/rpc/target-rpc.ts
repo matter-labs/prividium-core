@@ -2,6 +2,7 @@ import { nanoid } from 'nanoid';
 import { Agent } from 'undici';
 import { type Address, createPublicClient, type Hex, hexToNumber, http, type PublicClient } from 'viem';
 import { type TypeOf, type ZodTypeAny, z } from 'zod/v4';
+import { upstreamRpcDuration } from '../utils/metrics';
 import type { BlockTag } from '../utils/schemas/block-tag';
 import { hexSchema, hexSizedSchema } from '../utils/schemas/hex-schema';
 import { SUBMISSION_CONFIRMS_INCLUSION, type TargetChainType } from '../utils/target-chain';
@@ -38,6 +39,12 @@ const ERROR_RESPONSE_SCHEMA = z.object({
 });
 
 const RESPONSE_SCHEMA = z.union([ERROR_RESPONSE_SCHEMA, SUCCESS_RESPONSE_SCHEMA]);
+
+type UpstreamOutcome = 'ok' | 'rpc_error' | 'transport_error';
+
+function upstreamOutcome(body: unknown): UpstreamOutcome {
+    return typeof body === 'object' && body !== null && 'error' in body ? 'rpc_error' : 'ok';
+}
 
 /**
  * Thrown by `TargetRpc.send()` when the upstream RPC returns a JSON-RPC error envelope.
@@ -245,13 +252,28 @@ export class TargetRpc implements ExternalRpc {
         method: JsonRpcRequest['method'],
         params: JsonRpcRequest['params']
     ): Promise<JsonRpcResponse> {
-        const res = await this.rawDelegate(JSON.stringify(request({ id, method, params })));
+        const body = JSON.stringify(request({ id, method, params }));
+        const parsed = await this.observeUpstream(method, async () => {
+            const res = await this.rawDelegate(body);
 
-        // you can't just use response.body, which would be much faster
-        // because the framework doesn't handle it nicely in case of batch requests
-        // TODO research if that can be improved
-        const parsed = (await res.json()) as JsonRpcResponse;
+            // you can't just use response.body, which would be much faster
+            // because the framework doesn't handle it nicely in case of batch requests
+            // TODO research if that can be improved
+            return (await res.json()) as JsonRpcResponse;
+        });
         return normalizeUpstreamResponse(parsed);
+    }
+
+    private async observeUpstream<T>(method: string, call: () => Promise<T>): Promise<T> {
+        const end = upstreamRpcDuration.startTimer({ method });
+        try {
+            const body = await call();
+            end({ outcome: upstreamOutcome(body) });
+            return body;
+        } catch (err) {
+            end({ outcome: 'transport_error' });
+            throw err;
+        }
     }
 
     async rawDelegate(body: string | Uint8Array): ReturnType<typeof fetch> {
@@ -292,20 +314,22 @@ export class TargetRpc implements ExternalRpc {
         params: unknown[],
         schema: T
     ): Promise<TypeOf<T>> {
-        const response = await fetch(this.url, {
-            method: 'POST',
-            body: JSON.stringify(request({ id, method, params })),
-            headers: { 'Content-Type': 'application/json' },
-            ...withUpstreamAgent
-        }).catch((err: unknown) => {
-            throw new Error(`error calling target rpc: "${method}"`, {
-                cause: { method, params, rpcReqId: id, err }
+        const json = await this.observeUpstream(method, async () => {
+            const response = await fetch(this.url, {
+                method: 'POST',
+                body: JSON.stringify(request({ id, method, params })),
+                headers: { 'Content-Type': 'application/json' },
+                ...withUpstreamAgent
+            }).catch((err: unknown) => {
+                throw new Error(`error calling target rpc: "${method}"`, {
+                    cause: { method, params, rpcReqId: id, err }
+                });
             });
-        });
 
-        const json = await response.json().catch(() => {
-            throw new Error(`error calling target rpc: "${method}". Response was not a valid json.`, {
-                cause: { method, params, rpcReqId: id, errMsg: 'invalid json response' }
+            return response.json().catch(() => {
+                throw new Error(`error calling target rpc: "${method}". Response was not a valid json.`, {
+                    cause: { method, params, rpcReqId: id, errMsg: 'invalid json response' }
+                });
             });
         });
 

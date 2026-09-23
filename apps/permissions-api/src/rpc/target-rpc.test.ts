@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
+import { upstreamRpcDuration } from '../utils/metrics';
 import { BAD_RPC_PARAMS_ERROR_CODE, INTERNAL_RPC_ERROR, METHOD_NOT_FOUND_ERROR_CODE } from './constants';
 import { RpcException } from './errors';
 import type { JsonRpcResponse } from './json-rpc';
@@ -266,5 +267,101 @@ describe('TargetRpc.send error mapping', () => {
 
         expect(err).toBeInstanceOf(Error);
         expect(err).not.toBeInstanceOf(RpcException);
+    });
+});
+
+describe('upstream RPC duration metric', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    async function observations(method: string, outcome: string): Promise<number> {
+        const { values } = await upstreamRpcDuration.get();
+        const count = values.find(
+            (v) =>
+                v.metricName === 'prividium_upstream_rpc_duration_seconds_count' &&
+                v.labels.method === method &&
+                v.labels.outcome === outcome
+        );
+        return count?.value ?? 0;
+    }
+
+    it('send observes ok on a JSON-RPC result', async () => {
+        vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+            new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, result: '0x1' }))
+        );
+        const rpc = new TargetRpc('http://unused', 'zksync-os');
+        const before = await observations('eth_chainId', 'ok');
+
+        await rpc.send(1, 'eth_chainId', [], z.string());
+
+        expect(await observations('eth_chainId', 'ok')).toBe(before + 1);
+    });
+
+    it('send observes rpc_error on a JSON-RPC error envelope', async () => {
+        vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+            new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, error: { code: 4, message: 'timeout' } }))
+        );
+        const rpc = new TargetRpc('http://unused', 'zksync-os');
+        const before = await observations('eth_getBalance', 'rpc_error');
+
+        await expect(rpc.send(1, 'eth_getBalance', [TX_HASH], z.unknown())).rejects.toBeInstanceOf(TargetRpcCallError);
+
+        expect(await observations('eth_getBalance', 'rpc_error')).toBe(before + 1);
+        expect(await observations('eth_getBalance', 'ok')).toBe(0);
+    });
+
+    it('send observes transport_error when fetch rejects', async () => {
+        vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('ECONNRESET'));
+        const rpc = new TargetRpc('http://unused', 'zksync-os');
+        const before = await observations('eth_getCode', 'transport_error');
+
+        await expect(rpc.send(1, 'eth_getCode', [TX_HASH], z.unknown())).rejects.toThrow('error calling target rpc');
+
+        expect(await observations('eth_getCode', 'transport_error')).toBe(before + 1);
+    });
+
+    it('send observes transport_error when the body is not JSON', async () => {
+        vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('<html>502</html>'));
+        const rpc = new TargetRpc('http://unused', 'zksync-os');
+        const before = await observations('eth_blockNumber', 'transport_error');
+
+        await expect(rpc.send(1, 'eth_blockNumber', [], z.unknown())).rejects.toThrow('not a valid json');
+
+        expect(await observations('eth_blockNumber', 'transport_error')).toBe(before + 1);
+    });
+
+    it('delegate observes ok under the delegated method', async () => {
+        vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+            new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, result: TX_HASH }))
+        );
+        const rpc = new TargetRpc('http://unused', 'besu');
+        const before = await observations('eth_sendRawTransaction', 'ok');
+
+        await rpc.delegate(1, 'eth_sendRawTransaction', ['0xdeadbeef']);
+
+        expect(await observations('eth_sendRawTransaction', 'ok')).toBe(before + 1);
+    });
+
+    it('delegate observes rpc_error on a JSON-RPC error envelope', async () => {
+        vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+            new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, error: { code: -32000, message: 'rejected' } }))
+        );
+        const rpc = new TargetRpc('http://unused', 'besu');
+        const before = await observations('eth_sendRawTransaction', 'rpc_error');
+
+        await rpc.delegate(1, 'eth_sendRawTransaction', ['0xdeadbeef']);
+
+        expect(await observations('eth_sendRawTransaction', 'rpc_error')).toBe(before + 1);
+    });
+
+    it('delegate observes transport_error when fetch rejects', async () => {
+        vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('ECONNREFUSED'));
+        const rpc = new TargetRpc('http://unused', 'besu');
+        const before = await observations('eth_call', 'transport_error');
+
+        await expect(rpc.delegate(1, 'eth_call', [])).rejects.toThrow('ECONNREFUSED');
+
+        expect(await observations('eth_call', 'transport_error')).toBe(before + 1);
     });
 });

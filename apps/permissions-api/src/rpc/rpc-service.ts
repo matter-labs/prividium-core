@@ -3,6 +3,7 @@ import type { Address, PublicClient } from 'viem';
 import { z } from 'zod/v4';
 import type { ContractDeployment, CreateContractDeployment } from '../repositories/contract-deployments-repository';
 import type { PinoLogger } from '../utils/logger';
+import { jsonRpcOperationCounter, jsonRpcOperationDuration } from '../utils/metrics';
 import { INTERNAL_RPC_ERROR } from './constants';
 import type { DeploymentContext } from './contract-deployment-context';
 import { ForbiddenRpcError, InvalidRpcRequest, RpcException, WrongArguments } from './errors';
@@ -115,7 +116,20 @@ export class RpcCallHandler<Ctx extends BaseContext> {
     }
 
     private async handleSingleRequest(request: unknown): Promise<JsonRpcResponse> {
+        const startedAt = Date.now();
         const parsed = rpcReqSchema.safeParse(request);
+        const method = parsed.data?.method ?? 'unknown';
+        try {
+            const response = await this.respond(parsed);
+            observeOperation(method, 'error' in response ? response.error.code : 0, startedAt);
+            return response;
+        } catch (e) {
+            observeOperation(method, e instanceof RpcException ? e.code : INTERNAL_RPC_ERROR, startedAt);
+            throw e;
+        }
+    }
+
+    private async respond(parsed: z.ZodSafeParseResult<z.infer<typeof rpcReqSchema>>): Promise<JsonRpcResponse> {
         this.context.logger.info({
             message: `rpc call started`,
             rpcReqId: parsed.data?.id,
@@ -225,4 +239,10 @@ export class RpcCallHandler<Ctx extends BaseContext> {
     ): RpcCallHandler<AuthorizedRpcContext> {
         return new RpcCallHandler(createBaseRpcMethodList(publicCodeAddresses, disclosureMethodsEnabled), context);
     }
+}
+
+function observeOperation(method: string, statusCode: number, startedAt: number): void {
+    const labels = { method, status_code: statusCode };
+    jsonRpcOperationCounter.inc(labels);
+    jsonRpcOperationDuration.observe(labels, (Date.now() - startedAt) / 1000);
 }

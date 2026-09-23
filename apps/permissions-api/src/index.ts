@@ -1,4 +1,4 @@
-import type { RpcObserverFactory } from '@repo/api-kit';
+import { type PoolState, poolState, type RpcObserverFactory } from '@repo/api-kit';
 import * as Sentry from '@sentry/node';
 import closeWithGrace from 'close-with-grace';
 import type { Pool } from 'pg';
@@ -12,6 +12,8 @@ import { syncSystemContracts } from './services/system-contracts/sync';
 import { buildServerDeps } from './utils/build-server-deps';
 import { createLogger } from './utils/logger';
 import {
+    dbPoolConnections,
+    dbQueryDuration,
     metricsServer,
     multiOrgEnabledGauge,
     orgCountGauge,
@@ -65,8 +67,25 @@ const db = createDb(
     env.DB_QUERY_TIMEOUT_MS,
     env.DB_STATEMENT_TIMEOUT_MS,
     env.DB_POOL_MAX_CONNECTIONS,
-    env.DB_POOL_CONNECTION_TIMEOUT_MS
+    env.DB_POOL_CONNECTION_TIMEOUT_MS,
+    { onQuery: (ms, outcome) => dbQueryDuration.observe({ outcome }, ms / 1000) }
 );
+
+const DB_POOL_GAUGE_INTERVAL_MS = 5_000;
+
+function observeDbPool(): void {
+    const pool = poolState(db.$client);
+    const connections: Record<keyof PoolState, number> = {
+        max: pool.max,
+        total: pool.total,
+        active: pool.active,
+        idle: pool.idle,
+        waiting: pool.waiting
+    };
+    for (const [state, value] of Object.entries(connections)) {
+        dbPoolConnections.set({ state }, value);
+    }
+}
 
 const INSECURE_HMAC_SECRET = 'aaaaaaaa00000000aaaaaaaa00000000aaaaaaaa00000000aaaaaaaa00000000';
 
@@ -280,6 +299,8 @@ export async function start(features: ServiceFeatures = {}) {
 
     await metricsServer.listen(env.METRICS_PORT);
     logger.info(`Metrics server listening on port ${env.METRICS_PORT}`);
+    const dbPoolGaugeTimer = setInterval(observeDbPool, DB_POOL_GAUGE_INTERVAL_MS);
+    dbPoolGaugeTimer.unref();
 
     const closeListeners = closeWithGrace({ delay: 500 }, async ({ signal, err }) => {
         if (err) logger.error(err);
@@ -287,6 +308,7 @@ export async function start(features: ServiceFeatures = {}) {
         await app.close();
         if (policyApp) await policyApp.close();
         await db.close();
+        clearInterval(dbPoolGaugeTimer);
         await metricsServer.close();
     });
 

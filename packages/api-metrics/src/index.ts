@@ -9,7 +9,7 @@ import fastify, {
     type RouteOptions
 } from 'fastify';
 import type { FastifyInstance } from 'fastify/types/instance';
-import { Counter, Gauge, Histogram, Registry } from 'prom-client';
+import { Counter, collectDefaultMetrics, Gauge, Histogram, Registry } from 'prom-client';
 
 export type { Counter, Histogram };
 
@@ -90,6 +90,7 @@ export class MetricsServer {
         this.register.setDefaultLabels({
             service: serviceName
         });
+        collectDefaultMetrics({ register: this.register });
 
         this.app.get('/metrics', async (_req, reply) => {
             reply.send(await this.register.metrics());

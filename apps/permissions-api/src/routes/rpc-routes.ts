@@ -21,6 +21,7 @@ import type { TransactionClassifier } from '../services/transaction-classifier';
 import { actorLogContext } from '../utils/actor-log-context';
 import type { TargetChainType } from '../utils/target-chain';
 import { regularRpcRoutes } from './regular-rpc-routes';
+import { rpcMetrics } from './rpc-metrics';
 import { rpcTransport } from './rpc-transport';
 
 type RpcRoutesOptions = {
@@ -134,6 +135,7 @@ export function rpcRoutes(app: FastifyServer, options: RpcRoutesOptions): void {
 }
 
 export function serviceRpcRoutes(app: FastifyServer, options: ServiceRpcRoutesOptions): void {
+    rpcMetrics(app);
     app.register(rpcTransport, {
         path: '/',
         role: 'service-rpc',
@@ -157,6 +159,7 @@ export function serviceRpcRoutes(app: FastifyServer, options: ServiceRpcRoutesOp
 }
 
 export function walletRpcRoutes(app: FastifyServer, options: WalletRpcRoutesOptions): void {
+    rpcMetrics(app);
     app.register(rpcTransport, {
         path: '/:token',
         role: 'wallet-rpc',
