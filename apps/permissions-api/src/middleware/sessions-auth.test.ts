@@ -1,7 +1,7 @@
 import Fastify from 'fastify';
 import pino from 'pino';
 import { generatePrivateKey, privateKeyToAddress } from 'viem/accounts';
-import { beforeEach, describe, expect } from 'vitest';
+import { beforeEach, describe, expect, vi } from 'vitest';
 import { type Fixture, it } from '../../test/unit-test-context';
 import { Repositories } from '../db';
 import { TargetTypes } from '../db/schema';
@@ -1020,6 +1020,96 @@ describe('SessionsAuthValidator', () => {
 
             expect(response.statusCode).toEqual(401);
             expect(response.json().message).toContain('Invalid session');
+        });
+    });
+    describe('buildHook - stacked hooks', () => {
+        async function userSession() {
+            const tok = createTestToken('stacked-hooks-token');
+            await sessionsRepo.create({
+                tokenHash: tok.hash,
+                userId: user.id,
+                tenantId: null,
+                expiresAt: new Date(Date.now() + 10000)
+            });
+            return tok;
+        }
+
+        it('runs the session and user lookups once when a scope hook and a route hook both authenticate', async () => {
+            const tok = await userSession();
+            const findSession = vi.spyOn(sessionsRepo, 'findActiveByTokenHash');
+            const validatorWithSpy = new SessionsAuthValidator({
+                logger: silence,
+                repos: { sessions: sessionsRepo, users: usersRepo } as unknown as Repositories,
+                apiKeyAuthValidator: {} as ApiKeyAuthValidator
+            });
+
+            const app = Fastify();
+            app.addHook(
+                'preHandler',
+                validatorWithSpy.buildHook({ targets: [{ type: TargetTypes.enum.user }, { type: 'anonymous' }] })
+            );
+            app.get(
+                '/test',
+                { preHandler: validatorWithSpy.buildHook({ targets: [{ type: TargetTypes.enum.user }] }) },
+                async (req, reply) => reply.send({ type: req.auth.type })
+            );
+
+            const response = await app.inject({
+                method: 'GET',
+                url: '/test',
+                headers: { authorization: `Bearer ${tok.plaintext}` }
+            });
+
+            expect(response.statusCode).toEqual(200);
+            expect(response.json()).toEqual({ type: 'user' });
+            expect(findSession).toHaveBeenCalledTimes(1);
+        });
+
+        it('rejects a principal the route hook does not accept even though the scope hook did', async () => {
+            const tok = await userSession();
+
+            const app = Fastify();
+            app.addHook('preHandler', validator.buildHook({ targets: [{ type: TargetTypes.enum.user }] }));
+            app.get(
+                '/test',
+                { preHandler: validator.buildHook({ targets: [{ type: TargetTypes.enum.service }] }) },
+                async (_req, reply) => reply.send({ success: true })
+            );
+
+            const response = await app.inject({
+                method: 'GET',
+                url: '/test',
+                headers: { authorization: `Bearer ${tok.plaintext}` }
+            });
+
+            expect(response.statusCode).toEqual(401);
+            expect(response.json().message).toContain('Invalid session');
+        });
+
+        it('enforces the route hook system permissions on an already authenticated user', async () => {
+            const tok = await userSession();
+
+            const app = Fastify();
+            app.addHook('preHandler', validator.buildHook({ targets: [{ type: TargetTypes.enum.user }] }));
+            app.get(
+                '/test',
+                {
+                    preHandler: validator.buildHook({
+                        targets: [
+                            { type: TargetTypes.enum.user, requiredSystemPermissions: ['not_a_permission' as never] }
+                        ]
+                    })
+                },
+                async (_req, reply) => reply.send({ success: true })
+            );
+
+            const response = await app.inject({
+                method: 'GET',
+                url: '/test',
+                headers: { authorization: `Bearer ${tok.plaintext}` }
+            });
+
+            expect(response.statusCode).toEqual(403);
         });
     });
 });

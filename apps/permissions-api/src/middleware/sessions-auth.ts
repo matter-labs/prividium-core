@@ -73,8 +73,34 @@ export class SessionsAuthValidator {
     buildHook(opts: BuildHookInput) {
         return async (request: FastifyRequest) => {
             const resolvedOpts = typeof opts === 'function' ? await opts(request) : opts;
-            request.auth = await this.extractAuthData(request, resolvedOpts);
+            request.auth =
+                request.auth === undefined
+                    ? await this.extractAuthData(request, resolvedOpts)
+                    : await this.narrowAuthData(request, request.auth, resolvedOpts);
         };
+    }
+
+    // A route hook re-checks what a scope hook already extracted; a second extraction would repeat the DB lookups.
+    private async narrowAuthData(request: FastifyRequest, auth: AuthData, opts: BuildHookOpts): Promise<AuthData> {
+        for (const targetConfig of opts.targets) {
+            if (targetConfig.type !== auth.type) {
+                continue;
+            }
+            if (targetConfig.type === 'user') {
+                await this.assertUserAllowed(
+                    request,
+                    auth.currentUser(),
+                    targetConfig.requiredRoles ?? [],
+                    targetConfig.requiredSystemPermissions ?? [],
+                    auth.tokenHash
+                );
+            }
+            return auth;
+        }
+
+        const attemptedTypes = opts.targets.map((t) => t.type).join(', ');
+        this.logger.debug({ attemptedTypes, authType: auth.type }, 'Authenticated principal not allowed here');
+        throw new UnauthorizedError('Invalid session');
     }
 
     buildSyncHook(opts: BuildHookInput) {
@@ -264,6 +290,25 @@ export class SessionsAuthValidator {
         session: Session,
         tokenHash: string
     ): Promise<AuthData> {
+        await this.assertUserAllowed(request, user, requiredRoles, requiredSystemPermissions, tokenHash);
+
+        return new AuthData({
+            user,
+            targetType: TargetTypes.enum.user,
+            sessionTokenHash: tokenHash,
+            expiresAt: session.expiresAt,
+            renewableUntil: session.renewableUntil ?? session.expiresAt,
+            authMethod: 'session'
+        });
+    }
+
+    private async assertUserAllowed(
+        request: FastifyRequest,
+        user: UserWithRoles,
+        requiredRoles: string[],
+        requiredSystemPermissions: Permission[],
+        tokenHash: string
+    ): Promise<void> {
         if (requiredRoles.length > 0) {
             const userRoles = new Set(user.roles.map((r) => r.id));
             const missingRoles = requiredRoles.some((r) => !userRoles.has(r));
@@ -315,15 +360,6 @@ export class SessionsAuthValidator {
                 throw new ForbiddenError();
             }
         }
-
-        return new AuthData({
-            user,
-            targetType: TargetTypes.enum.user,
-            sessionTokenHash: tokenHash,
-            expiresAt: session.expiresAt,
-            renewableUntil: session.renewableUntil ?? session.expiresAt,
-            authMethod: 'session'
-        });
     }
 
     private async emitAuthzDenied(
