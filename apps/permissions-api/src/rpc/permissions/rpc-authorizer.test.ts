@@ -207,6 +207,22 @@ describe('RpcAuthorizer.authorizeDeployment', () => {
             ).resolves.toEqual({ authorized: false, ruleId: 'deploy.permission_missing' });
         });
 
+        it('denies a tenant even when its default role carries contract_deployment', async () => {
+            const auth = new AuthData({
+                tenant: {
+                    id: 'tenant-1',
+                    defaultRoles: [role('deployer', ['contract_deployment', 'full_sequencer_rpc_access'])]
+                } as never,
+                targetType: 'tenant',
+                expiresAt: new Date(),
+                authMethod: 'api_key'
+            });
+
+            await expect(
+                authorizerFor(auth, reposWith(undefined)).authorizeDeployment(deployerAddress)
+            ).resolves.toEqual({ authorized: false, ruleId: 'deploy.permission_missing' });
+        });
+
         it('raises an auth error for an anonymous caller', async () => {
             const auth = new AuthData({ targetType: 'anonymous', expiresAt: new Date(), authMethod: 'session' });
 
