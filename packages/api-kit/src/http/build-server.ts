@@ -9,8 +9,15 @@ export type ApiServerOptions<TLogger extends FastifyBaseLogger> = {
     trustProxy?: string | string[];
 };
 
+/** Above the backend idle timeout of common fronting proxies, so a proxy never reuses a connection this server closed. */
+export const KEEP_ALIVE_TIMEOUT_MS = 620_000;
+
 export function createApiServer<TLogger extends FastifyBaseLogger>({ logger, trustProxy }: ApiServerOptions<TLogger>) {
-    const app = Fastify({ loggerInstance: logger, trustProxy }).withTypeProvider<ZodTypeProvider>();
+    const app = Fastify({
+        loggerInstance: logger,
+        trustProxy,
+        keepAliveTimeout: KEEP_ALIVE_TIMEOUT_MS
+    }).withTypeProvider<ZodTypeProvider>();
 
     app.setValidatorCompiler(validatorCompiler);
     app.setSerializerCompiler(serializerCompiler);
