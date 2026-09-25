@@ -1,5 +1,5 @@
 import type { SQL } from 'drizzle-orm';
-import { and, count, desc, eq, gte, isNull, lte, sql } from 'drizzle-orm';
+import { and, arrayContains, count, desc, eq, gte, isNull, lte, or, sql } from 'drizzle-orm';
 import { unionAll } from 'drizzle-orm/pg-core';
 import { z } from 'zod/v4';
 import {
@@ -15,6 +15,7 @@ import { BaseRepository } from './base-repository';
 // ─── Semantic audit logs (audit_logs table) ───────────────────────────────────
 
 export const CreateAuditLogSchema = z.object({
+    affectedOrganizationIds: z.array(z.string()).optional(),
     activeUserId: z.string().min(1).nullable(),
     activeTenantId: z.string().nullable().optional(),
     activeServiceId: z.string().nullable().optional(),
@@ -49,6 +50,7 @@ export const SelectAuditLogSchema = z.object({
 });
 
 export type SelectAuditLog = z.infer<typeof SelectAuditLogSchema>;
+export type AuditLogWithAudience = SelectAuditLog & { affectedOrganizationIds: string[] | null };
 
 export const AuditLogsSearchCriteriaSchema = z.object({
     userId: z.string().optional(),
@@ -124,20 +126,55 @@ export class AuditLogsRepository extends BaseRepository {
     // ── Semantic audit logs ──────────────────────────────────────────────────
 
     async create(data: CreateAuditLog): Promise<SelectAuditLog> {
-        const [auditLog] = await this.db.insert(auditLogsTable).values(data).returning();
+        const [auditLog] = await this.db
+            .insert(auditLogsTable)
+            .values({
+                ...data,
+                affectedOrganizationIds:
+                    data.affectedOrganizationIds === undefined ? null : [...new Set(data.affectedOrganizationIds)]
+            })
+            .returning();
 
         if (!auditLog) {
             throw new Error('Failed to create audit log');
         }
 
+        const { affectedOrganizationIds: _audience, ...event } = auditLog;
         return {
-            ...auditLog,
+            ...event,
             createdAt: auditLog.createdAt.toISOString()
         } as SelectAuditLog;
     }
 
-    // `maxItems` bounds the row count at the cap instead of scanning the entire table
-    async findPaginated(criteria: AuditLogsSearchCriteria, { limit, offset }: PaginationParams, maxItems?: number) {
+    async findPaginated(criteria: AuditLogsSearchCriteria, pagination: PaginationParams, maxItems?: number) {
+        const result = await this.findPaginatedRecords(criteria, pagination, maxItems);
+        return {
+            ...result,
+            items: result.items.map(({ affectedOrganizationIds: _audience, ...event }) => event)
+        };
+    }
+
+    async findForOrganization(
+        organizationId: string,
+        criteria: Omit<AuditLogsSearchCriteria, 'activeOrganizationId'>,
+        pagination: PaginationParams,
+        maxItems?: number
+    ) {
+        return this.findPaginatedRecords(
+            { ...criteria, activeOrganizationId: organizationId },
+            pagination,
+            maxItems,
+            true
+        );
+    }
+
+    // `maxItems` bounds the row count at the cap instead of scanning the entire table.
+    private async findPaginatedRecords(
+        criteria: AuditLogsSearchCriteria,
+        { limit, offset }: PaginationParams,
+        maxItems?: number,
+        useOrganizationAudience = false
+    ) {
         const {
             userId,
             activeTenantId,
@@ -157,11 +194,24 @@ export class AuditLogsRepository extends BaseRepository {
         if (activeTenantId) {
             conditions.push(eq(auditLogsTable.activeTenantId, activeTenantId));
         }
-        conditions.push(
-            activeOrganizationId !== undefined
-                ? eq(auditLogsTable.activeOrganizationId, activeOrganizationId)
-                : isNull(auditLogsTable.activeOrganizationId)
-        );
+        if (activeOrganizationId === undefined) {
+            conditions.push(isNull(auditLogsTable.activeOrganizationId));
+        } else if (useOrganizationAudience) {
+            if (userId) {
+                conditions.push(eq(auditLogsTable.activeOrganizationId, activeOrganizationId));
+            }
+            conditions.push(
+                or(
+                    arrayContains(auditLogsTable.affectedOrganizationIds, [activeOrganizationId]),
+                    and(
+                        isNull(auditLogsTable.affectedOrganizationIds),
+                        eq(auditLogsTable.activeOrganizationId, activeOrganizationId)
+                    )
+                )
+            );
+        } else {
+            conditions.push(eq(auditLogsTable.activeOrganizationId, activeOrganizationId));
+        }
         if (actionType) {
             conditions.push(eq(auditLogsTable.actionType, actionType));
         }
@@ -192,6 +242,7 @@ export class AuditLogsRepository extends BaseRepository {
                 activeTenantId: auditLogsTable.activeTenantId,
                 activeServiceId: auditLogsTable.activeServiceId,
                 activeOrganizationId: auditLogsTable.activeOrganizationId,
+                affectedOrganizationIds: auditLogsTable.affectedOrganizationIds,
                 actionType: auditLogsTable.actionType,
                 actionDetails: auditLogsTable.actionDetails,
                 traceId: auditLogsTable.traceId,
@@ -205,7 +256,7 @@ export class AuditLogsRepository extends BaseRepository {
             .from(auditLogsTable)
             .where(whereClause)
             .orderBy(desc(auditLogsTable.createdAt))
-            .limit(limit)
+            .limit(maxItems === undefined ? limit : Math.min(limit, maxItems - offset))
             .offset(offset);
 
         return {
@@ -213,7 +264,7 @@ export class AuditLogsRepository extends BaseRepository {
                 ...item,
                 actionDetails: item.actionDetails as Record<string, unknown>,
                 createdAt: item.createdAt.toISOString()
-            })) as SelectAuditLog[],
+            })) as AuditLogWithAudience[],
             pagination: {
                 currentPage: Math.floor(offset / limit) + 1,
                 totalPages: Math.ceil(totalCount / limit),

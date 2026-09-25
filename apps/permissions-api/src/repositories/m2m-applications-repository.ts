@@ -308,6 +308,26 @@ export class M2mApplicationsRepository extends BaseRepository {
         };
     }
 
+    /** Must run inside a transaction. */
+    async lockById(id: string, ownerOrganizationId?: string): Promise<void> {
+        const [app] = await this.db
+            .select({ id: m2mApplicationsTable.id })
+            .from(m2mApplicationsTable)
+            .where(
+                and(
+                    eq(m2mApplicationsTable.id, id),
+                    ownerOrganizationId === undefined
+                        ? undefined
+                        : eq(m2mApplicationsTable.ownerOrganizationId, ownerOrganizationId)
+                )
+            )
+            .limit(1)
+            .for('update');
+        if (!app) {
+            throw new EntityNotFound('M2mApplication', { id });
+        }
+    }
+
     async getById(id: string, tx?: TxType): Promise<M2mApplication> {
         const m2mApp = await (tx ?? this.db).query.m2mApplicationsTable.findFirst({
             where: (t, { eq }) => eq(t.id, id),

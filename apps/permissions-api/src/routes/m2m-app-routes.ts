@@ -1,6 +1,12 @@
 import { AUDIT_ACTIONS } from '@repo/access-control';
 import { z } from 'zod/v4';
 import type { FastifyServer } from '../build-app';
+import {
+    createAuditedM2mApplication,
+    deleteAuditedM2mApplication,
+    replaceAuditedM2mOrganizations,
+    updateAuditedM2mApplication
+} from '../services/m2m-audit-service';
 import { ErrorResponseSchema, PaginationQuerySchema, PublicIdSchema } from '../utils/schemas/fastify-common';
 import {
     CreateM2mApplicationBodySchema,
@@ -36,9 +42,9 @@ export function m2mAppRoutes(server: FastifyServer) {
             }
         },
         async (req, reply) => {
-            const m2mApp = await req.repos.m2mApps.create(req.body);
-            req.auditEventDetails = { resourceType: 'm2m-app', resourceId: m2mApp.id };
-            return reply.send(m2mApp);
+            const { app, auditEventDetails } = await createAuditedM2mApplication(req.repos, req.body);
+            req.auditEventDetails = auditEventDetails;
+            return reply.send(app);
         }
     );
 
@@ -107,8 +113,13 @@ export function m2mAppRoutes(server: FastifyServer) {
         },
         async (req, reply) => {
             req.auditEventDetails = { resourceType: 'm2m-app', resourceId: req.params.id };
-            const updated = await req.repos.m2mApps.update(req.params.id, req.body);
-            return reply.send(updated);
+            const { app, auditEventDetails } = await updateAuditedM2mApplication(
+                req.repos,
+                { appId: req.params.id },
+                req.body
+            );
+            req.auditEventDetails = auditEventDetails;
+            return reply.send(app);
         }
     );
 
@@ -130,7 +141,7 @@ export function m2mAppRoutes(server: FastifyServer) {
         },
         async (req, reply) => {
             req.auditEventDetails = { resourceType: 'm2m-app', resourceId: req.params.id };
-            await req.repos.m2mApps.delete(req.params.id);
+            req.auditEventDetails = await deleteAuditedM2mApplication(req.repos, { appId: req.params.id });
             return reply.status(204).send();
         }
     );
@@ -176,7 +187,12 @@ export function m2mAppRoutes(server: FastifyServer) {
         },
         async (req, reply) => {
             req.auditEventDetails = { resourceType: 'm2m-app', resourceId: req.params.id };
-            const organizations = await req.repos.m2mApps.replaceOrganizations(req.params.id, req.body.organizationIds);
+            const { organizations, auditEventDetails } = await replaceAuditedM2mOrganizations(
+                req.repos,
+                req.params.id,
+                req.body.organizationIds
+            );
+            req.auditEventDetails = auditEventDetails;
             return reply.send(organizations);
         }
     );

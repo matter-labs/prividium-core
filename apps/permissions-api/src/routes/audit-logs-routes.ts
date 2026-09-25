@@ -11,24 +11,16 @@ import {
 } from '../repositories/audit-logs-repository';
 import { ErrorResponseSchema, PaginationQuerySchema } from '../utils/schemas/fastify-common';
 import { paginatedResult } from '../utils/schemas/pagination';
-import { ActionTypesResponseSchema } from './schemas/audit-logs';
+import { ActionTypesResponseSchema, auditPaginationQuerySchema } from './schemas/audit-logs';
 
 type Deps = {
     paginationMaxItems: number;
 };
 
 export function auditLogsRoutes(server: FastifyServer, { paginationMaxItems }: Deps) {
-    const listQuerySchema = AuditLogsSearchCriteriaSchema.omit({ activeOrganizationId: true })
-        .merge(
-            PaginationQuerySchema({
-                limit: { max: Math.min(1000, paginationMaxItems), default: 50 },
-                offset: { max: paginationMaxItems - 1 }
-            })
-        )
-        .refine(({ limit, offset }) => limit + offset <= paginationMaxItems, {
-            message: `limit + offset must not exceed ${paginationMaxItems}`,
-            path: ['offset']
-        });
+    const listQuerySchema = auditPaginationQuerySchema(paginationMaxItems).safeExtend(
+        AuditLogsSearchCriteriaSchema.omit({ activeOrganizationId: true }).shape
+    );
 
     server.get(
         '/',

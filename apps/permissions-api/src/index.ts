@@ -7,6 +7,7 @@ import { type AppConfig, buildApp, type FeatureRuntime } from './build-app';
 import { buildPolicyApp, type PolicyAppConfig } from './build-policy-app';
 import { RepositoriesCoreFacts } from './core-facts/repositories-core-facts';
 import { createDb, runWithJobContext } from './db';
+import { auditAudienceIndexIsValid } from './db/audit-audience-index';
 import { runMigrations } from './db/migrate';
 import { envHasCryptoNativeAuthMethod, loadEnv } from './env';
 import { syncSystemContracts } from './services/system-contracts/sync';
@@ -136,6 +137,12 @@ export async function start(features: ServiceFeatures = {}) {
             await runMigrations(db, logger, env.MIGRATIONS_DIR);
             await features.runFeatureMigrations?.(db.$client);
         });
+    }
+
+    if (!(await auditAudienceIndexIsValid(db.$client))) {
+        logger.warn(
+            'Audit audience index is missing or invalid; organization audit queries may be slow. Follow the Migrate section in the Core README to run scripts/create-audit-audience-index.sql and verify the index.'
+        );
     }
 
     // Run startup mutations on a dedicated connection stamped with job_id='system:startup'

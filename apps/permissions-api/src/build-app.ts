@@ -683,7 +683,8 @@ export async function buildApp(db: DB, config: AppConfig) {
                     insecureM2mAllowAnyIp: config.insecureM2mAllowAnyIp,
                     operatorIssuer: config.oidcOpts?.iss,
                     maxOrganizations: config.maxOrganizations,
-                    multiOrgEnabled: config.multiOrgEnabled
+                    multiOrgEnabled: config.multiOrgEnabled,
+                    auditLogsPaginationMaxItems: config.auditLogsPaginationMaxItems
                 });
             });
 

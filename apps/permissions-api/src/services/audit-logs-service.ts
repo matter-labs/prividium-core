@@ -51,9 +51,18 @@ export class AuditLogContext {
         resourceType: AuditResourceType,
         resourceId?: string,
         actionDetails?: Record<string, unknown>,
-        tx?: DbOrTx
+        tx?: DbOrTx,
+        affectedOrganizationIds?: string[]
     ): Promise<void> {
-        await this.auditLogsService.logSecurityEvent(actionType, resourceType, resourceId, this, actionDetails, tx);
+        await this.auditLogsService.logSecurityEvent(
+            actionType,
+            resourceType,
+            resourceId,
+            this,
+            actionDetails,
+            tx,
+            affectedOrganizationIds
+        );
     }
 
     /**
@@ -161,7 +170,8 @@ export class AuditLogsService {
         resourceId: string | undefined,
         context: AuditLogContextData,
         actionDetails?: Record<string, unknown>,
-        tx?: DbOrTx
+        tx?: DbOrTx,
+        affectedOrganizationIds?: string[]
     ): Promise<void> {
         const repo = tx ? tx.repositories().auditLogs : this.repos.auditLogs;
         await repo.create({
@@ -169,6 +179,15 @@ export class AuditLogsService {
             activeTenantId: context.activeTenantId,
             activeServiceId: context.activeServiceId,
             activeOrganizationId: context.activeOrganizationId ?? null,
+            affectedOrganizationIds:
+                affectedOrganizationIds === undefined
+                    ? undefined
+                    : [
+                          ...new Set([
+                              ...affectedOrganizationIds,
+                              ...(context.activeOrganizationId ? [context.activeOrganizationId] : [])
+                          ])
+                      ],
             traceId: context.traceId,
             requestId: context.requestId,
             actorType: context.actorType,

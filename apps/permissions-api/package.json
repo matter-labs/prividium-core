@@ -45,6 +45,7 @@
         "test:coverage": "vitest run --coverage",
         "typecheck": "tsc --noEmit",
         "db:migrate": "drizzle-kit migrate",
+        "db:audit-index": "tsx scripts/create-audit-audience-index.ts",
         "db:seed": "tsx scripts/seed.ts",
         "db:generate": "drizzle-kit generate && biome format --write ./drizzle",
         "db:drop": "drizzle-kit drop",

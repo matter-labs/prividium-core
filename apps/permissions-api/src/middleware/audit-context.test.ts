@@ -13,7 +13,7 @@ type PoolShape = { max: number; connectionTimeoutMillis: number };
 
 function buildAuditContextTestApp(
     routeConfig: FastifyContextConfig,
-    opts: { pool?: PoolShape; blockUntil?: Promise<void> } = {}
+    opts: { pool?: PoolShape; blockUntil?: Promise<void>; audience?: string[]; statusCode?: number } = {}
 ) {
     const client = {
         query: vi.fn().mockResolvedValue({ rows: [], rowCount: 0 }),
@@ -42,7 +42,14 @@ function buildAuditContextTestApp(
         {
             config: routeConfig
         },
-        async () => ({ ok: true })
+        async (request, reply) => {
+            request.auditEventDetails = {
+                resourceType: 'm2m-app',
+                resourceId: 'app-id',
+                affectedOrganizationIds: opts.audience
+            };
+            return reply.code(opts.statusCode ?? 200).send({ ok: true });
+        }
     );
     app.post('/blocking', { config: routeConfig }, async () => {
         await opts.blockUntil;
@@ -53,6 +60,26 @@ function buildAuditContextTestApp(
 }
 
 describe('audit context middleware', () => {
+    it.each([
+        { audience: undefined, statusCode: 200, expected: undefined },
+        { audience: [], statusCode: 200, expected: [] },
+        { audience: ['org-a', 'org-b'], statusCode: 200, expected: ['org-a', 'org-b'] },
+        { audience: ['org-a'], statusCode: 400, expected: undefined }
+    ])('passes only successful response audiences: $statusCode $audience', async (testCase) => {
+        const { app, logSecurityEvent } = buildAuditContextTestApp(
+            { audit_action: AUDIT_ACTIONS.M2M_APP_UPDATE, audit_db_context: false },
+            testCase
+        );
+        try {
+            await app.inject({ method: 'POST', url: '/test' });
+            expect(logSecurityEvent).toHaveBeenCalledOnce();
+            expect(logSecurityEvent.mock.calls[0]?.[6]).toEqual(testCase.expected);
+            expect(logSecurityEvent.mock.calls[0]?.[3]).toMatchObject({ requestId: 'request-id', traceId: 'trace-id' });
+        } finally {
+            await app.close();
+        }
+    });
+
     it('does not acquire a pool client when DB audit context is disabled', async () => {
         const { app, connect, logSecurityEvent } = buildAuditContextTestApp({
             audit_action: AUDIT_ACTIONS.APPLICATION_CREATE,

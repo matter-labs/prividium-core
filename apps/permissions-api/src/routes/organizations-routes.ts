@@ -7,7 +7,6 @@ import { auditActionTypeSchema } from '../db/schema';
 import { requireOrgAdmin } from '../middleware/require-org-admin';
 import { requireM2mAppOrgAssociation, requireOrgAdminForUserCaller } from '../middleware/require-org-membership';
 import type { SessionsAuthValidator } from '../middleware/sessions-auth';
-import { SelectAuditLogSchema } from '../repositories/audit-logs-repository';
 import {
     fullContractPermissionSchema,
     newContractPermissionSchema,
@@ -25,6 +24,12 @@ import type { ExternalRpc } from '../rpc/target-rpc';
 import type { ApiKeyService } from '../services/api-key-service';
 import { assertOrgContractRegisterable } from '../services/contract-registration-guard';
 import type { M2mAppActionsService } from '../services/m2m-app-actions-service';
+import {
+    createAuditedM2mApplication,
+    deleteAuditedM2mApplication,
+    updateAuditedM2mApplication
+} from '../services/m2m-audit-service';
+import { organizationAuditSummary } from '../services/organization-audit-service';
 import { deleteOrganizationAndRevokeAccess } from '../services/organizations-service';
 import { withOverbroadFlag } from '../utils/cidr';
 import { EntityNotFound, ForbiddenError, InvalidInputError, OrgQuotaExceededError } from '../utils/error-types';
@@ -36,6 +41,7 @@ import { addressSchema } from '../utils/schemas/address';
 import { ErrorResponseSchema, PaginationQuerySchema, SearchQuerySchema } from '../utils/schemas/fastify-common';
 import { paginatedResult } from '../utils/schemas/pagination';
 import { createApiKeyBodySchema, OrgApiKeyWithSecretSchema, PaginatedOrgApiKeysSchema } from './schemas/api-keys';
+import { auditPaginationQuerySchema, OrganizationAuditLogSchema } from './schemas/audit-logs';
 import {
     CreateEventPermissionBodySchema,
     EventPermissionSchema,
@@ -94,16 +100,8 @@ type Deps = {
     operatorIssuer?: string;
     maxOrganizations: number;
     multiOrgEnabled: boolean;
+    auditLogsPaginationMaxItems: number;
 };
-
-const orgAuditLogsQuerySchema = PaginationQuerySchema().extend({
-    userId: z.string().optional(),
-    actionType: auditActionTypeSchema.optional(),
-    startDate: z.iso.datetime().optional(),
-    endDate: z.iso.datetime().optional()
-});
-
-const orgAuditLogSchema = SelectAuditLogSchema.extend({ operatorBypass: z.boolean() });
 
 const orgRoleParamsSchema = z.object({ id: z.string(), roleId: z.string().min(1) });
 const orgRolesListQuerySchema = PaginationQuerySchema().extend({ searchQuery: SearchQuerySchema.optional() });
@@ -184,10 +182,17 @@ export function organizationsRoutes(
         insecureM2mAllowAnyIp,
         operatorIssuer,
         maxOrganizations,
-        multiOrgEnabled
+        multiOrgEnabled,
+        auditLogsPaginationMaxItems
     }: Deps
 ) {
     const roleScope = { allowZoneRoles: !multiOrgEnabled };
+    const orgAuditLogsQuerySchema = auditPaginationQuerySchema(auditLogsPaginationMaxItems).safeExtend({
+        userId: z.string().optional(),
+        actionType: auditActionTypeSchema.optional(),
+        startDate: z.iso.datetime().optional(),
+        endDate: z.iso.datetime().optional()
+    });
 
     // Admin-only routes
     server.register((server: FastifyServer) => {
@@ -227,7 +232,11 @@ export function organizationsRoutes(
                     throw new OrgQuotaExceededError(maxOrganizations);
                 }
                 const organization = await req.repos.organizations.create(req.body, roleScope);
-                req.auditEventDetails = { resourceType: 'organization', resourceId: organization.id };
+                req.auditEventDetails = {
+                    resourceType: 'organization',
+                    resourceId: organization.id,
+                    affectedOrganizationIds: [organization.id]
+                };
                 orgCountGauge.inc();
                 return reply.send(organization);
             }
@@ -293,7 +302,11 @@ export function organizationsRoutes(
                 }
             },
             async (req, reply) => {
-                req.auditEventDetails = { resourceType: 'organization', resourceId: req.params.id };
+                req.auditEventDetails = {
+                    resourceType: 'organization',
+                    resourceId: req.params.id,
+                    affectedOrganizationIds: [req.params.id]
+                };
                 const organization = await req.repos.organizations.update(req.params.id, req.body, roleScope);
                 return reply.send(organization);
             }
@@ -828,7 +841,7 @@ export function organizationsRoutes(
                         params: byIdSchema,
                         querystring: orgAuditLogsQuerySchema,
                         response: {
-                            200: paginatedResult(orgAuditLogSchema),
+                            200: paginatedResult(OrganizationAuditLogSchema),
                             401: ErrorResponseSchema,
                             403: ErrorResponseSchema,
                             404: ErrorResponseSchema
@@ -838,23 +851,30 @@ export function organizationsRoutes(
                 async (req, reply) => {
                     await req.repos.organizations.getById(req.params.id);
                     const { limit, offset, userId, actionType, startDate, endDate } = req.query;
-                    const result = await req.repos.auditLogs.findPaginated(
-                        { activeOrganizationId: req.params.id, userId, actionType, startDate, endDate },
-                        { limit, offset }
+                    const result = await req.repos.auditLogs.findForOrganization(
+                        req.params.id,
+                        { userId, actionType, startDate, endDate },
+                        { limit, offset },
+                        auditLogsPaginationMaxItems
                     );
                     const actorIds = [
                         ...new Set(
-                            result.items.map((log) => log.activeUserId).filter((id): id is string => id !== null)
+                            result.items
+                                .filter((log) => log.activeOrganizationId === req.params.id)
+                                .map((log) => log.activeUserId)
+                                .filter((id): id is string => id !== null)
                         )
                     ];
                     const actorOrg = await req.repos.users.organizationIdByIds(actorIds);
                     const items = result.items.map((log) => ({
-                        ...log,
-                        // Zone-level actor (org null) = zone operator via support bypass; unknown actors aren't flagged.
+                        ...organizationAuditSummary(log, req.params.id),
+                        // Hidden actors disclose event authority, never their current organization.
                         operatorBypass:
-                            log.actorType === 'user' &&
-                            log.activeUserId !== null &&
-                            actorOrg.get(log.activeUserId) === null
+                            log.activeOrganizationId !== req.params.id
+                                ? log.activeOrganizationId === null
+                                : log.actorType === 'user' &&
+                                  log.activeUserId !== null &&
+                                  actorOrg.get(log.activeUserId) === null
                     }));
                     return reply.send({ items, pagination: result.pagination });
                 }
@@ -1087,8 +1107,12 @@ export function organizationsRoutes(
                 },
                 async (req, reply) => {
                     await req.repos.organizations.getById(req.params.id);
-                    const app = await req.repos.m2mApps.createForOrg(req.params.id, req.body);
-                    req.auditEventDetails = { resourceType: 'm2m-app', resourceId: app.id };
+                    const { app, auditEventDetails } = await createAuditedM2mApplication(
+                        req.repos,
+                        req.body,
+                        req.params.id
+                    );
+                    req.auditEventDetails = auditEventDetails;
                     return reply.status(201).send(app);
                 }
             );
@@ -1115,7 +1139,12 @@ export function organizationsRoutes(
                 async (req, reply) => {
                     req.auditEventDetails = { resourceType: 'm2m-app', resourceId: req.params.appId };
                     await req.repos.organizations.getById(req.params.id);
-                    const app = await req.repos.m2mApps.updateForOrg(req.params.id, req.params.appId, req.body);
+                    const { app, auditEventDetails } = await updateAuditedM2mApplication(
+                        req.repos,
+                        { appId: req.params.appId, organizationId: req.params.id },
+                        req.body
+                    );
+                    req.auditEventDetails = auditEventDetails;
                     return reply.send(app);
                 }
             );
@@ -1140,7 +1169,10 @@ export function organizationsRoutes(
                 async (req, reply) => {
                     req.auditEventDetails = { resourceType: 'm2m-app', resourceId: req.params.appId };
                     await req.repos.organizations.getById(req.params.id);
-                    await req.repos.m2mApps.deleteForOrg(req.params.id, req.params.appId);
+                    req.auditEventDetails = await deleteAuditedM2mApplication(req.repos, {
+                        appId: req.params.appId,
+                        organizationId: req.params.id
+                    });
                     return reply.status(204).send();
                 }
             );

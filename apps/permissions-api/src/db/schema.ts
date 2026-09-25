@@ -1055,6 +1055,9 @@ export const auditLogsTable = pgTable(
         authSubject: text(), // Session token hash or API key ID used to authenticate
         ipAddress: text(),
         userAgent: text(),
+        // Null retains legacy request-scope visibility; an empty array grants no organization audience.
+        // GIN index managed separately by scripts/create-audit-audience-index.sql to avoid blocking audit writes.
+        affectedOrganizationIds: text().array(),
         // null = zone-level action; non-null = scoped to that organization.
         // restrict (not set null/cascade): audit records are tamper-free and must never be mutated by an org deletion.
         activeOrganizationId: text().references(() => organizationsTable.id, {

@@ -617,6 +617,13 @@
             "when": 1789572700514,
             "tag": "0087_add_access_control_audit_triggers",
             "breakpoints": true
+        },
+        {
+            "idx": 88,
+            "version": "7",
+            "when": 1789584523173,
+            "tag": "0088_add_audit_event_organization_audiences",
+            "breakpoints": true
         }
     ]
 }

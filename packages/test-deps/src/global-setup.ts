@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { Pool } from 'pg';
@@ -57,6 +58,12 @@ export async function setupTestDatabase(
             ...(set.migrationsTable === undefined ? {} : { migrationsTable: set.migrationsTable })
         });
     }
+    await tplPool.query(
+        await readFile(
+            new URL('../../../apps/permissions-api/scripts/create-audit-audience-index.sql', import.meta.url),
+            'utf8'
+        )
+    );
     await tplPool.end();
 
     // await withAdminConnection(async (adminPool) => {

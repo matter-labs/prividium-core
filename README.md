@@ -72,6 +72,39 @@ Migrations run automatically at startup only when `NODE_ENV=production`. In deve
 pnpm --filter @repo/permissions-api db:migrate
 ```
 
+After migration `0088_add_audit_event_organization_audiences`, build the audit audience index on every database,
+including new installations. From this repository's root, run:
+
+```sh
+psql "$DATABASE_URL" --set ON_ERROR_STOP=1 --file apps/permissions-api/scripts/create-audit-audience-index.sql
+```
+
+The runtime image includes neither this script nor `psql`. From a PostgreSQL client connected to the same database, run
+the equivalent statement:
+
+```sql
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "idx_audit_logs_affected_organization_ids"
+    ON "audit_logs" USING gin ("affected_organization_ids");
+```
+
+Run in autocommit mode, without `--single-transaction` or an enclosing transaction. The script owns this index outside
+Drizzle's schema and snapshots so it can build concurrently with audit writes.
+
+Verify the result:
+
+```sql
+SELECT i.indisvalid, pg_get_indexdef(i.indexrelid)
+FROM pg_index i
+WHERE i.indexrelid = to_regclass('public.idx_audit_logs_affected_organization_ids');
+```
+
+Expect one row with `indisvalid = true` and a GIN index on `affected_organization_ids`. The API warns at startup if the
+index is missing or invalid. Organization audit queries remain correct but can be slow until the index is ready.
+
+`IF NOT EXISTS` does not repair an invalid index left by an interrupted build. Drop that invalid index with
+`DROP INDEX CONCURRENTLY public.idx_audit_logs_affected_organization_ids` in autocommit mode, then rerun the script and
+verification.
+
 ## Create the first admin
 
 Migrations create the schema, not the baseline roles. Seed them, then name the wallet that owns the chain:

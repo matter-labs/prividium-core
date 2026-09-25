@@ -21,6 +21,7 @@ const DEFAULT_POOL_MAX = 10;
 type PoolOptions = { max?: number; connectionTimeoutMillis?: number };
 
 export interface AuditEventDetails {
+    affectedOrganizationIds?: string[];
     resourceType?: AuditResourceType;
     resourceId?: string;
     actionDetails?: Record<string, unknown>;
@@ -246,7 +247,8 @@ export function registerAuditContextCleanup(app: FastifyServer) {
                     result,
                     ...auditEventDetails?.actionDetails
                 },
-                request.auditDb
+                request.auditDb,
+                result === 'success' ? auditEventDetails?.affectedOrganizationIds : undefined
             );
         } catch (err) {
             request.log.error({ err }, 'Failed to emit business audit event');
