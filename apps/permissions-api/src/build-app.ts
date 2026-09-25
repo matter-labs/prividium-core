@@ -178,6 +178,11 @@ function buildFastify({ logger, trustXForwardedFor }: { logger: PinoLogger; trus
 export type FastifyServer = ReturnType<typeof buildFastify>;
 
 declare module 'fastify' {
+    interface FastifyInstance {
+        /** Fails /readyz and /health from now on; the server keeps serving until it is closed. */
+        markDraining(): void;
+    }
+
     interface FastifyRequest {
         metricsStartTime: number;
         metricPathName: string;
@@ -326,6 +331,7 @@ export async function buildApp(db: DB, config: AppConfig) {
     app.addHook('onClose', async () => {
         healthCheckService.stop();
     });
+    app.decorate('markDraining', () => healthCheckService.markDraining());
 
     const repos = new Repositories(db);
     const applicationsService = new ApplicationsService(repos, {

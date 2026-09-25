@@ -1,3 +1,4 @@
+import { setTimeout as sleep } from 'node:timers/promises';
 import { type PoolState, poolState, type RpcObserverFactory } from '@repo/api-kit';
 import * as Sentry from '@sentry/node';
 import closeWithGrace from 'close-with-grace';
@@ -72,6 +73,8 @@ const db = createDb(
 );
 
 const DB_POOL_GAUGE_INTERVAL_MS = 5_000;
+/** Budget for closing the servers and the DB pool after the drain. */
+const SHUTDOWN_CLOSE_MS = 5_000;
 
 function observeDbPool(): void {
     const pool = poolState(db.$client);
@@ -302,8 +305,15 @@ export async function start(features: ServiceFeatures = {}) {
     const dbPoolGaugeTimer = setInterval(observeDbPool, DB_POOL_GAUGE_INTERVAL_MS);
     dbPoolGaugeTimer.unref();
 
-    const closeListeners = closeWithGrace({ delay: 500 }, async ({ signal, err }) => {
+    const shutdownDelayMs = env.SHUTDOWN_DRAIN_MS + SHUTDOWN_CLOSE_MS;
+    const closeListeners = closeWithGrace({ delay: shutdownDelayMs }, async ({ signal, err }) => {
         if (err) logger.error(err);
+        if (signal === 'SIGTERM' && env.SHUTDOWN_DRAIN_MS > 0) {
+            // The load balancer still routes here; closing now drops connections it is using.
+            app.markDraining();
+            logger.info(`SIGTERM received. draining for ${env.SHUTDOWN_DRAIN_MS}ms before closing`);
+            await sleep(env.SHUTDOWN_DRAIN_MS);
+        }
         logger.info(`\n${signal} signal received. closing HTTP server`);
         await app.close();
         if (policyApp) await policyApp.close();

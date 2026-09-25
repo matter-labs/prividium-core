@@ -56,4 +56,14 @@ describe('health check service', () => {
         expect(status.ok).toBe(false);
         expect(status.checks.database?.error).toBe('connection timeout');
     });
+
+    it('reports not ready once draining, even with a fresh successful probe', async () => {
+        const service = buildService(async () => ({}));
+        await service.runCheck();
+        service.markDraining();
+
+        const status = service.getStatus();
+        expect(status.ok).toBe(false);
+        expect(status.checks.shutdown?.ok).toBe(false);
+    });
 });

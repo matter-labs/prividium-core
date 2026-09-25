@@ -73,6 +73,8 @@ export const loadEnv = () =>
             TENANT_SESSION_DURATION_SECONDS: z.coerce.number().default(3600), // 1 hour
             SERVICE_SESSION_DURATION_SECONDS: z.coerce.number().default(86400), // 24 hours
             HEALTH_CHECK_INTERVAL_MS: z.coerce.number().default(1_000), // 1 second
+            // On SIGTERM keep serving with /readyz failing this long before closing, so the load balancer stops routing here first
+            SHUTDOWN_DRAIN_MS: z.coerce.number().int().min(0).default(0),
             DB_QUERY_TIMEOUT_MS: z.coerce.number().default(100_000), // 100 seconds
             DB_STATEMENT_TIMEOUT_MS: z.coerce.number().default(100_000), // 100 seconds
             DB_POOL_MAX_CONNECTIONS: z.coerce.number().int().min(1).default(10),

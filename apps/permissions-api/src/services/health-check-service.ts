@@ -34,6 +34,7 @@ export class HealthCheckService {
         version: 'unknown'
     };
     private timer: ReturnType<typeof setTimeout> | null = null;
+    private draining = false;
 
     constructor(deps: Deps) {
         this.db = deps.db;
@@ -77,7 +78,20 @@ export class HealthCheckService {
         }
     }
 
+    /** Report not ready while the server keeps serving, so load balancers stop routing here first. */
+    markDraining(): void {
+        this.draining = true;
+    }
+
     getStatus(): CachedHealthStatus {
+        if (this.draining) {
+            return {
+                ...this.cache,
+                ok: false,
+                checks: { ...this.cache.checks, shutdown: { ok: false, error: 'draining before shutdown' } }
+            };
+        }
+
         const ageMs = Date.now() - Date.parse(this.cache.updatedAt);
         if (!this.cache.ok || ageMs <= this.staleAfterMs) {
             return { ...this.cache };
