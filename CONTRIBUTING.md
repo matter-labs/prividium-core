@@ -108,10 +108,12 @@ chore: update deps
 docs: update readme
 ```
 
-`feat` bumps the minor version. `fix` and `docs` bump the patch version. `chore` releases nothing.
+`feat` bumps the minor version. `fix`, `perf` and `revert` bump the patch version. Other types (`chore`, `docs`, `ci`,
+`refactor`, `test`) release nothing.
 
-A major bump needs a `MAJOR BUMP: <description>` footer in the commit body. The `BREAKING CHANGE` footer and the `!`
-suffix (`feat!:`) are **not** recognised by this repository's parser and are rejected by CI.
+A major bump needs the `!` suffix in the pull request title (`feat!: drop the v1 session endpoint`). Only the title
+reaches the squash commit, so a `BREAKING CHANGE:` footer in the pull request body does not bump the version; CI fails a
+pull request that declares one without the `!` marker.
 
 ## Merging
 

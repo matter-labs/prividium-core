@@ -44,17 +44,5 @@
         "formatter": {
             "indentWidth": 4
         }
-    },
-    "overrides": [
-        {
-            "includes": ["**/.releaserc.js", "**/.releaserc.cjs"],
-            "linter": {
-                "rules": {
-                    "suspicious": {
-                        "noTemplateCurlyInString": "off"
-                    }
-                }
-            }
-        }
-    ]
+    }
 }
