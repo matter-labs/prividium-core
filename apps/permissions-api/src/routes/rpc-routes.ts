@@ -59,6 +59,12 @@ function correlationContext(request: FastifyRequest) {
     };
 }
 
+function actorOrganizationId(request: FastifyRequest): string | null {
+    if (request.auth.type === 'user') return request.auth.currentUser().organizationId;
+    if (request.auth.type === 'm2m_app') return request.auth.currentM2mApp().ownerOrganizationId;
+    return null;
+}
+
 export function rpcRoutes(app: FastifyServer, options: RpcRoutesOptions): void {
     app.register(regularRpcRoutes, {
         preHandler: options.sessionAuthValidator.buildSyncHook({
@@ -91,7 +97,7 @@ export function rpcRoutes(app: FastifyServer, options: RpcRoutesOptions): void {
                     origin: 'rpc',
                     actorType: actorType.success ? actorType.data : 'anonymous',
                     actorId: actor.actorId,
-                    organizationId: request.auth?.type === 'user' ? request.auth.currentUser().organizationId : null,
+                    organizationId: actorOrganizationId(request),
                     ...correlationContext(request)
                 }),
                 dispatcherConfig: options.dispatcherConfig,

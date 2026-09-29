@@ -4,31 +4,11 @@ import swaggerUi from '@fastify/swagger-ui';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { jsonSchemaTransform } from 'fastify-type-provider-zod';
 import type { AppConfig, FastifyServer } from './build-app';
-import type { AuditActionType } from './db/schema';
 
 declare module 'fastify' {
     // This is needed to do per-route cors rule overriding
     interface FastifyContextConfig {
         cors?: FastifyCorsOptions | boolean;
-        /**
-         * Semantic audit action emitted to `audit_logs` by the response middleware.
-         * Use this to name the business event for a route, e.g. `user.update`.
-         *
-         * When omitted, mutating routes (POST/PUT/PATCH/DELETE) automatically emit
-         * `api.mutation` so every write is captured even without explicit declaration.
-         * GET routes are not auto-emitted unless this field is set (for sensitive reads).
-         *
-         * @example
-         *   server.patch('/:id/email', { config: { audit_action: 'user.update' }, schema: {...} }, handler)
-         */
-        audit_action?: AuditActionType;
-        /**
-         * Set to false for routes that need semantic audit events but do not
-         * perform permissions-api DB mutations during the handler. This avoids
-         * holding a dedicated audit trigger connection while waiting on slow
-         * external work.
-         */
-        audit_db_context?: boolean;
     }
 }
 

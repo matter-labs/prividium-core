@@ -1,4 +1,4 @@
-import type { Permission } from '@repo/access-control';
+import type { AuditActionType, Permission } from '@repo/access-control';
 import type { FastifyRequest } from 'fastify';
 import type { Address } from 'viem';
 
@@ -75,4 +75,15 @@ export interface FeatureAuditContext {
 
     /** Merges into the route-level event; later calls override earlier keys. */
     annotate(details: FeatureAuditEventDetails): void;
+}
+
+declare module 'fastify' {
+    interface FastifyContextConfig {
+        /** Business event written to `audit_logs`, e.g. `user.update`. Unset, a mutating route
+         * emits `api.mutation` and a GET emits nothing; set it on a GET to audit a sensitive read. */
+        audit_action?: AuditActionType;
+        /** False for routes that raise audit events without core DB writes, so no audit-trigger
+         * connection is held through slow external work. */
+        audit_db_context?: boolean;
+    }
 }

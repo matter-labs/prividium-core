@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { and, eq, sql } from 'drizzle-orm';
-import { Pool } from 'pg';
+import { Client } from 'pg';
 import pino from 'pino';
 import { pad, parseAbi } from 'viem';
 import { describe, expect } from 'vitest';
@@ -334,8 +334,11 @@ describe('legacy reserved organization claims', () => {
     for (const initialTimeout of ['0', '500ms', '5s']) {
         it(`rolls back a blocked migration and restores lock_timeout=${initialTimeout} on retry`, async ({ db }) => {
             const { repos } = await seedLegacyClaim(db);
-            const pool = new Pool({ ...db.$client.options, max: 3 });
-            const [holder, migrator, reader] = await Promise.all([pool.connect(), pool.connect(), pool.connect()]);
+            const holder = new Client(db.$client.options);
+            const migrator = new Client(db.$client.options);
+            const reader = new Client(db.$client.options);
+            const sessions = [holder, migrator, reader];
+            await Promise.all(sessions.map((session) => session.connect()));
             try {
                 await holder.query('BEGIN');
                 await holder.query('SELECT 1 FROM contracts');
@@ -393,10 +396,9 @@ describe('legacy reserved organization claims', () => {
             } finally {
                 await holder.query('ROLLBACK');
                 await migrator.query('ROLLBACK');
-                holder.release();
-                migrator.release();
-                reader.release();
-                await pool.end();
+                // Client.end() resolves once the socket has closed, whereas pool.end() returns while its
+                // clients are still draining and the fixture's forced DROP DATABASE then terminates them.
+                await Promise.all(sessions.map((session) => session.end()));
             }
         }, 15_000);
     }

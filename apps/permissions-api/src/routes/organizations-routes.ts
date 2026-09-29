@@ -190,6 +190,7 @@ export function organizationsRoutes(
     const orgAuditLogsQuerySchema = auditPaginationQuerySchema(auditLogsPaginationMaxItems).safeExtend({
         userId: z.string().optional(),
         actionType: auditActionTypeSchema.optional(),
+        traceId: z.string().min(1).max(128).optional(),
         startDate: z.iso.datetime().optional(),
         endDate: z.iso.datetime().optional()
     });
@@ -850,10 +851,10 @@ export function organizationsRoutes(
                 },
                 async (req, reply) => {
                     await req.repos.organizations.getById(req.params.id);
-                    const { limit, offset, userId, actionType, startDate, endDate } = req.query;
+                    const { limit, offset, userId, actionType, traceId, startDate, endDate } = req.query;
                     const result = await req.repos.auditLogs.findForOrganization(
                         req.params.id,
-                        { userId, actionType, startDate, endDate },
+                        { userId, actionType, traceId, startDate, endDate },
                         { limit, offset },
                         auditLogsPaginationMaxItems
                     );
