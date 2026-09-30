@@ -1,3 +1,4 @@
+import type { FastifyRequest } from 'fastify';
 import type { Address, Hex } from 'viem';
 import type { MethodAccessType } from '../../db/schema';
 import type { SystemPermission } from '../../permissions/system-permissions';
@@ -68,3 +69,6 @@ export interface Authorizer {
         extraPermissions?: SystemPermission[]
     ): Promise<boolean>;
 }
+
+/** Supplies one `/rpc` request's authorizer in place of `core`, which it may delegate to. */
+export type AuthorizerFactory = (request: FastifyRequest, core: Authorizer) => Authorizer;

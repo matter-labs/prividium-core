@@ -1,5 +1,6 @@
 import type { AuditActionType, SystemPermissionName } from '@repo/access-control';
 import type { FastifyRequest } from 'fastify';
+import type { PoolClient } from 'pg';
 import type { Address } from 'viem';
 
 /**
@@ -70,7 +71,9 @@ export interface FeatureAuditContext {
         entityType: string,
         /** Absent where the event's subject is the zone, which no id names. */
         entityId: string | undefined,
-        details?: Record<string, unknown>
+        details?: Record<string, unknown>,
+        /** Written on this connection, so the event commits or rolls back with its open transaction. */
+        client?: PoolClient
     ): Promise<void>;
 
     /** Merges into the route-level event; later calls override earlier keys. */

@@ -11,7 +11,7 @@ import { rpcRequestSchema } from '../rpc/json-rpc';
 import type { DispatcherConfig } from '../rpc/methods/dispatchers';
 import { serviceHandlers } from '../rpc/methods/service-rpc-method-list';
 import { walletHandlers } from '../rpc/methods/wallet-rpc-method-list';
-import { RpcAuthorizer, WalletAuthorizer } from '../rpc/permissions';
+import { type AuthorizerFactory, RpcAuthorizer, WalletAuthorizer } from '../rpc/permissions';
 import { ServiceAuthorizer } from '../rpc/permissions/service-authorizer';
 import { RpcCallHandler, type ServiceContext, type WalletContext } from '../rpc/rpc-service';
 import { TargetRpc } from '../rpc/target-rpc';
@@ -39,6 +39,7 @@ type RpcRoutesOptions = {
     disclosureMethodsEnabled: boolean;
     policyEnabled: boolean;
     rpcObserverFor?: RpcObserverFactory;
+    authorizerFor?: AuthorizerFactory;
 };
 
 type ServiceRpcRoutesOptions = Pick<RpcRoutesOptions, 'sessionAuthValidator' | 'targetRpcUrl' | 'targetChainType'>;
@@ -79,20 +80,24 @@ export function rpcRoutes(app: FastifyServer, options: RpcRoutesOptions): void {
             const actor = actorLogContext(request);
             const actorType = rpcActorTypeSchema.safeParse(actor.actorType);
             const targetRpc = new TargetRpc(options.targetRpcUrl, options.targetChainType);
+            const coreAuthorizer = new RpcAuthorizer(
+                request.auth,
+                options.methodAuthService,
+                request.repos,
+                options.eventVerifier,
+                targetRpc,
+                request.log.child({ role: 'rpc', actor }),
+                request.requestId
+            );
             return {
                 targetRpc,
                 bundlerRpc: options.bundlerEnabled
                     ? new TargetRpc(options.bundlerRpcUrl!, options.targetChainType)
                     : null,
-                authorizer: new RpcAuthorizer(
-                    request.auth,
-                    options.methodAuthService,
-                    request.repos,
-                    options.eventVerifier,
-                    targetRpc,
-                    request.log.child({ role: 'rpc', actor }),
-                    request.requestId
-                ),
+                authorizer:
+                    options.authorizerFor === undefined
+                        ? coreAuthorizer
+                        : options.authorizerFor(request, coreAuthorizer),
                 rpcObserver: options.rpcObserverFor?.({
                     origin: 'rpc',
                     actorType: actorType.success ? actorType.data : 'anonymous',

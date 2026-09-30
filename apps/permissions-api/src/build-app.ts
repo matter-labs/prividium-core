@@ -89,6 +89,7 @@ import { walletActionsRoutes } from './routes/wallet-actions-routes';
 import { walletRoutes } from './routes/wallet-token-routes';
 import { webauthnUserRoutes } from './routes/webauthn-routes';
 import type { DispatcherConfig } from './rpc/methods/dispatchers';
+import type { AuthorizerFactory } from './rpc/permissions/authorizer';
 import { type ExternalRpc, TargetRpc } from './rpc/target-rpc';
 import { AdminMfaService } from './services/admin-mfa-service';
 import { ApiKeyService } from './services/api-key-service';
@@ -240,6 +241,8 @@ export interface AppConfig {
     permissionCatalog?: PermissionCatalog;
     /** Consulted once per RPC request; `undefined` leaves that request unobserved. */
     rpcObserverFor?: RpcObserverFactory;
+    /** Consulted once per `/rpc` request; absent, the core's authorizer decides. */
+    rpcAuthorizerFor?: AuthorizerFactory;
     targetRpcUrl: string;
     targetChainType: TargetChainType;
     logger: PinoLogger;
@@ -889,7 +892,8 @@ export async function buildApp(db: DB, config: AppConfig) {
             publicCodeAddresses: config.publicCodeAddresses,
             disclosureMethodsEnabled: config.disclosureMethodsEnabled,
             policyEnabled: config.policyEnabled,
-            ...(config.rpcObserverFor === undefined ? {} : { rpcObserverFor: config.rpcObserverFor })
+            ...(config.rpcObserverFor === undefined ? {} : { rpcObserverFor: config.rpcObserverFor }),
+            ...(config.rpcAuthorizerFor === undefined ? {} : { authorizerFor: config.rpcAuthorizerFor })
         });
     });
 

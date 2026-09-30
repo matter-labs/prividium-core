@@ -10,7 +10,9 @@ import { createDb, runWithJobContext } from './db';
 import { auditAudienceIndexIsValid } from './db/audit-audience-index';
 import { runMigrations } from './db/migrate';
 import { envHasCryptoNativeAuthMethod, loadEnv } from './env';
+import { findRpcAuthorizerConflict } from './feature-host/feature-conflicts';
 import { PermissionCatalog } from './permissions/permission-catalog';
+import type { AuthorizerFactory } from './rpc/permissions/authorizer';
 import { syncSystemContracts } from './services/system-contracts/sync';
 import { buildServerDeps } from './utils/build-server-deps';
 import { createLogger } from './utils/logger';
@@ -104,6 +106,8 @@ export type ServiceFeatures = {
     onAdmitDenied?: PolicyAppConfig['onAdmitDenied'];
     /** Built once at boot, because the observer writes after the response, outside any request scope. */
     rpcObserverFor?: (runtime: FeatureRuntime) => RpcObserverFactory;
+    /** Replaces the authorizer on `/rpc` only; refused with POLICY_PORT or WALLETS_API_ENABLED. Built once at boot. */
+    rpcAuthorizerFor?: (runtime: FeatureRuntime) => AuthorizerFactory;
     /** After this service's: a feature's tables may reference the core's. */
     runFeatureMigrations?: (pool: Pool) => Promise<void>;
 };
@@ -127,6 +131,11 @@ async function withMigrationLock(pool: Pool, run: () => Promise<void>): Promise<
 }
 
 export async function start(features: ServiceFeatures = {}) {
+    const rpcAuthorizerConflict = findRpcAuthorizerConflict(features, env);
+    if (rpcAuthorizerConflict !== undefined) {
+        throw new Error(rpcAuthorizerConflict);
+    }
+
     if (envHasCryptoNativeAuthMethod(env) && env.SIWE_HMAC_SECRET === INSECURE_HMAC_SECRET) {
         logger.warn(
             'SIWE_HMAC_SECRET is set to the insecure all-zeros placeholder. Replace it with a strong secret before deploying to production.'
@@ -191,6 +200,7 @@ export async function start(features: ServiceFeatures = {}) {
         ...deps,
         ...(features.registerFeatures === undefined ? {} : { registerFeatures: features.registerFeatures }),
         ...(features.rpcObserverFor === undefined ? {} : { rpcObserverFor: features.rpcObserverFor(runtime) }),
+        ...(features.rpcAuthorizerFor === undefined ? {} : { rpcAuthorizerFor: features.rpcAuthorizerFor(runtime) }),
         featureNames: features.featureNames ?? [],
         permissionCatalog,
         logger: logger.child({}, { level: env.LOG_LEVEL }),

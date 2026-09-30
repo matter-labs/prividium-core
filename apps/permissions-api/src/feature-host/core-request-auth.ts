@@ -12,7 +12,8 @@ import { ForbiddenError } from '@repo/api-kit';
 import type { FastifyRequest } from 'fastify';
 import type { PoolClient } from 'pg';
 import type { Address } from 'viem';
-import type { AuditResourceType } from '../db/schema';
+import { createRequestScopedDb } from '../db';
+import type { AuditActionType, AuditResourceType } from '../db/schema';
 import { requireOrgAdmin, requireOrgAdminOn } from '../middleware/require-org-admin';
 import {
     requireM2mAppOrgAssociation,
@@ -109,10 +110,16 @@ export class CoreRequestAuthGuards implements RequestAuthGuards {
 
 /** Cast in one place: the core types this on its own unions, a feature's are its own. */
 export function featureAuditContextOf(request: FastifyRequest): FeatureAuditContext {
+    const auditContext = request.auditContext;
     return {
-        logSecurityEvent: request.auditContext.logSecurityEvent.bind(
-            request.auditContext
-        ) as FeatureAuditContext['logSecurityEvent'],
+        logSecurityEvent: (action, entityType, entityId, details, client) =>
+            auditContext.logSecurityEvent(
+                action as AuditActionType,
+                entityType as AuditResourceType,
+                entityId,
+                details,
+                client === undefined ? undefined : createRequestScopedDb(client)
+            ),
         annotate: (details: FeatureAuditEventDetails) => {
             const existing = request.auditEventDetails;
             request.auditEventDetails = {

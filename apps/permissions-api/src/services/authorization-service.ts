@@ -77,7 +77,10 @@ export type RuleId =
     // Contributed by a private feature's authorization overlay. The core does not
     // enumerate these: it forwards the id the overlay reported so the sequencer can
     // map a rejection back to the decision site that made it.
-    | OverlayRuleId;
+    | OverlayRuleId
+    // Reported by an authorizer a composed feature supplies in place of the core's
+    // (`AuthorizerFactory`); a namespace for the same reason as `OverlayRuleId`.
+    | `authorizer.${string}`;
 
 /**
  * Service-internal authorization result. Wider than `methodAuthorizationSchema`:
