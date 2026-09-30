@@ -4,6 +4,7 @@ import { config } from 'dotenv';
 import { z } from 'zod/v4';
 import { addressSchema } from './utils/schemas/address';
 import { hexSchema } from './utils/schemas/hex-schema';
+import { readSecretFiles } from './utils/secret-files';
 import { SETTLES_TO_L1, TARGET_CHAIN_TYPES, type TargetChainType } from './utils/target-chain';
 
 let ROOT_PATH: string;
@@ -42,6 +43,15 @@ const siweHmacSecretEntrySchema = z.string().refine(isValidSiweHmacSecret, {
 const siweHmacSecretSchema = commaSeparatedString
     .pipe(siweHmacSecretEntrySchema.array())
     .transform((secrets) => secrets.join(','));
+
+/** Each can instead be read from the file its `<NAME>_FILE` variable points at. */
+const SECRET_FILE_VARS = [
+    'DATABASE_URL',
+    'DATABASE_PASSWORD',
+    'POLICY_AUTH_TOKEN',
+    'SIWE_HMAC_SECRET',
+    'FAUCET_OPERATOR_PRIVATE_KEY'
+] as const;
 
 export const loadEnv = () =>
     createEnv({
@@ -263,7 +273,7 @@ export const loadEnv = () =>
             // values, e.g. 'io.metamask,io.rabby'). Omit to feature the panel's full wallet registry.
             FEATURED_WALLET_IDS: commaSeparatedString.optional()
         },
-        runtimeEnv: process.env,
+        runtimeEnv: readSecretFiles(process.env, SECRET_FILE_VARS),
         emptyStringAsUndefined: true,
         createFinalSchema: (shape) =>
             z.object(shape).transform((env, ctx) => {
@@ -508,7 +518,7 @@ function constructDatabaseUrl(env: {
         );
     }
 
-    return `postgres://${username}:${password}@${host}:${port}/${database}`;
+    return `postgres://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${host}:${port}/${database}`;
 }
 
 export type Env = ReturnType<typeof loadEnv>;

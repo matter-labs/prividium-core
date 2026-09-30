@@ -1,7 +1,9 @@
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'dotenv';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
     findTargetChainTypeConflict,
     loadEnv,
@@ -226,6 +228,60 @@ describe('policy listener validation (via loadEnv)', () => {
         process.env.POLICY_PORT = '8010';
         process.env.POLICY_AUTH_TOKEN = '';
         expect(() => loadEnv()).toThrow();
+    });
+});
+
+describe('secret files and the database URL (via loadEnv)', () => {
+    const ORIGINAL_ENV = process.env;
+    const dir = mkdtempSync(join(tmpdir(), 'env-secrets-'));
+
+    function secretFile(name: string, contents: string): string {
+        const path = join(dir, name);
+        writeFileSync(path, contents);
+        return path;
+    }
+
+    const components = {
+        DATABASE_HOST: 'db.internal',
+        DATABASE_PORT: '5432',
+        DATABASE_USER: 'app',
+        DATABASE_NAME: 'prividium_api'
+    };
+
+    beforeEach(() => {
+        process.env = { ...EXAMPLE_ENV };
+    });
+
+    afterEach(() => {
+        process.env = ORIGINAL_ENV;
+    });
+
+    afterAll(() => rmSync(dir, { recursive: true, force: true }));
+
+    it('reads DATABASE_URL from DATABASE_URL_FILE', () => {
+        delete process.env.DATABASE_URL;
+        process.env.DATABASE_URL_FILE = secretFile('database-url', 'postgres://app:from-file@db:5432/app\n');
+        expect(loadEnv().DATABASE_URL).toBe('postgres://app:from-file@db:5432/app');
+    });
+
+    it('reads POLICY_AUTH_TOKEN from POLICY_AUTH_TOKEN_FILE', () => {
+        process.env.POLICY_PORT = '8010';
+        process.env.POLICY_AUTH_TOKEN_FILE = secretFile('policy-token', 'shared-secret\n');
+        expect(loadEnv().POLICY_AUTH_TOKEN).toBe('shared-secret');
+    });
+
+    it('refuses DATABASE_URL beside DATABASE_URL_FILE', () => {
+        process.env.DATABASE_URL_FILE = secretFile('database-url-both', 'postgres://app:x@db:5432/app');
+        expect(() => loadEnv()).toThrow('DATABASE_URL and DATABASE_URL_FILE are both set');
+    });
+
+    it('encodes the user and password into the URL built from the components', () => {
+        delete process.env.DATABASE_URL;
+        Object.assign(process.env, components, { DATABASE_USER: 'app@ops', DATABASE_PASSWORD: 'p/w#d?%41 x' });
+        const url = new URL(loadEnv().DATABASE_URL);
+        expect(decodeURIComponent(url.username)).toBe('app@ops');
+        expect(decodeURIComponent(url.password)).toBe('p/w#d?%41 x');
+        expect(url.hostname).toBe('db.internal');
     });
 });
 

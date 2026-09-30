@@ -64,6 +64,9 @@ Two values in that file need attention before the first run:
 Everything else in the example boots as-is. The API validates its configuration at startup and names any variable that
 is missing or malformed.
 
+Secrets can come from mounted files: set `<NAME>_FILE` to a path instead of setting `<NAME>`, for `DATABASE_URL`,
+`DATABASE_PASSWORD`, `POLICY_AUTH_TOKEN`, `SIWE_HMAC_SECRET`, and `FAUCET_OPERATOR_PRIVATE_KEY`.
+
 ## Migrate
 
 Migrations run automatically at startup only when `NODE_ENV=production`. In development, apply them yourself:
