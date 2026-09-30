@@ -9,7 +9,11 @@ import { fullContractSchema } from '../repositories/contracts-repository';
 import { EntityNotFound } from '../utils/error-types';
 import { addressSchema } from '../utils/schemas/address';
 import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
-import { CheckUserReadAccessBodySchema, CheckUserReadAccessResponseSchema } from './schemas/m2m-app-queries';
+import {
+    CheckUserReadAccessBodySchema,
+    CheckUserReadAccessResponseSchema,
+    M2mAppSelfSchema
+} from './schemas/m2m-app-queries';
 
 const contractAddressParamsSchema = z.object({
     contractAddress: addressSchema
@@ -26,6 +30,26 @@ export function m2mAppQueriesRoutes(server: FastifyServer, { sessionAuthValidato
             sessionAuthValidator.buildHook({
                 targets: [{ type: 'm2m_app' }]
             })
+        );
+
+        server.get(
+            '/me',
+            {
+                schema: {
+                    description:
+                        'Get the calling M2M application, including the roles with permissions that define its access',
+                    tags: ['m2m-app-queries'],
+                    response: {
+                        200: M2mAppSelfSchema,
+                        401: ErrorResponseSchema,
+                        403: ErrorResponseSchema
+                    }
+                }
+            },
+            async (req, reply) => {
+                const { id, name, ownerOrganizationId, roles } = req.auth.currentM2mApp();
+                return reply.send({ id, name, ownerOrganizationId, roles });
+            }
         );
 
         server.post(
