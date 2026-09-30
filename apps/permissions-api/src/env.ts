@@ -4,7 +4,7 @@ import { config } from 'dotenv';
 import { z } from 'zod/v4';
 import { addressSchema } from './utils/schemas/address';
 import { hexSchema } from './utils/schemas/hex-schema';
-import { TARGET_CHAIN_TYPES, type TargetChainType } from './utils/target-chain';
+import { SETTLES_TO_L1, TARGET_CHAIN_TYPES, type TargetChainType } from './utils/target-chain';
 
 let ROOT_PATH: string;
 
@@ -256,8 +256,9 @@ export const loadEnv = () =>
             NATIVE_TOKEN_L1_ADDRESS: addressSchema.optional(),
             BLOCK_EXPLORER_URL: z.url(),
             PRIVIDIUM_API_URL: z.url(),
-            L1_CHAIN_ID: z.coerce.number().int().positive(),
-            L1_CHAIN_NAME: z.string(),
+            // Required on zksync-os only, see SETTLES_TO_L1.
+            L1_CHAIN_ID: z.coerce.number().int().positive().optional(),
+            L1_CHAIN_NAME: z.string().optional(),
             // Narrows which wallets the user panel features in its connect picker (EIP-6963 rdns
             // values, e.g. 'io.metamask,io.rabby'). Omit to feature the panel's full wallet registry.
             FEATURED_WALLET_IDS: commaSeparatedString.optional()
@@ -349,6 +350,20 @@ export const loadEnv = () =>
                         path: [chainTypeConflict.variable]
                     });
                     return z.NEVER;
+                }
+
+                if (SETTLES_TO_L1[env.TARGET_CHAIN_TYPE]) {
+                    const missingL1Vars: (keyof typeof env)[] = [];
+                    if (env.L1_CHAIN_ID === undefined) missingL1Vars.push('L1_CHAIN_ID');
+                    if (env.L1_CHAIN_NAME === undefined) missingL1Vars.push('L1_CHAIN_NAME');
+                    if (missingL1Vars.length > 0) {
+                        ctx.addIssue({
+                            code: 'custom',
+                            message: `${missingL1Vars.join(', ')} ${missingL1Vars.length === 1 ? 'is' : 'are'} required when TARGET_CHAIN_TYPE is '${env.TARGET_CHAIN_TYPE}': the well-known endpoint reports the L1 this chain settles to`,
+                            path: missingL1Vars as string[]
+                        });
+                        return z.NEVER;
+                    }
                 }
 
                 if (shouldRequirePolicyListener(env) && env.POLICY_PORT === undefined) {

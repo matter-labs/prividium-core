@@ -134,4 +134,20 @@ describe('buildServerDeps', () => {
         expect(deps.oidcOpts?.aud).toBe(config.OIDC_JWT_AUD);
         expect(deps.oidcOpts?.jwks).toBe('remote-jwks');
     });
+
+    it('reports prividiumInfo l1ChainId/l1ChainName as null when unset', () => {
+        const config = {
+            ...WELL_KNOWN_CONFIG,
+            L1_CHAIN_ID: undefined,
+            L1_CHAIN_NAME: undefined,
+            SIWE_CHAIN_ID: 1,
+            SIWE_EXPIRATION_MS: 3600000,
+            AUTH_METHODS: ['crypto_native']
+        } as Env;
+
+        const deps = buildServerDeps(config);
+
+        expect(deps.prividiumInfo.l1ChainId).toBeNull();
+        expect(deps.prividiumInfo.l1ChainName).toBeNull();
+    });
 });

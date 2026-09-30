@@ -43,8 +43,8 @@ export function buildServerDeps(config: Env): AppDeps {
             rpcUrl: new URL('/rpc', config.PRIVIDIUM_API_URL).toString(),
             userPanelUrl: config.USER_PANEL_URL,
             version: config.VERSION ?? 'local',
-            l1ChainId: numberToHex(config.L1_CHAIN_ID),
-            l1ChainName: config.L1_CHAIN_NAME,
+            l1ChainId: config.L1_CHAIN_ID === undefined ? null : numberToHex(config.L1_CHAIN_ID),
+            l1ChainName: config.L1_CHAIN_NAME ?? null,
             featuredWalletIds: config.FEATURED_WALLET_IDS
         }
     };

@@ -23,6 +23,7 @@ import {
     orgQuotaLimitGauge,
     policyListenerEnabledGauge
 } from './utils/metrics';
+import { HAS_ZKSYNC_SYSTEM_CONTRACTS } from './utils/target-chain';
 
 const env = loadEnv();
 
@@ -163,7 +164,13 @@ export async function start(features: ServiceFeatures = {}) {
 
         // Strict-sync system contracts before serving traffic.
         // Any sync error will propagate to the top-level catch which calls process.exit(1).
-        await syncSystemContracts(scopedDb, logger);
+        if (HAS_ZKSYNC_SYSTEM_CONTRACTS[env.TARGET_CHAIN_TYPE]) {
+            await syncSystemContracts(scopedDb, logger);
+        } else {
+            logger.info(
+                `Skipping system contracts sync: TARGET_CHAIN_TYPE '${env.TARGET_CHAIN_TYPE}' has no zksync system contracts`
+            );
+        }
 
         orgQuotaLimitGauge.set(env.MAX_ORGANIZATIONS);
         orgCountGauge.set(await scopedDb.repositories().organizations.countNonDeleted());

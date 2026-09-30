@@ -16,8 +16,8 @@ export const prividiumSystemInfoSchema = z.object({
     rpcUrl: z.url(),
     userPanelUrl: z.url(),
     version: z.string(),
-    l1ChainId: hexSchema,
-    l1ChainName: z.string(),
+    l1ChainId: hexSchema.nullable(),
+    l1ChainName: z.string().nullable(),
     // Per-deployment list of wallet EIP-6963 rdns ids (e.g. ['io.metamask']) that narrows which
     // wallets the user panel features in its connect picker. Curation only — any wallet can still
     // connect via WalletConnect. `.nullish()` so a backend that doesn't send the field still parses

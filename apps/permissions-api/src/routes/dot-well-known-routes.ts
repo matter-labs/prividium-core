@@ -17,8 +17,8 @@ const wellKnownFileSchema = z.object({
         rpcUrl: z.url(),
         userPanelUrl: z.url(),
         version: z.string(),
-        l1ChainId: hexSchema,
-        l1ChainName: z.string(),
+        l1ChainId: hexSchema.nullable(),
+        l1ChainName: z.string().nullable(),
         // Which wallets the user panel features in its connect picker (EIP-6963 rdns values).
         // Absent means "feature the panel's full wallet registry". Keep in lockstep with the SDK's
         // prividiumSystemInfoSchema — the response is serialized strictly against THIS schema, so a

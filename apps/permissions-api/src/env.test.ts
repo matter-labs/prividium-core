@@ -297,6 +297,21 @@ describe('TARGET_CHAIN_TYPE validation (via loadEnv)', () => {
         if (key === 'MULTI_ORG_ENABLED') process.env.INSECURE_MULTI_ORG_WITHOUT_POLICY_ENABLED = 'true';
         expect(() => loadEnv()).toThrow();
     });
+
+    it('boots on besu with L1_CHAIN_ID and L1_CHAIN_NAME both unset', () => {
+        process.env.TARGET_CHAIN_TYPE = 'besu';
+        delete process.env.L1_CHAIN_ID;
+        delete process.env.L1_CHAIN_NAME;
+        expect(() => loadEnv()).not.toThrow();
+        const env = loadEnv();
+        expect(env.L1_CHAIN_ID).toBeUndefined();
+        expect(env.L1_CHAIN_NAME).toBeUndefined();
+    });
+
+    it('keeps L1_CHAIN_ID when it is set on besu', () => {
+        process.env.TARGET_CHAIN_TYPE = 'besu';
+        expect(loadEnv().L1_CHAIN_ID).toBe(31337);
+    });
 });
 
 describe('USER_IDLE_TIMEOUT_SECONDS validation (via loadEnv)', () => {
