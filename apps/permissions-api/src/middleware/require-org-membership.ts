@@ -1,4 +1,4 @@
-import { hasSystemPermission, hasZoneSystemPermission, type Permission } from '@repo/access-control';
+import { hasSystemPermission, hasZoneSystemPermission, type SystemPermissionName } from '@repo/access-control';
 import { ForbiddenError } from '@repo/api-kit';
 import type { FastifyRequest } from 'fastify';
 import { requireOrgAdmin } from './require-org-admin';
@@ -22,7 +22,7 @@ export async function requireM2mAppOrgAssociation(req: FastifyRequest): Promise<
 
 /** Association alone is not enough: an integration linked for RPC reads would
  * otherwise inherit every other machine capability. */
-export function requireOrgPermissionForM2mCaller(permission: Permission) {
+export function requireOrgPermissionForM2mCaller(permission: SystemPermissionName) {
     return async function requirePermission(req: FastifyRequest): Promise<void> {
         if (req.auth.type !== 'm2m_app') {
             return;
@@ -36,7 +36,7 @@ export function requireOrgPermissionForM2mCaller(permission: Permission) {
 }
 
 /** No organization to belong to, so the permission has to be held zone-wide. */
-export function requireZonePermissionForM2mCaller(permission: Permission) {
+export function requireZonePermissionForM2mCaller(permission: SystemPermissionName) {
     return async function requirePermission(req: FastifyRequest): Promise<void> {
         if (req.auth.type !== 'm2m_app') {
             return;

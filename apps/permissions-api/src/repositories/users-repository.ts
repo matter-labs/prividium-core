@@ -4,6 +4,11 @@ import type { TxType } from '../db';
 import { extractForeignKeyConstraintProblem, isForeignKeyConstraintError, isUniqueConstraintError } from '../db/errors';
 import { organizationsTable, rolesTable, UserSources, userRolesTable, usersTable, walletsTable } from '../db/schema';
 import { getFirstOrThrow } from '../db/utils';
+import {
+    CORE_PERMISSION_CATALOG,
+    type PermissionCheck,
+    UNCHECKED_PERMISSIONS
+} from '../permissions/permission-catalog';
 import { EntityAlreadyExistsError, EntityNotFound, InvalidInputError, UnexpectedDbError } from '../utils/error-types';
 import { belongsToDeletedOrganization } from '../utils/organization-membership';
 import type { PaginatedResult, PaginationParams } from '../utils/schemas/pagination';
@@ -47,7 +52,11 @@ export type UpdateUser = Partial<Omit<typeof usersTable.$inferInsert, 'organizat
 };
 
 /** Zone-only deployments pass `allowZoneRoles`, where no org-scoped role exists for a member to hold. */
-export type RoleScopeOptions = { allowZoneRoles?: boolean };
+export type RoleScopeOptions = {
+    allowZoneRoles?: boolean;
+    /** Checks the roles being added; defaults to the core catalog. Provisioning passes `UNCHECKED_PERMISSIONS`. */
+    catalog?: PermissionCheck;
+};
 
 export class UsersRepository extends BaseRepository {
     async createFromAdminApi(newUser: Omit<InsertUser, 'source'>, roleScope?: RoleScopeOptions) {
@@ -139,14 +148,18 @@ export class UsersRepository extends BaseRepository {
         tx: TxType,
         roleIds: string[],
         organizationId: string | null,
-        { allowZoneRoles = false }: RoleScopeOptions = {}
+        {
+            allowZoneRoles = false,
+            catalog = CORE_PERMISSION_CATALOG,
+            heldRoleIds = []
+        }: RoleScopeOptions & { heldRoleIds?: readonly string[] } = {}
     ): Promise<void> {
         if (roleIds.length === 0) {
             return;
         }
 
         const roles = await tx.query.rolesTable.findMany({
-            columns: { id: true, organizationId: true },
+            columns: { id: true, organizationId: true, systemPermissions: true },
             where: inArray(rolesTable.id, roleIds)
         });
 
@@ -162,6 +175,10 @@ export class UsersRepository extends BaseRepository {
         const mismatched = roles.filter(outOfScope).map((r) => r.id);
         if (mismatched.length > 0) {
             throw new InvalidInputError(`Roles not assignable in this user's scope: ${mismatched.join(', ')}`);
+        }
+
+        if (catalog !== UNCHECKED_PERMISSIONS) {
+            catalog.assertKnown(roles.filter((r) => !heldRoleIds.includes(r.id)).flatMap((r) => r.systemPermissions));
         }
     }
 
@@ -296,7 +313,14 @@ export class UsersRepository extends BaseRepository {
 
             // Update roles if provided
             if (user.roles !== undefined) {
-                await this.assertRolesMatchOrganization(tx, user.roles, existingUser.organizationId, roleScope);
+                const held = await tx.query.userRolesTable.findMany({
+                    columns: { roleId: true },
+                    where: eq(userRolesTable.userId, userId)
+                });
+                await this.assertRolesMatchOrganization(tx, user.roles, existingUser.organizationId, {
+                    ...roleScope,
+                    heldRoleIds: held.map((r) => r.roleId)
+                });
                 // Remove existing roles
                 await tx.delete(userRolesTable).where(eq(userRolesTable.userId, userId));
 

@@ -13,6 +13,7 @@
         "./src/env": "./src/env.ts",
         "./src/index": "./src/index.ts",
         "./src/middleware/api-key-auth": "./src/middleware/api-key-auth.ts",
+        "./src/permissions/permission-catalog": "./src/permissions/permission-catalog.ts",
         "./src/permissions/system-permissions": "./src/permissions/system-permissions.ts",
         "./src/repositories/audit-logs-repository": "./src/repositories/audit-logs-repository.ts",
         "./src/repositories/roles-repository": "./src/repositories/roles-repository.ts",

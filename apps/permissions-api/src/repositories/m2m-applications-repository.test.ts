@@ -1,3 +1,4 @@
+import { defineFeaturePermission } from '@repo/api-kit';
 import { eq } from 'drizzle-orm';
 import type { Address } from 'viem';
 import { beforeEach, describe, expect } from 'vitest';
@@ -9,7 +10,8 @@ import {
     organizationsTable,
     rolesTable
 } from '../db/schema';
-import { EntityNotFound } from '../utils/error-types';
+import { PermissionCatalog } from '../permissions/permission-catalog';
+import { EntityNotFound, InvalidInputError } from '../utils/error-types';
 import { IpWhitelistRepository } from './ip-whitelist-repository';
 import { M2mApplicationsRepository } from './m2m-applications-repository';
 import { OrganizationsRepository } from './organizations-repository';
@@ -603,6 +605,69 @@ describe('M2mApplicationsRepository', () => {
 
         it('throws when deleting a missing m2m app', async () => {
             await expect(repository.delete('does-not-exist')).rejects.toThrow(EntityNotFound);
+        });
+    });
+    describe('org credentials holding feature permissions', () => {
+        const EXAMPLE_ACCESS = defineFeaturePermission('example_feature_access', { orgGrantable: true });
+        const withExampleFeature = new PermissionCatalog([EXAMPLE_ACCESS]);
+
+        it('attaches an org role holding an org-grantable feature permission', async () => {
+            const org = await orgsRepo.create({ name: 'Feature Org', defaultRoles: [] });
+            const role = await rolesRepo.create(
+                { roleName: 'feature', systemPermissions: [EXAMPLE_ACCESS.name] },
+                { organizationId: org.id, catalog: withExampleFeature }
+            );
+
+            const created = await repository.createForOrg(
+                org.id,
+                { name: 'feature-app', roles: [{ id: role.id }] },
+                withExampleFeature
+            );
+
+            expect(created.roles.map((r) => r.id)).toEqual([role.id]);
+        });
+
+        it('refuses to attach it once the feature is no longer registered', async () => {
+            const org = await orgsRepo.create({ name: 'Feature Org', defaultRoles: [] });
+            const role = await rolesRepo.create(
+                { roleName: 'feature', systemPermissions: [EXAMPLE_ACCESS.name] },
+                { organizationId: org.id, catalog: withExampleFeature }
+            );
+
+            await expect(
+                repository.createForOrg(org.id, { name: 'feature-app', roles: [{ id: role.id }] })
+            ).rejects.toThrow(new InvalidInputError('Unknown system permissions: example_feature_access'));
+        });
+
+        it('refuses a zone credential a role holding it once the feature is no longer registered', async () => {
+            const role = await rolesRepo.create(
+                { roleName: 'feature', systemPermissions: [EXAMPLE_ACCESS.name] },
+                { catalog: withExampleFeature }
+            );
+            const unknownPermission = new InvalidInputError('Unknown system permissions: example_feature_access');
+
+            await expect(
+                repository.create({ name: 'zone-app', description: null, roles: [{ id: role.id }] })
+            ).rejects.toThrow(unknownPermission);
+
+            const app = await repository.create({ name: 'zone-app', description: null, roles: [] });
+            await expect(repository.update(app.id, { name: 'zone-app', roles: [{ id: role.id }] })).rejects.toThrow(
+                unknownPermission
+            );
+        });
+
+        it('refuses to add it to an existing credential once the feature is no longer registered', async () => {
+            const org = await orgsRepo.create({ name: 'Feature Org', defaultRoles: [] });
+            const role = await rolesRepo.create(
+                { roleName: 'feature', systemPermissions: [EXAMPLE_ACCESS.name] },
+                { organizationId: org.id, catalog: withExampleFeature }
+            );
+            const app = await repository.createForOrg(org.id, { name: 'feature-app', roles: [] });
+
+            await expect(
+                repository.updateForOrg(org.id, app.id, { name: 'feature-app', roles: [{ id: role.id }] })
+            ).rejects.toThrow(new InvalidInputError('Unknown system permissions: example_feature_access'));
+            await expect(repository.getById(app.id)).resolves.toMatchObject({ roles: [] });
         });
     });
 });

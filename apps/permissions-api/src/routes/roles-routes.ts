@@ -1,6 +1,7 @@
 import { AUDIT_ACTIONS } from '@repo/access-control';
 import { z } from 'zod/v4';
 import type { FastifyServer } from '../build-app';
+import type { PermissionCatalog } from '../permissions/permission-catalog';
 import { ErrorResponseSchema, PaginationQuerySchema, SearchQuerySchema } from '../utils/schemas/fastify-common';
 import { paginatedResult } from '../utils/schemas/pagination';
 import { CreateRoleBodySchema as CreateRoleBodySchemaBase, RoleSchema, RoleWithCountsSchema } from './schemas/roles';
@@ -17,6 +18,7 @@ const listRolesQuerySchema = PaginationQuerySchema().extend({
 
 type Deps = {
     multiOrgEnabled: boolean;
+    permissionCatalog: PermissionCatalog;
 };
 
 export function rolesRoutes(server: FastifyServer, deps: Deps) {
@@ -63,7 +65,7 @@ export function rolesRoutes(server: FastifyServer, deps: Deps) {
             }
         },
         async (request, reply) => {
-            const role = await request.repos.roles.create(request.body);
+            const role = await request.repos.roles.create(request.body, { catalog: deps.permissionCatalog });
             return reply.status(201).send(role);
         }
     );
@@ -109,7 +111,7 @@ export function rolesRoutes(server: FastifyServer, deps: Deps) {
         },
         async (request) => {
             const { id } = request.params;
-            return await request.repos.roles.updateById(id, request.body);
+            return await request.repos.roles.updateById(id, request.body, { catalog: deps.permissionCatalog });
         }
     );
 

@@ -12,6 +12,11 @@ import {
     walletsTable
 } from '../db/schema';
 import { getFirstOrThrow } from '../db/utils';
+import {
+    CORE_PERMISSION_CATALOG,
+    type PermissionCatalog,
+    UNCHECKED_PERMISSIONS
+} from '../permissions/permission-catalog';
 import { EntityNotFound, InvalidInputError } from '../utils/error-types';
 import { fetchChunked } from '../utils/fetch-chunked';
 import { hexListIncludes } from '../utils/hex';
@@ -35,7 +40,7 @@ export type TenantUser = {
 export type InsertTenantUser = Omit<TenantUser, 'id'>;
 
 export class TenantsRepository extends BaseRepository {
-    async create(data: InsertTenant): Promise<Tenant> {
+    async create(data: InsertTenant, catalog: PermissionCatalog = CORE_PERMISSION_CATALOG): Promise<Tenant> {
         const { defaultRoles, ...tenantFields } = data;
 
         return this.transaction(async (tx) => {
@@ -47,7 +52,7 @@ export class TenantsRepository extends BaseRepository {
                 .returning()
                 .then(getFirstOrThrow);
 
-            const createdDefaultRoles = await this.associateRoles(defaultRoles, newTenant.id, tx);
+            const createdDefaultRoles = await this.associateRoles(defaultRoles, newTenant.id, tx, catalog);
 
             const createdTenant = {
                 ...newTenant,
@@ -143,7 +148,8 @@ export class TenantsRepository extends BaseRepository {
 
     async update(
         id: string,
-        newData: Pick<Tenant, 'name' | 'publicKey'> & Pick<InsertTenant, 'defaultRoles'>
+        newData: Pick<Tenant, 'name' | 'publicKey'> & Pick<InsertTenant, 'defaultRoles'>,
+        catalog: PermissionCatalog = CORE_PERMISSION_CATALOG
     ): Promise<Tenant> {
         const { publicKey, name, defaultRoles } = newData;
 
@@ -168,7 +174,7 @@ export class TenantsRepository extends BaseRepository {
 
             const existingRoleIds = existing.defaultRoles.map((r) => r.id);
             const rolesToCreate = defaultRoles.filter((r) => !existingRoleIds.includes(r.id));
-            await this.associateRoles(rolesToCreate, existing.id, tx);
+            await this.associateRoles(rolesToCreate, existing.id, tx, catalog);
 
             await tx.update(tenantsTable).set({ publicKey, name }).where(eq(tenantsTable.id, id)).returning();
 
@@ -188,7 +194,8 @@ export class TenantsRepository extends BaseRepository {
     private async associateRoles(
         roles: InsertTenant['defaultRoles'],
         tenanId: string,
-        tx: TxType
+        tx: TxType,
+        catalog: PermissionCatalog
     ): Promise<Tenant['defaultRoles']> {
         if (roles.length === 0) {
             return [];
@@ -196,7 +203,7 @@ export class TenantsRepository extends BaseRepository {
 
         const roleIds = roles.map((r) => r.id);
         const existingRoles = await tx.query.rolesTable.findMany({
-            columns: { id: true, roleName: true },
+            columns: { id: true, roleName: true, systemPermissions: true },
             where: inArray(rolesTable.id, roleIds)
         });
         const existingRoleIds = new Set(existingRoles.map((r) => r.id));
@@ -211,20 +218,25 @@ export class TenantsRepository extends BaseRepository {
             throw new InvalidInputError(`Role "${ADMIN_ROLE_ID}" cannot be a default tenant role`);
         }
 
+        catalog.assertKnown(existingRoles.flatMap((role) => role.systemPermissions));
+
         await tx.insert(tenantsDefaultRoles).values(roleIds.map((roleId) => ({ tenantId: tenanId, roleId })));
-        return existingRoles;
+        return existingRoles.map(({ id, roleName }) => ({ id, roleName }));
     }
 
     async createUser(tenantId: string, userData: InsertTenantUser): Promise<TenantUser> {
         return this.transaction(async (tx) => {
             const existing = await tx.repositories().tenants.getById(tenantId);
 
-            const user = await tx.repositories().users.create({
-                source: UserSources.enum.tenant,
-                displayName: userData.displayName,
-                wallets: userData.walletAddresses.map((w) => w.walletAddress),
-                roles: existing.defaultRoles.map((r) => r.id)
-            });
+            const user = await tx.repositories().users.create(
+                {
+                    source: UserSources.enum.tenant,
+                    displayName: userData.displayName,
+                    wallets: userData.walletAddresses.map((w) => w.walletAddress),
+                    roles: existing.defaultRoles.map((r) => r.id)
+                },
+                { catalog: UNCHECKED_PERMISSIONS }
+            );
 
             await tx.insert(tenantsUsers).values({
                 userId: user.id,

@@ -1,5 +1,5 @@
 import { setTimeout as sleep } from 'node:timers/promises';
-import { type PoolState, poolState, type RpcObserverFactory } from '@repo/api-kit';
+import { type FeaturePermission, type PoolState, poolState, type RpcObserverFactory } from '@repo/api-kit';
 import * as Sentry from '@sentry/node';
 import closeWithGrace from 'close-with-grace';
 import type { Pool } from 'pg';
@@ -10,6 +10,7 @@ import { createDb, runWithJobContext } from './db';
 import { auditAudienceIndexIsValid } from './db/audit-audience-index';
 import { runMigrations } from './db/migrate';
 import { envHasCryptoNativeAuthMethod, loadEnv } from './env';
+import { PermissionCatalog } from './permissions/permission-catalog';
 import { syncSystemContracts } from './services/system-contracts/sync';
 import { buildServerDeps } from './utils/build-server-deps';
 import { createLogger } from './utils/logger';
@@ -97,6 +98,7 @@ const INSECURE_HMAC_SECRET = 'aaaaaaaa00000000aaaaaaaa00000000aaaaaaaa00000000aa
 export type ServiceFeatures = {
     registerFeatures?: AppConfig['registerFeatures'];
     featureNames?: AppConfig['featureNames'];
+    featurePermissions?: readonly FeaturePermission[];
     authorizationOverlays?: PolicyAppConfig['authorizationOverlays'];
     onAdmitDenied?: PolicyAppConfig['onAdmitDenied'];
     /** Built once at boot, because the observer writes after the response, outside any request scope. */
@@ -131,6 +133,8 @@ export async function start(features: ServiceFeatures = {}) {
     }
 
     const deps = buildServerDeps(env);
+    // Before migrations, so a bad declaration fails the boot before it touches the database.
+    const permissionCatalog = new PermissionCatalog(features.featurePermissions);
 
     if (env.NODE_ENV === 'production') {
         await withMigrationLock(db.$client, async () => {
@@ -150,7 +154,7 @@ export async function start(features: ServiceFeatures = {}) {
     // both request_id and job_id null.
     await runWithJobContext(db, 'system:startup', async (scopedDb) => {
         // Seed the admin role once at startup so per-request auth flows can assume it exists.
-        await scopedDb.repositories().roles.createOrUpdateAdminRole();
+        await scopedDb.repositories().roles.createOrUpdateAdminRole(permissionCatalog);
 
         // OIDC identity is keyed by (issuer, sub); ensure pre-existing OIDC users carry an issuer so login still matches them.
         if (env.OIDC_JWT_ISSUER) {
@@ -181,6 +185,7 @@ export async function start(features: ServiceFeatures = {}) {
         ...(features.registerFeatures === undefined ? {} : { registerFeatures: features.registerFeatures }),
         ...(features.rpcObserverFor === undefined ? {} : { rpcObserverFor: features.rpcObserverFor(runtime) }),
         featureNames: features.featureNames ?? [],
+        permissionCatalog,
         logger: logger.child({}, { level: env.LOG_LEVEL }),
         targetRpcUrl: env.SEQUENCER_RPC_URL,
         targetChainType: env.TARGET_CHAIN_TYPE,

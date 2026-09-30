@@ -23,6 +23,5 @@ export const ROLE_NAME_MAX_LENGTH = 50;
 export const ORG_ADMIN_GRANTABLE_PERMISSIONS = [
     'org_users_manage',
     'org_wallets_manage',
-    'org_rpc_access',
-    'org_policy_access'
+    'org_rpc_access'
 ] as const satisfies readonly Permission[];

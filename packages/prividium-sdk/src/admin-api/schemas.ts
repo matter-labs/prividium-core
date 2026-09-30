@@ -10,7 +10,6 @@ const systemPermissionSchema = z.enum([
     'org_users_manage',
     'org_wallets_manage',
     'org_rpc_access',
-    'org_policy_access',
     'rpc_read_eth_getBlockByNumber',
     'rpc_read_eth_getLogs',
     'rpc_read_eth_getTransactionByHash',
@@ -18,6 +17,8 @@ const systemPermissionSchema = z.enum([
     'check_user_read_access',
     'contract_metadata_read'
 ]);
+// A server feature may declare permissions of its own; an SDK that predates one still parses the role.
+const rolePermissionSchema = z.union([systemPermissionSchema, z.string()]);
 
 const userWalletSchema = z.object({
     id: z.number(),
@@ -30,7 +31,7 @@ const userWalletSchema = z.object({
 const userRoleSchema = z.object({
     id: z.string(),
     roleName: z.string(),
-    systemPermissions: z.array(systemPermissionSchema).optional(),
+    systemPermissions: z.array(rolePermissionSchema).optional(),
     isSystemRole: z.boolean().optional(),
     createdAt: z.string().optional(),
     updatedAt: z.string().optional()

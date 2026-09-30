@@ -17,7 +17,6 @@ import {
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm/relations';
 import { z } from 'zod/v4';
-import { ALL_SYSTEM_PERMISSIONS } from '../permissions/system-permissions';
 import { createdAt, publicId, timestampTz, updatedAt } from './common-schema';
 import { addressColumn, hexBigIntColumn, hexBytesColumn, methodSelectorColumn, uint256Column } from './custom-types';
 
@@ -26,7 +25,9 @@ export const rolesTable = pgTable(
     {
         id: publicId,
         roleName: text().notNull(),
-        systemPermissions: text({ enum: ALL_SYSTEM_PERMISSIONS }).array().notNull(),
+        // Validated against the deployment's PermissionCatalog on write, not here: a name this
+        // build does not declare stays stored and must still read back.
+        systemPermissions: text().array().notNull(),
         isSystemRole: boolean().notNull(),
         // null = zone-level role; non-null = owned by that organization.
         // no action (not cascade/set null): organizations are soft-deleted, so a hard delete must not destroy

@@ -1,4 +1,5 @@
 import type { Repositories } from '../db';
+import type { PermissionCatalog } from '../permissions/permission-catalog';
 import type {
     InsertM2mApplication,
     M2mApplication,
@@ -19,27 +20,28 @@ function applicationAuditDetails(app: M2mApplication) {
 export async function createAuditedM2mApplication(
     repos: Repositories,
     data: InsertM2mApplication,
-    organizationId?: string
+    { organizationId, catalog }: { organizationId?: string; catalog?: PermissionCatalog } = {}
 ) {
     const app =
         organizationId === undefined
-            ? await repos.m2mApps.create(data)
-            : await repos.m2mApps.createForOrg(organizationId, data);
+            ? await repos.m2mApps.create(data, catalog)
+            : await repos.m2mApps.createForOrg(organizationId, data, catalog);
     return { app, auditEventDetails: applicationAuditDetails(app) };
 }
 
 export async function updateAuditedM2mApplication(
     repos: Repositories,
     target: M2mTarget,
-    data: UpdateOrgM2mApplication
+    data: UpdateOrgM2mApplication,
+    { catalog }: { catalog?: PermissionCatalog } = {}
 ) {
     return repos.transaction(async (tx) => {
         const apps = tx.repositories().m2mApps;
         await apps.lockById(target.appId, target.organizationId);
         const app =
             target.organizationId === undefined
-                ? await apps.update(target.appId, data)
-                : await apps.updateForOrg(target.organizationId, target.appId, data);
+                ? await apps.update(target.appId, data, catalog)
+                : await apps.updateForOrg(target.organizationId, target.appId, data, catalog);
         const organizations = await apps.getOrganizations(app.id);
         return { app, auditEventDetails: applicationAuditDetails({ ...app, organizations }) };
     });

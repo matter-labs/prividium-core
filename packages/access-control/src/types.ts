@@ -11,16 +11,24 @@ export type Permission =
     | 'org_users_manage'
     | 'org_wallets_manage'
     | 'org_rpc_access'
-    | 'org_policy_access'
     | 'check_user_read_access'
     | 'contract_metadata_read';
+
+declare const featurePermissionBrand: unique symbol;
+
+/** A permission a feature outside the core owns. Minted only by `defineFeaturePermission` in `@repo/api-kit`. */
+export type FeaturePermissionName = string & { readonly [featurePermissionBrand]: true };
+
+/** A permission a caller can be checked for: the core's own, or one a registered feature declared. */
+export type SystemPermissionName = Permission | FeaturePermissionName;
 
 export type RoleHolder = {
     roles: {
         id: string;
         roleName: string;
         organizationId: string | null;
-        systemPermissions?: Permission[];
+        /** Stored names, which may include a feature's permission this deployment does not register. */
+        systemPermissions?: readonly string[];
     }[];
 };
 

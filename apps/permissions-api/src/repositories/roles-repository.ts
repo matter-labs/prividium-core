@@ -3,7 +3,8 @@ import { and, asc, count, eq, getTableColumns, ilike, isNull, sql } from 'drizzl
 import { isForeignKeyConstraintError, isNoValuesToSetError, isUniqueConstraintError } from '../db/errors';
 import { contractFunctionPermissionRolesTable, rolesTable, userRolesTable } from '../db/schema';
 import { escapeLike, getFirstOrThrow } from '../db/utils';
-import { permissionsOutsideOrgCeiling, SystemPermissions } from '../permissions/system-permissions';
+import { CORE_PERMISSION_CATALOG, type PermissionCatalog } from '../permissions/permission-catalog';
+import { SystemPermissions } from '../permissions/system-permissions';
 import {
     EntityAlreadyExistsError,
     EntityNotFound,
@@ -23,6 +24,12 @@ export type RoleWithCounts = Role & { usersCount: number; contractPermissionsCou
 // `id` is server-generated; `isSystemRole` is server-controlled (set by create/createOrUpdate*),
 // never supplied by callers.
 export type InsertRole = Omit<typeof rolesTable.$inferInsert, 'id' | 'isSystemRole'>;
+export type RoleWriteOptions = {
+    /** Set from organization routes: the org owns the role and the org-admin ceiling applies. */
+    organizationId?: string;
+    /** What the role may hold. The core-only default rejects every feature permission. */
+    catalog?: PermissionCatalog;
+};
 
 const RolesRepositoryBase = EntityRepository({
     table: rolesTable,
@@ -33,13 +40,15 @@ const RolesRepositoryBase = EntityRepository({
 });
 
 export class RolesRepository extends RolesRepositoryBase {
-    async create(role: InsertRole, opts: { organizationId?: string } = {}): Promise<Role> {
+    async create(role: InsertRole, opts: RoleWriteOptions = {}): Promise<Role> {
         this.assertNameNotReserved(role.roleName);
+        const catalog = opts.catalog ?? CORE_PERMISSION_CATALOG;
+        catalog.assertKnown(role.systemPermissions);
 
         let organizationId: string | null;
         if (opts.organizationId !== undefined) {
             // This case is when called from organization routes
-            this.assertWithinOrgCeiling(role.systemPermissions);
+            this.assertWithinOrgCeiling(catalog, role.systemPermissions);
             organizationId = opts.organizationId;
         } else {
             organizationId = role.organizationId ?? null;
@@ -82,19 +91,15 @@ export class RolesRepository extends RolesRepositoryBase {
             : isNull(rolesTable.organizationId);
     }
 
-    async updateById(id: string, role: InsertRole): Promise<Role> {
-        const updatedRole = await this.updateScoped(id, role);
+    async updateById(id: string, role: InsertRole, opts: Pick<RoleWriteOptions, 'catalog'> = {}): Promise<Role> {
+        const updatedRole = await this.updateScoped(id, role, opts);
         if (updatedRole === undefined) {
             throw new EntityNotFound('Role', { id });
         }
         return updatedRole;
     }
 
-    async updateScoped(
-        id: string,
-        role: InsertRole,
-        opts: { organizationId?: string } = {}
-    ): Promise<Role | undefined> {
+    async updateScoped(id: string, role: InsertRole, opts: RoleWriteOptions = {}): Promise<Role | undefined> {
         const oldRole = await this.findScoped(id, opts);
         if (oldRole === undefined) {
             return undefined;
@@ -104,10 +109,12 @@ export class RolesRepository extends RolesRepositoryBase {
         }
 
         this.assertNameNotReserved(role.roleName);
+        const catalog = opts.catalog ?? CORE_PERMISSION_CATALOG;
+        catalog.assertKnown(role.systemPermissions);
         let organizationId: string | null;
         if (opts.organizationId !== undefined) {
             // This case is when called from organization routes
-            this.assertWithinOrgCeiling(role.systemPermissions);
+            this.assertWithinOrgCeiling(catalog, role.systemPermissions);
             organizationId = opts.organizationId;
         } else {
             organizationId = role.organizationId ?? null;
@@ -218,19 +225,21 @@ export class RolesRepository extends RolesRepositoryBase {
         });
     }
 
-    async createOrUpdateAdminRole() {
+    /** Grants the zone admin every permission in `catalog`, replacing what it held. */
+    async createOrUpdateAdminRole(catalog: PermissionCatalog = CORE_PERMISSION_CATALOG) {
+        const systemPermissions = [...catalog.names];
         const adminRole = await this.db
             .insert(rolesTable)
             .values({
                 id: ADMIN_ROLE_ID,
                 roleName: ADMIN_ROLE_NAME,
-                systemPermissions: SystemPermissions.options,
+                systemPermissions,
                 isSystemRole: true,
                 organizationId: null
             })
             .onConflictDoUpdate({
                 target: [rolesTable.organizationId, rolesTable.roleName],
-                set: { systemPermissions: SystemPermissions.options, organizationId: null }
+                set: { systemPermissions, organizationId: null }
             })
             .returning()
             .then(getFirstOrThrow);
@@ -313,8 +322,8 @@ export class RolesRepository extends RolesRepositoryBase {
         }
     }
 
-    private assertWithinOrgCeiling(systemPermissions: readonly string[]): void {
-        const disallowed = permissionsOutsideOrgCeiling(systemPermissions);
+    private assertWithinOrgCeiling(catalog: PermissionCatalog, systemPermissions: readonly string[]): void {
+        const disallowed = catalog.outsideOrgCeiling(systemPermissions);
         if (disallowed.length > 0) {
             throw new InvalidInputError(`Permissions not grantable by an organization admin: ${disallowed.join(', ')}`);
         }

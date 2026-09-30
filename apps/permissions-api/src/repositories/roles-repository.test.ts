@@ -1,13 +1,20 @@
 import { ADMIN_ROLE_ID } from '@repo/access-control';
+import { defineFeaturePermission } from '@repo/api-kit';
 import { beforeEach, describe, expect } from 'vitest';
 import { type Fixture, it } from '../../test/unit-test-context';
 import { rolesTable, UserSources } from '../db/schema';
+import { PermissionCatalog } from '../permissions/permission-catalog';
 import { SystemPermissions } from '../permissions/system-permissions';
-import { EntityAlreadyExistsError, EntityNotFound, InvalidEntity } from '../utils/error-types';
+import { EntityAlreadyExistsError, EntityNotFound, InvalidEntity, InvalidInputError } from '../utils/error-types';
 import { ContractFunctionPermissionsRepository } from './contract-function-permissions-repository';
 import { ContractsRepository } from './contracts-repository';
+import { OrganizationsRepository } from './organizations-repository';
 import { type InsertRole, RolesRepository } from './roles-repository';
 import { UsersRepository } from './users-repository';
+
+const EXAMPLE_ACCESS = defineFeaturePermission('example_feature_access', { orgGrantable: true });
+const EXAMPLE_OPERATE = defineFeaturePermission('example_feature_operate', { orgGrantable: false });
+const withExampleFeature = new PermissionCatalog([EXAMPLE_ACCESS, EXAMPLE_OPERATE]);
 
 describe('RolesRepository', () => {
     let repository: RolesRepository;
@@ -360,6 +367,12 @@ describe('RolesRepository', () => {
             expect(adminRole?.systemPermissions?.sort()).toEqual(SystemPermissions.options.sort());
         });
 
+        it('grants the zone admin the registered feature permissions too', async () => {
+            await repository.createOrUpdateAdminRole(withExampleFeature);
+            const adminRole = await repository.findScoped(ADMIN_ROLE_ID);
+            expect(adminRole?.systemPermissions?.sort()).toEqual([...withExampleFeature.names].sort());
+        });
+
         it('can be called multiple times without duplicating the role', async () => {
             await expect(repository.findScoped(ADMIN_ROLE_ID)).resolves.toBeUndefined();
             await repository.createOrUpdateAdminRole();
@@ -370,6 +383,112 @@ describe('RolesRepository', () => {
             expect(adminRole?.roleName).toEqual('admin');
             expect(adminRole?.isSystemRole).toEqual(true);
             expect(adminRole?.systemPermissions?.sort()).toEqual(SystemPermissions.options.sort());
+        });
+    });
+    describe('feature permissions', () => {
+        it('rejects a feature permission when no catalog registers it', async () => {
+            await expect(
+                repository.create({ roleName: 'feature', systemPermissions: [EXAMPLE_ACCESS.name] })
+            ).rejects.toThrow(new InvalidInputError('Unknown system permissions: example_feature_access'));
+        });
+
+        it('accepts a feature permission its catalog registers', async () => {
+            const role = await repository.create(
+                { roleName: 'feature', systemPermissions: ['admin_read', EXAMPLE_ACCESS.name] },
+                { catalog: withExampleFeature }
+            );
+
+            expect(role.systemPermissions).toEqual(['admin_read', EXAMPLE_ACCESS.name]);
+        });
+
+        it('rejects a feature permission added on update when it is not registered', async () => {
+            const role = await repository.create({ roleName: 'feature', systemPermissions: [] });
+
+            await expect(
+                repository.updateById(role.id, { roleName: 'feature', systemPermissions: [EXAMPLE_ACCESS.name] })
+            ).rejects.toThrow(InvalidInputError);
+        });
+
+        it('rejects a full-replace update that keeps an unregistered permission', async () => {
+            const role = await repository.create(
+                { roleName: 'feature', systemPermissions: [EXAMPLE_ACCESS.name] },
+                { catalog: withExampleFeature }
+            );
+
+            await expect(
+                repository.updateById(role.id, {
+                    roleName: 'renamed',
+                    systemPermissions: ['admin_read', EXAMPLE_ACCESS.name]
+                })
+            ).rejects.toThrow(new InvalidInputError('Unknown system permissions: example_feature_access'));
+            await expect(repository.getById(role.id)).resolves.toMatchObject({
+                roleName: 'feature',
+                systemPermissions: [EXAMPLE_ACCESS.name]
+            });
+        });
+
+        it('removes an unregistered permission on an update that drops it', async () => {
+            const role = await repository.create(
+                { roleName: 'feature', systemPermissions: [EXAMPLE_ACCESS.name] },
+                { catalog: withExampleFeature }
+            );
+
+            const updated = await repository.updateById(role.id, {
+                roleName: 'feature',
+                systemPermissions: ['admin_read']
+            });
+
+            expect(updated.systemPermissions).toEqual(['admin_read']);
+        });
+
+        describe('organization roles', () => {
+            let organizationId: string;
+
+            beforeEach<Fixture>(async ({ db }) => {
+                organizationId = (await new OrganizationsRepository(db).create({ name: 'Org', defaultRoles: [] })).id;
+            });
+
+            it('lets an org admin grant a feature permission declared org-grantable', async () => {
+                const role = await repository.create(
+                    { roleName: 'feature', systemPermissions: ['org_rpc_access', EXAMPLE_ACCESS.name] },
+                    { organizationId, catalog: withExampleFeature }
+                );
+
+                expect(role.systemPermissions).toEqual(['org_rpc_access', EXAMPLE_ACCESS.name]);
+            });
+
+            it('keeps a feature permission not declared org-grantable outside the ceiling', async () => {
+                await expect(
+                    repository.create(
+                        { roleName: 'feature', systemPermissions: [EXAMPLE_OPERATE.name] },
+                        { organizationId, catalog: withExampleFeature }
+                    )
+                ).rejects.toThrow(
+                    new InvalidInputError('Permissions not grantable by an organization admin: example_feature_operate')
+                );
+            });
+
+            it('names an unregistered permission the org role keeps before the ceiling', async () => {
+                const role = await repository.create(
+                    { roleName: 'feature', systemPermissions: [EXAMPLE_ACCESS.name] },
+                    { organizationId, catalog: withExampleFeature }
+                );
+
+                await expect(
+                    repository.updateScoped(
+                        role.id,
+                        { roleName: 'feature', systemPermissions: ['admin_write', EXAMPLE_ACCESS.name] },
+                        { organizationId }
+                    )
+                ).rejects.toThrow(new InvalidInputError('Unknown system permissions: example_feature_access'));
+
+                const cleaned = await repository.updateScoped(
+                    role.id,
+                    { roleName: 'feature', systemPermissions: ['org_users_manage'] },
+                    { organizationId }
+                );
+                expect(cleaned?.systemPermissions).toEqual(['org_users_manage']);
+            });
         });
     });
 });

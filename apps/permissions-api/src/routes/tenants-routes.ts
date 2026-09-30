@@ -1,6 +1,7 @@
 import { AUDIT_ACTIONS } from '@repo/access-control';
 import { z } from 'zod/v4';
 import type { FastifyServer } from '../build-app';
+import type { PermissionCatalog } from '../permissions/permission-catalog';
 import { ErrorResponseSchema, PaginationQuerySchema } from '../utils/schemas/fastify-common';
 import {
     CreateTenantBodySchema,
@@ -15,7 +16,11 @@ const byIdSchema = z.object({
     id: z.string()
 });
 
-export function tenantsRoutes(server: FastifyServer) {
+type Deps = {
+    permissionCatalog: PermissionCatalog;
+};
+
+export function tenantsRoutes(server: FastifyServer, { permissionCatalog }: Deps) {
     // create tenant
     server.post(
         '/',
@@ -33,7 +38,7 @@ export function tenantsRoutes(server: FastifyServer) {
             }
         },
         async (req, reply) => {
-            const tenant = await req.repos.tenants.create(req.body);
+            const tenant = await req.repos.tenants.create(req.body, permissionCatalog);
             return reply.send(tenant);
         }
     );
@@ -104,7 +109,7 @@ export function tenantsRoutes(server: FastifyServer) {
             }
         },
         async (req, reply) => {
-            const updated = await req.repos.tenants.update(req.params.id, req.body);
+            const updated = await req.repos.tenants.update(req.params.id, req.body, permissionCatalog);
             return reply.send(updated);
         }
     );

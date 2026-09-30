@@ -303,6 +303,29 @@ describe('chain.admin.users', () => {
         });
     });
 
+    describe('permissions this SDK does not know', () => {
+        it('parses a role holding a permission a server feature declared', async () => {
+            const featureUser = {
+                ...sampleUser,
+                roles: [
+                    { id: 'role-1', roleName: 'feature', systemPermissions: ['admin_read', 'example_feature_access'] }
+                ]
+            };
+            const fetchMock = mockApiFetch((url) =>
+                url.includes('/api/users/user-1')
+                    ? { ok: true, status: 200, statusText: 'OK', json: async () => featureUser }
+                    : { ok: true, status: 200, statusText: 'OK', json: async () => ({}) }
+            );
+            Object.defineProperty(globalThis, 'fetch', { value: fetchMock, writable: true });
+
+            const sdk = createPrividiumSiweChain(defaultConfig());
+            await sdk.authorize();
+
+            const user = await sdk.admin.users.getById('user-1');
+            expect(user.roles[0]?.systemPermissions).toEqual(['admin_read', 'example_feature_access']);
+        });
+    });
+
     describe('legacy server compatibility', () => {
         // A server that predates surrogate role ids returns roles without an `id` (name-keyed).
         const legacySampleUser = { ...sampleUser, roles: [{ roleName: 'admin' }] };

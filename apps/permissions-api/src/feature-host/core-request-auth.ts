@@ -1,4 +1,4 @@
-import { hasZoneSystemPermission, type Permission } from '@repo/access-control';
+import { hasZoneSystemPermission, type SystemPermissionName } from '@repo/access-control';
 import type {
     AuthenticatedPrincipal,
     CallerKind,
@@ -53,7 +53,7 @@ export class CoreRequestAuthGuards implements RequestAuthGuards {
         return [opts.orgIdParam === undefined ? requireOrgAdmin : requireOrgAdminOn(opts.orgIdParam)];
     }
 
-    orgMemberSurface({ m2mPermission }: { m2mPermission: Permission }): readonly RequestHook[] {
+    orgMemberSurface({ m2mPermission }: { m2mPermission: SystemPermissionName }): readonly RequestHook[] {
         return [
             requireOrgMemberForUserCaller,
             requireM2mAppOrgAssociation,
@@ -61,7 +61,7 @@ export class CoreRequestAuthGuards implements RequestAuthGuards {
         ];
     }
 
-    zoneMemberSurface({ m2mPermission }: { m2mPermission: Permission }): readonly RequestHook[] {
+    zoneMemberSurface({ m2mPermission }: { m2mPermission: SystemPermissionName }): readonly RequestHook[] {
         return [requireZonePermissionForM2mCaller(m2mPermission)];
     }
 

@@ -1,10 +1,12 @@
 import { ORG_ADMIN_ROLE_NAME } from '@repo/access-control';
+import { defineFeaturePermission } from '@repo/api-kit';
 import { eq } from 'drizzle-orm';
 import type { Address } from 'viem';
 import { beforeEach, describe, expect } from 'vitest';
 import { type Fixture, it } from '../../test/unit-test-context';
 import { m2mApplicationsOrganizationsTable, organizationsTable, userRolesTable } from '../db/schema';
-import { EntityAlreadyExistsError, EntityNotFound } from '../utils/error-types';
+import { CORE_PERMISSION_CATALOG, PermissionCatalog } from '../permissions/permission-catalog';
+import { EntityAlreadyExistsError, EntityNotFound, InvalidInputError } from '../utils/error-types';
 import { M2mApplicationsRepository } from './m2m-applications-repository';
 import { OrganizationsRepository } from './organizations-repository';
 import { RolesRepository } from './roles-repository';
@@ -302,6 +304,61 @@ describe('OrganizationsRepository', () => {
 
             const updated = await repository.setMemberRoles(organization.id, member.id, []);
             expect(updated.roles).toEqual([]);
+        });
+    });
+
+    describe('roles holding a permission no longer registered', () => {
+        const EXAMPLE_ACCESS = defineFeaturePermission('example_feature_access', { orgGrantable: true });
+
+        async function memberAndRole(systemPermissions: string[], catalog?: PermissionCatalog) {
+            const organization = await repository.create({ name: 'Org Checked Roles', defaultRoles: [] });
+            // Created as a zone operator would, so an over-ceiling role can exist.
+            const role = await rolesRepo.create(
+                { roleName: 'checked', systemPermissions, organizationId: organization.id },
+                { catalog }
+            );
+            const member = await usersRepo.createFromAdminApi({ displayName: 'Member', roles: [], wallets: [] });
+            await repository.addUser(organization.id, member.id);
+            return { organizationId: organization.id, memberId: member.id, roleId: role.id };
+        }
+
+        it.each([
+            { caller: 'an org admin', allowOverCeilingRoles: false },
+            { caller: 'a zone operator', allowOverCeilingRoles: true }
+        ])('refuses $caller a role holding a permission no longer registered', async ({ allowOverCeilingRoles }) => {
+            const { organizationId, memberId, roleId } = await memberAndRole(
+                ['admin_write', EXAMPLE_ACCESS.name],
+                new PermissionCatalog([EXAMPLE_ACCESS])
+            );
+
+            await expect(
+                repository.setMemberRoles(organizationId, memberId, [roleId], { allowOverCeilingRoles })
+            ).rejects.toThrow(new InvalidInputError('Unknown system permissions: example_feature_access'));
+        });
+
+        it('refuses it as a default role', async () => {
+            const { organizationId, roleId } = await memberAndRole(
+                [EXAMPLE_ACCESS.name],
+                new PermissionCatalog([EXAMPLE_ACCESS])
+            );
+
+            await expect(
+                repository.update(
+                    organizationId,
+                    { name: 'Org Checked Roles', defaultRoles: [{ id: roleId }] },
+                    {
+                        catalog: CORE_PERMISSION_CATALOG
+                    }
+                )
+            ).rejects.toThrow(new InvalidInputError('Unknown system permissions: example_feature_access'));
+        });
+
+        it('still names the ceiling for a registered permission an org admin may not grant', async () => {
+            const { organizationId, memberId, roleId } = await memberAndRole(['admin_write']);
+
+            await expect(repository.setMemberRoles(organizationId, memberId, [roleId])).rejects.toThrow(
+                new InvalidInputError('Permissions not grantable by an organization admin: admin_write')
+            );
         });
     });
 

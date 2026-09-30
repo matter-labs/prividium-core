@@ -66,7 +66,7 @@ describe('M2M audit organization attribution', () => {
         const owner = await repos.organizations.create({ name: 'Owner', defaultRoles: [] });
         const peer = await repos.organizations.create({ name: 'Peer', defaultRoles: [] });
         const body = { name: 'Owned', description: null, roles: [] };
-        const created = await createAuditedM2mApplication(repos, body, owner.id);
+        const created = await createAuditedM2mApplication(repos, body, { organizationId: owner.id });
         expect(created.auditEventDetails.affectedOrganizationIds).toEqual([owner.id]);
         const target = { appId: created.app.id, organizationId: owner.id };
         const links = await replaceAuditedM2mOrganizations(repos, target.appId, [peer.id]);

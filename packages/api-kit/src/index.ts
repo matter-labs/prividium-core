@@ -1,3 +1,4 @@
+export type { FeaturePermissionName, SystemPermissionName } from '@repo/access-control';
 export type { AddressClass, CoreFacts, CoreReferences, SigningIdentity } from './core-facts';
 export { AUDIT_SESSION_VARS, clearAuditSessionVars, setAuditSessionVarsSql } from './db/audit-session';
 export {
@@ -61,6 +62,11 @@ export {
     WalletLimitExceededError,
     WalletNotLinkedError
 } from './error-types';
+export {
+    defineFeaturePermission,
+    FEATURE_PERMISSION_NAME_PATTERN,
+    type FeaturePermission
+} from './feature-permissions';
 export {
     type AuthorizationOverlay,
     OVERLAY_UNAVAILABLE,

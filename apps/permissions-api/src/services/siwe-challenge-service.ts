@@ -4,6 +4,7 @@ import type { Address } from 'viem';
 import { createSiweMessage } from 'viem/siwe';
 import type { Repositories, TxType } from '../db';
 import { type TargetType, TargetTypes } from '../db/schema';
+import { UNCHECKED_PERMISSIONS } from '../permissions/permission-catalog';
 import type { Organization } from '../repositories/organizations-repository';
 import { secureRandomString } from '../utils/crypto';
 import { EntityAlreadyExistsError, EntityNotFound, InvalidInputError, RateLimitError } from '../utils/error-types';
@@ -177,12 +178,15 @@ export class SiweChallengeService {
     // `users.create` nests a savepoint, so that conflict does not abort this transaction.
     private async ensureAdminWalletUser(tx: TxType, repos: Repositories, address: Address): Promise<string> {
         try {
-            const user = await repos.users.create({
-                displayName: 'Admin Wallet',
-                source: 'crypto_native',
-                wallets: [address],
-                roles: [ADMIN_ROLE_ID]
-            });
+            const user = await repos.users.create(
+                {
+                    displayName: 'Admin Wallet',
+                    source: 'crypto_native',
+                    wallets: [address],
+                    roles: [ADMIN_ROLE_ID]
+                },
+                { catalog: UNCHECKED_PERMISSIONS }
+            );
             return user.id;
         } catch (error) {
             if (!(error instanceof EntityAlreadyExistsError)) {

@@ -1,9 +1,11 @@
+import { defineFeaturePermission } from '@repo/api-kit';
 import { pad, toHex } from 'viem';
 import { generatePrivateKey, privateKeyToAddress } from 'viem/accounts';
 import { beforeEach, describe, expect, vi } from 'vitest';
 import { type Fixture, it } from '../../test/unit-test-context';
 import { UserSources } from '../db/schema';
-import { EntityNotFound } from '../utils/error-types';
+import { PermissionCatalog } from '../permissions/permission-catalog';
+import { EntityNotFound, InvalidInputError } from '../utils/error-types';
 import { RolesRepository } from './roles-repository';
 import { type Tenant, TenantsRepository } from './tenants-repository';
 import { UsersRepository } from './users-repository';
@@ -262,6 +264,44 @@ describe('TenantsRepository', () => {
 
             const retrieved = await repository.getById(created.id);
             expect(retrieved).toEqual(created);
+        });
+    });
+
+    describe('default roles holding a permission no longer registered', () => {
+        const EXAMPLE_ACCESS = defineFeaturePermission('example_feature_access', { orgGrantable: false });
+        const staleRole = () =>
+            rolesRepo.create(
+                { roleName: 'stale', systemPermissions: [EXAMPLE_ACCESS.name] },
+                { catalog: new PermissionCatalog([EXAMPLE_ACCESS]) }
+            );
+        const unknown = new InvalidInputError('Unknown system permissions: example_feature_access');
+
+        it('refuses it on create', async () => {
+            const role = await staleRole();
+
+            await expect(
+                repository.create({ name: 'tenant01', publicKey: address, defaultRoles: [{ id: role.id }] })
+            ).rejects.toThrow(unknown);
+        });
+
+        it('refuses it on update', async () => {
+            const role = await staleRole();
+            const created = await repository.create({ name: 'tenant01', publicKey: address, defaultRoles: [] });
+
+            await expect(
+                repository.update(created.id, { ...created, defaultRoles: [{ id: role.id }] })
+            ).rejects.toThrow(unknown);
+        });
+
+        it('accepts it where the catalog registers it', async () => {
+            const role = await staleRole();
+
+            const tenant = await repository.create(
+                { name: 'tenant01', publicKey: address, defaultRoles: [{ id: role.id }] },
+                new PermissionCatalog([EXAMPLE_ACCESS])
+            );
+
+            expect(tenant.defaultRoles).toEqual([{ id: role.id, roleName: 'stale' }]);
         });
     });
 

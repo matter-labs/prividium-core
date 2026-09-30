@@ -1,9 +1,11 @@
+import type { FeaturePermission } from '@repo/api-kit';
 import type { FastifyServer } from '../build-app';
 import { InfoSchema } from './schemas/info';
 
 type Deps = {
     policyEnabled: boolean;
     features: readonly string[];
+    featurePermissions: readonly FeaturePermission[];
     multiOrgEnabled: boolean;
     orgRoutingByDomain: boolean;
     passkeyRegistrationEnabled: boolean;
@@ -34,6 +36,7 @@ export function infoRoutes(server: FastifyServer, deps: Deps) {
             return reply.send({
                 policyEnabled: deps.policyEnabled,
                 features: [...deps.features],
+                featurePermissions: [...deps.featurePermissions],
                 multiOrgEnabled: deps.multiOrgEnabled,
                 orgRoutingByDomain: deps.orgRoutingByDomain,
                 passkeyRegistrationEnabled: deps.passkeyRegistrationEnabled,

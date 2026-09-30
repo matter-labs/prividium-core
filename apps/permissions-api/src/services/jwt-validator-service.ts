@@ -4,6 +4,7 @@ import { JWTClaimValidationFailed, JWTExpired } from 'jose/errors';
 import { type ZodType, z } from 'zod/v4';
 import type { Repositories } from '../db';
 import { UserSources } from '../db/schema';
+import { UNCHECKED_PERMISSIONS } from '../permissions/permission-catalog';
 import type { OidcProvider } from '../repositories/oidc-providers-repository';
 import type { User } from '../repositories/users-repository';
 import { ForbiddenError } from '../utils/error-types';
@@ -201,14 +202,17 @@ export class JwtValidatorService {
         organizationId: string | null;
     }): Promise<User> {
         if (organizationId === null) {
-            return this.repos.users.create({
-                oidcSub: jwt.sub,
-                oidcIssuer: jwt.iss,
-                displayName: this.resolveOidcDisplayName(jwt),
-                wallets: [],
-                roles: [],
-                source: UserSources.enum.oidc
-            });
+            return this.repos.users.create(
+                {
+                    oidcSub: jwt.sub,
+                    oidcIssuer: jwt.iss,
+                    displayName: this.resolveOidcDisplayName(jwt),
+                    wallets: [],
+                    roles: [],
+                    source: UserSources.enum.oidc
+                },
+                { catalog: UNCHECKED_PERMISSIONS }
+            );
         }
 
         // Promote and consume the pending-admin slot in one transaction so it can't be used twice.
@@ -218,15 +222,18 @@ export class JwtValidatorService {
             // Only a pending admin needs the org admin role; resolving it lazily for every member's
             // first login would needlessly create the role and widen the concurrent-create window.
             const roles = pending ? [(await txRepos.roles.orgAdminRole(organizationId)).id] : [];
-            const user = await txRepos.users.create({
-                oidcSub: jwt.sub,
-                oidcIssuer: jwt.iss,
-                displayName: this.resolveOidcDisplayName(jwt),
-                wallets: [],
-                roles,
-                source: UserSources.enum.oidc,
-                organizationId
-            });
+            const user = await txRepos.users.create(
+                {
+                    oidcSub: jwt.sub,
+                    oidcIssuer: jwt.iss,
+                    displayName: this.resolveOidcDisplayName(jwt),
+                    wallets: [],
+                    roles,
+                    source: UserSources.enum.oidc,
+                    organizationId
+                },
+                { catalog: UNCHECKED_PERMISSIONS }
+            );
             if (pending) {
                 await txRepos.orgPendingAdmins.deleteById(pending.id);
             }
@@ -247,7 +254,7 @@ export class JwtValidatorService {
             await this.repos.users.update(
                 user.id,
                 { ...user, roles: [...user.roles.map((r) => r.id), ADMIN_ROLE_ID], wallets: undefined },
-                { allowZoneRoles: !this.multiOrgEnabled }
+                { allowZoneRoles: !this.multiOrgEnabled, catalog: UNCHECKED_PERMISSIONS }
             );
             // Refresh user to get the updated roles
             const updatedUser = await this.repos.users.findById(user.id);

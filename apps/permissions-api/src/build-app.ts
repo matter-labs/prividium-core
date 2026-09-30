@@ -37,6 +37,7 @@ import {
 import { registerRequestContextMiddleware } from './middleware/request-context';
 import { SessionsAuthValidator } from './middleware/sessions-auth';
 import { userAccessControlValidator } from './middleware/user-access-control';
+import { CORE_PERMISSION_CATALOG, type PermissionCatalog } from './permissions/permission-catalog';
 import { createAuthRecordsCleanupJob } from './plugins/auth-records-cleanup-plugin';
 import { createDeploymentCleanupJob } from './plugins/deployment-cleanup-plugin';
 import { createNonceCleanupJob } from './plugins/nonce-cleanup-plugin';
@@ -235,6 +236,8 @@ export interface AppConfig {
     registerFeatures?: (app: FastifyServer, context: FeatureContext) => void | Promise<void>;
     /** Published on `GET /info` so a panel gates on what this server registered, not its own build flag. */
     featureNames?: readonly string[];
+    /** Passed up front, not built in `registerFeatures`: role validation and `/info` are built before it runs. */
+    permissionCatalog?: PermissionCatalog;
     /** Consulted once per RPC request; `undefined` leaves that request unobserved. */
     rpcObserverFor?: RpcObserverFactory;
     targetRpcUrl: string;
@@ -334,6 +337,7 @@ export async function buildApp(db: DB, config: AppConfig) {
     app.decorate('markDraining', () => healthCheckService.markDraining());
 
     const repos = new Repositories(db);
+    const permissionCatalog = config.permissionCatalog ?? CORE_PERMISSION_CATALOG;
     const applicationsService = new ApplicationsService(repos, {
         adminPanelRedirectUris: config.oauthRedirectUrls.adminPanel,
         blockExplorerRedirectUris: config.oauthRedirectUrls.blockExplorer,
@@ -541,12 +545,17 @@ export async function buildApp(db: DB, config: AppConfig) {
                 );
                 app.addHook('preHandler', createAuditContextMiddleware(auditLogsService, db));
 
-                app.register(rolesRoutes, { prefix: '/roles', multiOrgEnabled: config.multiOrgEnabled });
+                app.register(rolesRoutes, {
+                    prefix: '/roles',
+                    multiOrgEnabled: config.multiOrgEnabled,
+                    permissionCatalog
+                });
                 app.register(usersRoutes, {
                     prefix: '/users',
                     walletAssociationGuard,
                     maxWalletsPerUser: config.maxWalletsPerUser,
-                    multiOrgEnabled: config.multiOrgEnabled
+                    multiOrgEnabled: config.multiOrgEnabled,
+                    permissionCatalog
                 });
                 app.register(contractsRoutes, { prefix: '/contracts', chainRpc });
                 app.register(contractPermissionsRoutes, {
@@ -564,7 +573,7 @@ export async function buildApp(db: DB, config: AppConfig) {
                     multiOrgEnabled: config.multiOrgEnabled
                 });
                 if (config.tenantsEnabled) {
-                    app.register(tenantsRoutes, { prefix: '/tenants' });
+                    app.register(tenantsRoutes, { prefix: '/tenants', permissionCatalog });
                     app.register(tenantApiKeysRoutes, {
                         prefix: '/tenants',
                         apiKeyService,
@@ -573,7 +582,8 @@ export async function buildApp(db: DB, config: AppConfig) {
                     app.register(tenantIpWhitelistRoutes, { prefix: '/tenants' });
                 }
                 app.register(m2mAppRoutes, {
-                    prefix: '/m2m-applications'
+                    prefix: '/m2m-applications',
+                    permissionCatalog
                 });
                 app.register(m2mAppApiKeysRoutes, {
                     prefix: '/m2m-applications',
@@ -684,7 +694,8 @@ export async function buildApp(db: DB, config: AppConfig) {
                     operatorIssuer: config.oidcOpts?.iss,
                     maxOrganizations: config.maxOrganizations,
                     multiOrgEnabled: config.multiOrgEnabled,
-                    auditLogsPaginationMaxItems: config.auditLogsPaginationMaxItems
+                    auditLogsPaginationMaxItems: config.auditLogsPaginationMaxItems,
+                    permissionCatalog
                 });
             });
 
@@ -780,6 +791,7 @@ export async function buildApp(db: DB, config: AppConfig) {
                     prefix: '/info',
                     policyEnabled: config.policyEnabled,
                     features: config.featureNames ?? [],
+                    featurePermissions: permissionCatalog.featurePermissions,
                     multiOrgEnabled: config.multiOrgEnabled,
                     orgRoutingByDomain: config.orgRoutingByDomain,
                     passkeyRegistrationEnabled: config.passkeyRegistrationEnabled

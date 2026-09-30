@@ -2,6 +2,7 @@ import { AUDIT_ACTIONS } from '@repo/access-control';
 import type { FastifyRequest } from 'fastify';
 import { z } from 'zod/v4';
 import type { FastifyServer } from '../build-app';
+import type { PermissionCatalog } from '../permissions/permission-catalog';
 import type { WalletAssociationGuard } from '../services/wallet-association-guard';
 import { EntityNotFound, InvalidInputError, WalletLimitExceededError } from '../utils/error-types';
 import { ErrorResponseSchema, PaginationQuerySchema } from '../utils/schemas/fastify-common';
@@ -34,17 +35,18 @@ type Deps = {
     walletAssociationGuard: WalletAssociationGuard;
     maxWalletsPerUser: number;
     multiOrgEnabled: boolean;
+    permissionCatalog: PermissionCatalog;
 };
 
 export function usersRoutes(
     server: FastifyServer,
-    { walletAssociationGuard, maxWalletsPerUser, multiOrgEnabled }: Deps
+    { walletAssociationGuard, maxWalletsPerUser, multiOrgEnabled, permissionCatalog }: Deps
 ) {
     // Scoping and ordering params are dropped while MULTI_ORG_ENABLED is off, so the endpoint behaves
     // exactly as it did before organizations existed.
     const usersQuerySchema = multiOrgEnabled ? multiOrgUsersQuerySchema : baseUsersQuerySchema;
 
-    const roleScope = { allowZoneRoles: !multiOrgEnabled };
+    const roleScope = { allowZoneRoles: !multiOrgEnabled, catalog: permissionCatalog };
 
     // Members are managed here while multi-org is off; with it on, via the organization endpoints.
     async function assertManagedHere(request: FastifyRequest, id: string): Promise<void> {

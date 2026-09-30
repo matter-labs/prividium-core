@@ -11,7 +11,7 @@ import {
     walletsTable
 } from '../db/schema';
 import { getFirstOrThrow } from '../db/utils';
-import { permissionsOutsideOrgCeiling } from '../permissions/system-permissions';
+import { CORE_PERMISSION_CATALOG, type PermissionCatalog } from '../permissions/permission-catalog';
 import { hasOverbroadIp } from '../utils/cidr';
 import { EntityNotFound, InvalidInputError } from '../utils/error-types';
 import { fetchChunked } from '../utils/fetch-chunked';
@@ -82,7 +82,10 @@ const liveAssignedOrganization = and(
 );
 
 export class M2mApplicationsRepository extends BaseRepository {
-    async create(data: InsertM2mApplication): Promise<M2mApplication> {
+    async create(
+        data: InsertM2mApplication,
+        catalog: PermissionCatalog = CORE_PERMISSION_CATALOG
+    ): Promise<M2mApplication> {
         const { roles, organizationIds, ...m2mAppFields } = data;
 
         return this.transaction(async (tx) => {
@@ -92,7 +95,7 @@ export class M2mApplicationsRepository extends BaseRepository {
                 .returning()
                 .then(getFirstOrThrow);
 
-            const associatedRoles = await this.associateRoles(roles, created.id, tx);
+            const associatedRoles = await this.associateRoles(roles, created.id, tx, catalog);
 
             const orgs =
                 organizationIds && organizationIds.length > 0
@@ -178,7 +181,11 @@ export class M2mApplicationsRepository extends BaseRepository {
         };
     }
 
-    async createForOrg(organizationId: string, data: CreateOrgM2mApplication): Promise<M2mApplication> {
+    async createForOrg(
+        organizationId: string,
+        data: CreateOrgM2mApplication,
+        catalog: PermissionCatalog = CORE_PERMISSION_CATALOG
+    ): Promise<M2mApplication> {
         return this.transaction(async (tx) => {
             const created = await tx
                 .insert(m2mApplicationsTable)
@@ -186,7 +193,7 @@ export class M2mApplicationsRepository extends BaseRepository {
                 .returning()
                 .then(getFirstOrThrow);
 
-            const roles = await this.associateOrgRoles(data.roles, created.id, organizationId, tx);
+            const roles = await this.associateOrgRoles(data.roles, created.id, organizationId, tx, catalog);
 
             // An org-owned credential is never assigned to other organizations via the junction.
             return { ...created, roles, organizations: [], hasOverbroadIpWhitelist: false };
@@ -197,7 +204,12 @@ export class M2mApplicationsRepository extends BaseRepository {
     // zone-level or peer-org credential is out of the caller's write scope and returns 404. Role
     // replacement goes through associateOrgRoles, so the org-admin ceiling is enforced on attachment.
     // The inline fetch (rather than getById) is the ownership check: getById does not filter by ownerOrganizationId.
-    async updateForOrg(organizationId: string, appId: string, data: UpdateOrgM2mApplication): Promise<M2mApplication> {
+    async updateForOrg(
+        organizationId: string,
+        appId: string,
+        data: UpdateOrgM2mApplication,
+        catalog: PermissionCatalog = CORE_PERMISSION_CATALOG
+    ): Promise<M2mApplication> {
         return this.transaction(async (tx) => {
             const existing = await tx.query.m2mApplicationsTable.findFirst({
                 where: and(
@@ -221,7 +233,7 @@ export class M2mApplicationsRepository extends BaseRepository {
             }
 
             const rolesToCreate = data.roles.filter((role) => !existingRoleIds.includes(role.id));
-            await this.associateOrgRoles(rolesToCreate, appId, organizationId, tx);
+            await this.associateOrgRoles(rolesToCreate, appId, organizationId, tx, catalog);
 
             await tx
                 .update(m2mApplicationsTable)
@@ -341,7 +353,11 @@ export class M2mApplicationsRepository extends BaseRepository {
         return toM2mApplication(m2mApp);
     }
 
-    async update(id: string, newData: UpdateM2mApplication): Promise<M2mApplication> {
+    async update(
+        id: string,
+        newData: UpdateM2mApplication,
+        catalog: PermissionCatalog = CORE_PERMISSION_CATALOG
+    ): Promise<M2mApplication> {
         const { name, description, roles } = newData;
 
         return this.transaction(async (tx) => {
@@ -360,7 +376,7 @@ export class M2mApplicationsRepository extends BaseRepository {
 
             const existingRoleIds = existing.roles.map((role) => role.id);
             const rolesToCreate = roles.filter((role) => !existingRoleIds.includes(role.id));
-            await this.associateRoles(rolesToCreate, existing.id, tx);
+            await this.associateRoles(rolesToCreate, existing.id, tx, catalog);
 
             await tx.update(m2mApplicationsTable).set({ name, description }).where(eq(m2mApplicationsTable.id, id));
 
@@ -544,7 +560,8 @@ export class M2mApplicationsRepository extends BaseRepository {
     private async associateRoles(
         roles: InsertM2mApplication['roles'],
         m2mAppId: string,
-        tx: TxType
+        tx: TxType,
+        catalog: PermissionCatalog
     ): Promise<M2mApplication['roles']> {
         if (roles.length === 0) {
             return [];
@@ -560,6 +577,7 @@ export class M2mApplicationsRepository extends BaseRepository {
         if (missingRoles.length > 0) {
             throw new EntityNotFound('Role', { id: missingRoles.join(',') });
         }
+        catalog.assertKnown(existingRoles.flatMap((role) => role.systemPermissions));
 
         await tx.insert(m2mAppRolesTable).values(
             roleIds.map((roleId) => ({
@@ -580,7 +598,8 @@ export class M2mApplicationsRepository extends BaseRepository {
         roles: Pick<Role, 'id'>[],
         m2mAppId: string,
         organizationId: string,
-        tx: TxType
+        tx: TxType,
+        catalog: PermissionCatalog
     ): Promise<Role[]> {
         if (roles.length === 0) {
             return [];
@@ -603,7 +622,9 @@ export class M2mApplicationsRepository extends BaseRepository {
             throw new EntityNotFound('Role', { id: missing.map((role) => role.id).join(',') });
         }
 
-        const outsideCeiling = permissionsOutsideOrgCeiling(resolved.flatMap((role) => role.systemPermissions ?? []));
+        const granted = resolved.flatMap((role) => role.systemPermissions ?? []);
+        catalog.assertKnown(granted);
+        const outsideCeiling = catalog.outsideOrgCeiling(granted);
         if (outsideCeiling.length > 0) {
             const disallowed = [...new Set(outsideCeiling)];
             throw new InvalidInputError(

@@ -14,13 +14,14 @@ export type AdminSystemPermission =
     | 'org_users_manage'
     | 'org_wallets_manage'
     | 'org_rpc_access'
-    | 'org_policy_access'
     | 'rpc_read_eth_getBlockByNumber'
     | 'rpc_read_eth_getLogs'
     | 'rpc_read_eth_getTransactionByHash'
     | 'rpc_read_eth_getTransactionReceipt'
     | 'check_user_read_access'
-    | 'contract_metadata_read';
+    | 'contract_metadata_read'
+    // A permission a server feature declared; `string & {}` keeps editor completion for the names above.
+    | (string & {});
 
 export interface AdminUserRole {
     // Stable role identifier and the functional key for role operations (assigning, filtering).

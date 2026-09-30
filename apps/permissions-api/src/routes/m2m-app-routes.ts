@@ -1,6 +1,7 @@
 import { AUDIT_ACTIONS } from '@repo/access-control';
 import { z } from 'zod/v4';
 import type { FastifyServer } from '../build-app';
+import type { PermissionCatalog } from '../permissions/permission-catalog';
 import {
     createAuditedM2mApplication,
     deleteAuditedM2mApplication,
@@ -24,7 +25,11 @@ const replaceOrganizationsBodySchema = z.object({
     organizationIds: z.array(z.string())
 });
 
-export function m2mAppRoutes(server: FastifyServer) {
+type Deps = {
+    permissionCatalog: PermissionCatalog;
+};
+
+export function m2mAppRoutes(server: FastifyServer, { permissionCatalog }: Deps) {
     server.post(
         '/',
         {
@@ -42,7 +47,9 @@ export function m2mAppRoutes(server: FastifyServer) {
             }
         },
         async (req, reply) => {
-            const { app, auditEventDetails } = await createAuditedM2mApplication(req.repos, req.body);
+            const { app, auditEventDetails } = await createAuditedM2mApplication(req.repos, req.body, {
+                catalog: permissionCatalog
+            });
             req.auditEventDetails = auditEventDetails;
             return reply.send(app);
         }
@@ -116,7 +123,8 @@ export function m2mAppRoutes(server: FastifyServer) {
             const { app, auditEventDetails } = await updateAuditedM2mApplication(
                 req.repos,
                 { appId: req.params.id },
-                req.body
+                req.body,
+                { catalog: permissionCatalog }
             );
             req.auditEventDetails = auditEventDetails;
             return reply.send(app);

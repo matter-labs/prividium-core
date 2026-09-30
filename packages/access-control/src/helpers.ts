@@ -1,4 +1,4 @@
-import type { Permission, RoleHolder } from './types';
+import type { Permission, RoleHolder, SystemPermissionName } from './types';
 
 export const ADMIN_ROLE_NAME = 'admin';
 
@@ -15,7 +15,11 @@ export const RESERVED_ROLE_NAMES: ReadonlySet<string> = new Set([ADMIN_ROLE_NAME
 
 // If an orgId is provided this returns true only if the system permission is valid for that org.
 // That means is present in a role of that organization or in a zone level role (organizationId === null)
-export function hasSystemPermission(roleHolder: RoleHolder, permission: Permission, orgId?: string | null): boolean {
+export function hasSystemPermission(
+    roleHolder: RoleHolder,
+    permission: SystemPermissionName,
+    orgId?: string | null
+): boolean {
     return roleHolder.roles.some((r) => {
         if (orgId !== undefined) {
             const orgMatch = r.organizationId === null || r.organizationId === orgId; // permission is zone level or oranization match
@@ -28,7 +32,7 @@ export function hasSystemPermission(roleHolder: RoleHolder, permission: Permissi
 
 export function hasAnySystemPermission(
     roleHolder: Pick<RoleHolder, 'roles'>,
-    permission: Permission[],
+    permission: SystemPermissionName[],
     orgId: string
 ): boolean {
     return permission.some((p) => hasSystemPermission(roleHolder, p, orgId));
@@ -37,7 +41,7 @@ export function hasAnySystemPermission(
 // Like hasSystemPermission, but only counts the permission when the holder operates at zone level.
 // Use for permissions that grant zone-wide reach (e.g. full_read_access / full_sequencer_rpc_access),
 // which must not escalate an org-scoped principal beyond its organization.
-export function hasZoneSystemPermission(roleHolder: RoleHolder, permission: Permission): boolean {
+export function hasZoneSystemPermission(roleHolder: RoleHolder, permission: SystemPermissionName): boolean {
     return roleHolder.roles.some((r) => r.systemPermissions?.includes(permission) && r.organizationId === null);
 }
 
@@ -52,6 +56,8 @@ export function requiresMfa(roleHolder: RoleHolder): boolean {
 // "dangerous" in the admin UI so operators confirm before assigning it.
 export const DANGEROUS_PERMISSIONS: readonly Permission[] = ['admin_write', 'full_sequencer_rpc_access'];
 
-export function hasDangerousPermission(permissions: readonly Permission[] | undefined): boolean {
-    return permissions?.some((permission) => DANGEROUS_PERMISSIONS.includes(permission)) ?? false;
+const dangerousPermissions: ReadonlySet<string> = new Set(DANGEROUS_PERMISSIONS);
+
+export function hasDangerousPermission(permissions: readonly string[] | undefined): boolean {
+    return permissions?.some((permission) => dangerousPermissions.has(permission)) ?? false;
 }

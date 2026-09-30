@@ -1,9 +1,11 @@
+import { defineFeaturePermission } from '@repo/api-kit';
 import { eq } from 'drizzle-orm';
 import type { Address } from 'viem';
 import { afterEach, beforeEach, describe, expect, vi } from 'vitest';
 import { type Fixture, it } from '../../test/unit-test-context';
 import { auditLogsTable, organizationsTable, UserSources, usersTable } from '../db/schema';
-import { EntityAlreadyExistsError, EntityNotFound } from '../utils/error-types';
+import { CORE_PERMISSION_CATALOG, PermissionCatalog, UNCHECKED_PERMISSIONS } from '../permissions/permission-catalog';
+import { EntityAlreadyExistsError, EntityNotFound, InvalidInputError } from '../utils/error-types';
 import { AuditLogsRepository } from './audit-logs-repository';
 import { RolesRepository } from './roles-repository';
 import type { User } from './users-repository';
@@ -285,6 +287,68 @@ describe('UsersRepository', () => {
                     wallets: [wallet]
                 })
             ).rejects.toThrow(EntityAlreadyExistsError);
+        });
+    });
+
+    describe('roles holding a permission no longer registered', () => {
+        const EXAMPLE_ACCESS = defineFeaturePermission('example_feature_access', { orgGrantable: true });
+        const unknownPermission = new InvalidInputError('Unknown system permissions: example_feature_access');
+        const adminScope = { catalog: CORE_PERMISSION_CATALOG };
+
+        async function staleRoleId() {
+            const role = await rolesRepo.create(
+                { roleName: 'stale', systemPermissions: [EXAMPLE_ACCESS.name] },
+                { catalog: new PermissionCatalog([EXAMPLE_ACCESS]) }
+            );
+            return role.id;
+        }
+
+        it('refuses one on an admin create', async () => {
+            const roleId = await staleRoleId();
+
+            await expect(
+                repository.createFromAdminApi({ displayName: 'User', roles: [roleId], wallets: [] }, adminScope)
+            ).rejects.toThrow(unknownPermission);
+        });
+
+        it('refuses one added on update', async () => {
+            const roleId = await staleRoleId();
+            const user = await repository.createFromAdminApi({ displayName: 'User', roles: [], wallets: [] });
+
+            await expect(repository.update(user.id, { roles: [roleId] }, adminScope)).rejects.toThrow(
+                unknownPermission
+            );
+        });
+
+        it('refuses one when no catalog is passed', async () => {
+            const roleId = await staleRoleId();
+
+            await expect(
+                repository.createFromAdminApi({ displayName: 'User', roles: [roleId], wallets: [] })
+            ).rejects.toThrow(unknownPermission);
+        });
+
+        it('assigns one when provisioning skips the check', async () => {
+            const roleId = await staleRoleId();
+
+            const user = await repository.create(
+                { displayName: 'User', roles: [roleId], wallets: [], source: UserSources.enum.oidc },
+                { catalog: UNCHECKED_PERMISSIONS }
+            );
+
+            expect(user.roles.map((role) => role.id)).toEqual([roleId]);
+        });
+
+        it('lets an update echo one the user already holds', async () => {
+            const roleId = await staleRoleId();
+            const user = await repository.create(
+                { displayName: 'User', roles: [roleId], wallets: [], source: UserSources.enum.oidc },
+                { catalog: UNCHECKED_PERMISSIONS }
+            );
+
+            const updated = await repository.update(user.id, { displayName: 'Renamed', roles: [roleId] }, adminScope);
+
+            expect(updated.displayName).toBe('Renamed');
         });
     });
 

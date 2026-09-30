@@ -12,7 +12,11 @@ import {
     walletsTable
 } from '../db/schema';
 import { getFirst, getFirstOrThrow } from '../db/utils';
-import { permissionsOutsideOrgCeiling } from '../permissions/system-permissions';
+import {
+    CORE_PERMISSION_CATALOG,
+    type PermissionCatalog,
+    UNCHECKED_PERMISSIONS
+} from '../permissions/permission-catalog';
 import { EntityAlreadyExistsError, EntityNotFound, InvalidInputError } from '../utils/error-types';
 import { fetchChunked } from '../utils/fetch-chunked';
 import type { PaginatedResult, PaginationParams } from '../utils/schemas/pagination';
@@ -36,7 +40,7 @@ export type UpdateBranding = Partial<Pick<OrganizationRow, 'name' | 'brandName' 
 
 export type UpdateSiweSettings = Pick<OrganizationRow, 'siweLoginEnabled' | 'siweAllowedDomains'>;
 
-export type MemberRoleOptions = { allowOverCeilingRoles?: boolean };
+export type MemberRoleOptions = { allowOverCeilingRoles?: boolean; catalog?: PermissionCatalog };
 
 export class OrganizationsRepository extends BaseRepository {
     async create(data: InsertOrganization, roleScope?: RoleScopeOptions): Promise<Organization> {
@@ -261,7 +265,7 @@ export class OrganizationsRepository extends BaseRepository {
         organizationId: string,
         userId: string,
         roleIds: string[],
-        { allowOverCeilingRoles = false }: MemberRoleOptions = {}
+        { allowOverCeilingRoles = false, catalog = CORE_PERMISSION_CATALOG }: MemberRoleOptions = {}
     ): Promise<User> {
         return this.transaction(async (tx) => {
             await this.getById(organizationId, tx);
@@ -291,11 +295,11 @@ export class OrganizationsRepository extends BaseRepository {
             // A zone operator can mint an org role above the ceiling, so roles being added are
             // re-checked. Held roles echoed by the full-replace PUT grant nothing new, and the org
             // admin system role grants nothing the calling org admin lacks.
+            const added = ownRoles.filter((r) => roleIds.includes(r.id) && !current.includes(r.id));
+            catalog.assertKnown(added.flatMap((r) => r.systemPermissions));
             if (!allowOverCeilingRoles) {
-                const granted = ownRoles
-                    .filter((r) => roleIds.includes(r.id) && !current.includes(r.id) && !r.isSystemRole)
-                    .flatMap((r) => r.systemPermissions);
-                const disallowed = [...new Set(permissionsOutsideOrgCeiling(granted))];
+                const granted = added.filter((r) => !r.isSystemRole).flatMap((r) => r.systemPermissions);
+                const disallowed = [...new Set(catalog.outsideOrgCeiling(granted))];
                 if (disallowed.length > 0) {
                     throw new InvalidInputError(
                         `Permissions not grantable by an organization admin: ${disallowed.join(', ')}`
@@ -488,7 +492,7 @@ export class OrganizationsRepository extends BaseRepository {
         roles: InsertOrganization['defaultRoles'],
         organizationId: string,
         tx: TxType,
-        { allowZoneRoles = false }: RoleScopeOptions = {}
+        { allowZoneRoles = false, catalog = CORE_PERMISSION_CATALOG }: RoleScopeOptions = {}
     ): Promise<Organization['defaultRoles']> {
         if (roles.length === 0) {
             return [];
@@ -496,7 +500,7 @@ export class OrganizationsRepository extends BaseRepository {
 
         const roleIds = roles.map((role) => role.id);
         const existingRoles = await tx.query.rolesTable.findMany({
-            columns: { id: true, roleName: true, organizationId: true, isSystemRole: true },
+            columns: { id: true, roleName: true, organizationId: true, isSystemRole: true, systemPermissions: true },
             where: inArray(rolesTable.id, roleIds)
         });
 
@@ -515,6 +519,10 @@ export class OrganizationsRepository extends BaseRepository {
             if (outOfScope || role.isSystemRole) {
                 throw new InvalidInputError(`Role "${role.id}" cannot be a default role for this organization`);
             }
+        }
+
+        if (catalog !== UNCHECKED_PERMISSIONS) {
+            catalog.assertKnown(existingRoles.flatMap((role) => role.systemPermissions));
         }
 
         await tx.insert(organizationsDefaultRoles).values(roleIds.map((roleId) => ({ organizationId, roleId })));

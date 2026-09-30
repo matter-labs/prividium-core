@@ -1,4 +1,4 @@
-import type { Permission } from '@repo/access-control';
+import type { SystemPermissionName } from '@repo/access-control';
 import type { AddressClass, CoreFacts, CoreReferences, MethodSelector, SigningIdentity } from '@repo/api-kit';
 import { and, arrayContains, eq, inArray, isNull, or } from 'drizzle-orm';
 import type { PgColumn } from 'drizzle-orm/pg-core';
@@ -216,7 +216,7 @@ export class RepositoriesCoreFacts implements CoreFacts {
         return rows.map((row) => row.userId);
     }
 
-    async rolesWithPermission(organizationId: string | null, permission: Permission): Promise<string[]> {
+    async rolesWithPermission(organizationId: string | null, permission: SystemPermissionName): Promise<string[]> {
         const rows = await this.db
             .select({ id: rolesTable.id })
             .from(rolesTable)
@@ -230,7 +230,7 @@ export class RepositoriesCoreFacts implements CoreFacts {
         return rows.map((row) => row.id);
     }
 
-    async zoneRolesWithPermission(permission: Permission): Promise<string[]> {
+    async zoneRolesWithPermission(permission: SystemPermissionName): Promise<string[]> {
         const rows = await this.db
             .select({ id: rolesTable.id })
             .from(rolesTable)

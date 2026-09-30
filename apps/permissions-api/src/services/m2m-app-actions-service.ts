@@ -1,6 +1,7 @@
 import type { Address } from 'viem';
 import type { Repositories } from '../db';
 import { UserSources } from '../db/schema';
+import { UNCHECKED_PERMISSIONS } from '../permissions/permission-catalog';
 import type { TenantUser } from '../repositories/tenants-repository';
 import type { User } from '../repositories/users-repository';
 import type { ExternalRpc } from '../rpc/target-rpc';
@@ -57,7 +58,7 @@ export class M2mAppActionsService {
                 roles: org.defaultRoles.map((r) => r.id),
                 organizationId: orgId
             },
-            { allowZoneRoles: !this.multiOrgEnabled }
+            { allowZoneRoles: !this.multiOrgEnabled, catalog: UNCHECKED_PERMISSIONS }
         );
     }
 

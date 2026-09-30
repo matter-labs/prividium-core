@@ -1,4 +1,4 @@
-import type { Permission } from '@repo/access-control';
+import type { SystemPermissionName } from '@repo/access-control';
 import type { AbiFunction, Address } from 'viem';
 import type { MethodSelector } from './schemas/hex-schema';
 
@@ -49,10 +49,10 @@ export interface CoreFacts {
 
     userHoldersOfRoles(roleIds: readonly string[]): Promise<string[]>;
 
-    rolesWithPermission(organizationId: string | null, permission: Permission): Promise<string[]>;
+    rolesWithPermission(organizationId: string | null, permission: SystemPermissionName): Promise<string[]>;
 
     /** Zone-scoped roles only: their holders act across every organization. */
-    zoneRolesWithPermission(permission: Permission): Promise<string[]>;
+    zoneRolesWithPermission(permission: SystemPermissionName): Promise<string[]>;
 
     /** Read-only, unlike the core's get-or-create: `undefined` where that would create. */
     findOrgAdminRole(organizationId: string | null): Promise<{ id: string } | undefined>;

@@ -6,7 +6,7 @@ import {
     hasZoneSystemPermission,
     requiresMfa
 } from './helpers';
-import type { RoleHolder, User } from './types';
+import type { Permission, RoleHolder, User } from './types';
 
 describe('hasSystemPermission', () => {
     it('returns true when user has role containing the permission', () => {
@@ -193,5 +193,40 @@ describe('hasDangerousPermission', () => {
     it('returns false for undefined or empty permissions', () => {
         expect(hasDangerousPermission(undefined)).toBe(false);
         expect(hasDangerousPermission([])).toBe(false);
+    });
+});
+
+describe('a stored permission no code checks for', () => {
+    // A Record keyed by Permission fails typecheck when a core permission is missing here.
+    const CORE_PERMISSIONS: Record<Permission, true> = {
+        contract_deployment: true,
+        full_sequencer_rpc_access: true,
+        full_read_access: true,
+        rpc_read_eth_getBlockByNumber: true,
+        rpc_read_eth_getLogs: true,
+        rpc_read_eth_getTransactionByHash: true,
+        rpc_read_eth_getTransactionReceipt: true,
+        admin_read: true,
+        admin_write: true,
+        org_users_manage: true,
+        org_wallets_manage: true,
+        org_rpc_access: true,
+        check_user_read_access: true,
+        contract_metadata_read: true
+    };
+    const holder: RoleHolder = {
+        roles: [
+            { id: 'role-1', roleName: 'stale', systemPermissions: ['example_feature_access'], organizationId: null }
+        ]
+    };
+
+    it.each(Object.keys(CORE_PERMISSIONS) as Permission[])('grants no %s', (permission) => {
+        expect(hasSystemPermission(holder, permission)).toBe(false);
+        expect(hasSystemPermission(holder, permission, 'org-1')).toBe(false);
+        expect(hasZoneSystemPermission(holder, permission)).toBe(false);
+    });
+
+    it('is not dangerous', () => {
+        expect(hasDangerousPermission(holder.roles[0]?.systemPermissions)).toBe(false);
     });
 });

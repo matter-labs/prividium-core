@@ -7,6 +7,7 @@ import { auditActionTypeSchema } from '../db/schema';
 import { requireOrgAdmin } from '../middleware/require-org-admin';
 import { requireM2mAppOrgAssociation, requireOrgAdminForUserCaller } from '../middleware/require-org-membership';
 import type { SessionsAuthValidator } from '../middleware/sessions-auth';
+import type { PermissionCatalog } from '../permissions/permission-catalog';
 import {
     fullContractPermissionSchema,
     newContractPermissionSchema,
@@ -101,6 +102,7 @@ type Deps = {
     maxOrganizations: number;
     multiOrgEnabled: boolean;
     auditLogsPaginationMaxItems: number;
+    permissionCatalog: PermissionCatalog;
 };
 
 const orgRoleParamsSchema = z.object({ id: z.string(), roleId: z.string().min(1) });
@@ -183,10 +185,11 @@ export function organizationsRoutes(
         operatorIssuer,
         maxOrganizations,
         multiOrgEnabled,
-        auditLogsPaginationMaxItems
+        auditLogsPaginationMaxItems,
+        permissionCatalog
     }: Deps
 ) {
-    const roleScope = { allowZoneRoles: !multiOrgEnabled };
+    const roleScope = { allowZoneRoles: !multiOrgEnabled, catalog: permissionCatalog };
     const orgAuditLogsQuerySchema = auditPaginationQuerySchema(auditLogsPaginationMaxItems).safeExtend({
         userId: z.string().optional(),
         actionType: auditActionTypeSchema.optional(),
@@ -782,7 +785,10 @@ export function organizationsRoutes(
                         req.params.userId,
                         req.body.roles,
                         // requireOrgAdmin admits zone operators too, and they are not bound by the ceiling.
-                        { allowOverCeilingRoles: hasZoneSystemPermission(req.auth.currentUser(), 'admin_write') }
+                        {
+                            allowOverCeilingRoles: hasZoneSystemPermission(req.auth.currentUser(), 'admin_write'),
+                            catalog: permissionCatalog
+                        }
                     );
                     return reply.send(member);
                 }
@@ -952,7 +958,10 @@ export function organizationsRoutes(
                 },
                 async (req, reply) => {
                     await req.repos.organizations.getById(req.params.id);
-                    const role = await req.repos.roles.create(req.body, { organizationId: req.params.id });
+                    const role = await req.repos.roles.create(req.body, {
+                        organizationId: req.params.id,
+                        catalog: permissionCatalog
+                    });
                     return reply.status(201).send(role);
                 }
             );
@@ -1027,7 +1036,8 @@ export function organizationsRoutes(
                 },
                 async (req, reply) => {
                     const role = await req.repos.roles.updateScoped(req.params.roleId, req.body, {
-                        organizationId: req.params.id
+                        organizationId: req.params.id,
+                        catalog: permissionCatalog
                     });
                     if (role === undefined) {
                         throw new EntityNotFound('Role', { id: req.params.roleId });
@@ -1108,11 +1118,10 @@ export function organizationsRoutes(
                 },
                 async (req, reply) => {
                     await req.repos.organizations.getById(req.params.id);
-                    const { app, auditEventDetails } = await createAuditedM2mApplication(
-                        req.repos,
-                        req.body,
-                        req.params.id
-                    );
+                    const { app, auditEventDetails } = await createAuditedM2mApplication(req.repos, req.body, {
+                        organizationId: req.params.id,
+                        catalog: permissionCatalog
+                    });
                     req.auditEventDetails = auditEventDetails;
                     return reply.status(201).send(app);
                 }
@@ -1143,7 +1152,8 @@ export function organizationsRoutes(
                     const { app, auditEventDetails } = await updateAuditedM2mApplication(
                         req.repos,
                         { appId: req.params.appId, organizationId: req.params.id },
-                        req.body
+                        req.body,
+                        { catalog: permissionCatalog }
                     );
                     req.auditEventDetails = auditEventDetails;
                     return reply.send(app);

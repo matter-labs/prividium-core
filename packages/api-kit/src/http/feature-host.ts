@@ -1,4 +1,4 @@
-import type { AuditActionType, Permission } from '@repo/access-control';
+import type { AuditActionType, SystemPermissionName } from '@repo/access-control';
 import type { FastifyRequest } from 'fastify';
 import type { Address } from 'viem';
 
@@ -36,10 +36,10 @@ export interface RequestAuthGuards {
      * Members of the organization at `:id`, operators, and machines holding
      * `m2mPermission` -- association alone would let an integration act elsewhere.
      */
-    orgMemberSurface(opts: { m2mPermission: Permission }): readonly RequestHook[];
+    orgMemberSurface(opts: { m2mPermission: SystemPermissionName }): readonly RequestHook[];
 
     /** The same at zone level, where every user is a member and only the machine is checked. */
-    zoneMemberSurface(opts: { m2mPermission: Permission }): readonly RequestHook[];
+    zoneMemberSurface(opts: { m2mPermission: SystemPermissionName }): readonly RequestHook[];
 
     principalOf(request: FastifyRequest): AuthenticatedPrincipal;
 
