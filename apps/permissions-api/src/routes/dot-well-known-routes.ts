@@ -28,6 +28,18 @@ const wellKnownFileSchema = z.object({
 });
 export type PrividiumInfo = z.infer<typeof wellKnownFileSchema>['v1'];
 
+// RFC 9116 requires Expires; scanners flag an expired file. Bump it at the CVD policy's annual review.
+const SECURITY_TXT = [
+    '# Matter Labs / Prividium Coordinated Vulnerability Disclosure',
+    '# https://www.rfc-editor.org/rfc/rfc9116',
+    '',
+    'Contact: mailto:security@matterlabs.dev',
+    'Expires: 2027-09-01T00:00:00.000Z',
+    'Preferred-Languages: en',
+    'Policy: https://www.zksync.io/prividium/security',
+    ''
+].join('\n');
+
 type Deps = { prividiumInfo: PrividiumInfo };
 export function dotWellKnownRoutes(server: FastifyServer, deps: Deps) {
     server.get(
@@ -41,6 +53,20 @@ export function dotWellKnownRoutes(server: FastifyServer, deps: Deps) {
         },
         async (_req, reply) => {
             return reply.send({ v1: deps.prividiumInfo });
+        }
+    );
+
+    server.get(
+        '/security.txt',
+        {
+            schema: {
+                response: {
+                    200: z.string()
+                }
+            }
+        },
+        async (_req, reply) => {
+            return reply.type('text/plain; charset=utf-8').send(SECURITY_TXT);
         }
     );
 }
