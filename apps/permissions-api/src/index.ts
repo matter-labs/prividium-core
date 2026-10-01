@@ -10,7 +10,7 @@ import { createDb, runWithJobContext } from './db';
 import { auditAudienceIndexIsValid } from './db/audit-audience-index';
 import { runMigrations } from './db/migrate';
 import { envHasCryptoNativeAuthMethod, loadEnv } from './env';
-import { findRpcAuthorizerConflict } from './feature-host/feature-conflicts';
+import { findAuthorizerConflict } from './feature-host/feature-conflicts';
 import { PermissionCatalog } from './permissions/permission-catalog';
 import type { AuthorizerFactory } from './rpc/permissions/authorizer';
 import { syncSystemContracts } from './services/system-contracts/sync';
@@ -106,8 +106,10 @@ export type ServiceFeatures = {
     onAdmitDenied?: PolicyAppConfig['onAdmitDenied'];
     /** Built once at boot, because the observer writes after the response, outside any request scope. */
     rpcObserverFor?: (runtime: FeatureRuntime) => RpcObserverFactory;
-    /** Replaces the authorizer on `/rpc` only; refused with POLICY_PORT or WALLETS_API_ENABLED. Built once at boot. */
+    /** Replaces the authorizer on `/rpc`; refused with WALLETS_API_ENABLED. Built once at boot. */
     rpcAuthorizerFor?: (runtime: FeatureRuntime) => AuthorizerFactory;
+    /** Replaces the authorizer on `/admit` and `/judge`; supplied together with `rpcAuthorizerFor`. */
+    sequencerAuthorizerFor?: PolicyAppConfig['sequencerAuthorizerFor'];
     /** After this service's: a feature's tables may reference the core's. */
     runFeatureMigrations?: (pool: Pool) => Promise<void>;
 };
@@ -131,9 +133,9 @@ async function withMigrationLock(pool: Pool, run: () => Promise<void>): Promise<
 }
 
 export async function start(features: ServiceFeatures = {}) {
-    const rpcAuthorizerConflict = findRpcAuthorizerConflict(features, env);
-    if (rpcAuthorizerConflict !== undefined) {
-        throw new Error(rpcAuthorizerConflict);
+    const authorizerConflict = findAuthorizerConflict(features, env);
+    if (authorizerConflict !== undefined) {
+        throw new Error(authorizerConflict);
     }
 
     if (envHasCryptoNativeAuthMethod(env) && env.SIWE_HMAC_SECRET === INSECURE_HMAC_SECRET) {
@@ -321,7 +323,10 @@ export async function start(features: ServiceFeatures = {}) {
                   ...(features.authorizationOverlays === undefined
                       ? {}
                       : { authorizationOverlays: features.authorizationOverlays }),
-                  ...(features.onAdmitDenied === undefined ? {} : { onAdmitDenied: features.onAdmitDenied })
+                  ...(features.onAdmitDenied === undefined ? {} : { onAdmitDenied: features.onAdmitDenied }),
+                  ...(features.sequencerAuthorizerFor === undefined
+                      ? {}
+                      : { sequencerAuthorizerFor: features.sequencerAuthorizerFor })
               })
             : undefined;
     if (policyApp) {

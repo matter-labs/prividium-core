@@ -6,7 +6,7 @@ import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
 import { AdmitRequestSchema, AdmitResponseSchema } from './schemas/admit';
 
 type Deps = {
-    admitService: AdmitService;
+    admitService: AdmitService<unknown>;
     // first entry is the preferred version
     protocolVersions: string[];
     onAdmitDenied?: AdmitDeniedHook;

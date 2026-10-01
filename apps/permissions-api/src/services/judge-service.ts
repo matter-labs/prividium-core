@@ -1,9 +1,7 @@
 import { type AuthorizationOverlay, OVERLAY_UNAVAILABLE, OverlayRefusal } from '@repo/api-kit';
 import { type Address, type Hex, size } from 'viem';
-import type { Repositories } from '../db';
-import type { UserWithRoles } from '../repositories/users-repository';
 import type { PinoLogger } from '../utils/logger';
-import type { AuthorizationResult, AuthorizationService, FrameEvaluation } from './authorization-service';
+import type { AuthorizationResult, FrameEvaluation, SequencerAuthorizer } from './authorization-service';
 import { type DecisionCacheStore, withDecisionCache } from './decision-cache';
 import type { TransactionClassifier } from './transaction-classifier';
 
@@ -54,9 +52,8 @@ export type JudgeInput = {
 /** A frame plus whether an umbrella row above it waived the permission gate for it. */
 type CoveredFrame = { frame: TraceFrame; covered: boolean };
 
-type Deps = {
-    repos: Repositories;
-    authorizationService: AuthorizationService;
+type Deps<S> = {
+    authorizer: SequencerAuthorizer<S>;
     transactionClassifier: TransactionClassifier;
     logger: PinoLogger;
     /** Versions accepted on the request. See `POLICY_PROTOCOL_VERSIONS` in env.ts. */
@@ -150,9 +147,8 @@ function serializeFrame(frame: TraceFrame | null): unknown {
  * treats non-2xx as fail-closed, so HTTP errors are reserved for genuine
  * internal failures.
  */
-export class JudgeService {
-    private repos: Repositories;
-    private authorizationService: AuthorizationService;
+export class JudgeService<S> {
+    private authorizer: SequencerAuthorizer<S>;
     private transactionClassifier: TransactionClassifier;
     private logger: PinoLogger;
     private protocolVersions: string[];
@@ -161,17 +157,15 @@ export class JudgeService {
     private overlays: readonly AuthorizationOverlay[];
 
     constructor({
-        repos,
-        authorizationService,
+        authorizer,
         transactionClassifier,
         logger,
         protocolVersions,
         cache,
         multiOrgEnabled = false,
         overlays
-    }: Deps) {
-        this.repos = repos;
-        this.authorizationService = authorizationService;
+    }: Deps<S>) {
+        this.authorizer = authorizer;
         this.transactionClassifier = transactionClassifier;
         this.logger = logger;
         this.protocolVersions = protocolVersions;
@@ -255,8 +249,8 @@ export class JudgeService {
         }
 
         const signer = rootFrame.caller;
-        const user = await this.repos.users.findByAddressWithRoles(signer);
-        if (user === undefined) {
+        const subject = await this.authorizer.resolveSigner(signer);
+        if (subject === undefined) {
             return { authorized: false, ruleId: 'user.not_found' };
         }
 
@@ -275,27 +269,25 @@ export class JudgeService {
         if (rootFrame.callKind !== 'constructor') {
             const calldata: Hex = size(rootFrame.calldata) === 0 ? '0x' : rootFrame.calldata;
             const contractAddress = rootFrame.callKind === 'delegateCall' ? rootFrame.caller : rootFrame.callee;
-            const rootDecision = await this.authorizationService.checkMethodAuthorizationForUser({
-                fromAddress: signer,
-                user,
-                contractAddress,
-                calldata,
-                accessTypeCheck: input.accessType
-            });
+            const rootDecision = await this.authorizer.checkCall(
+                subject,
+                { contractAddress, calldata },
+                { from: signer, accessType: input.accessType }
+            );
             if (rootDecision.authorized && rootDecision.isUmbrella === true) {
                 if (!this.multiOrgEnabled) {
                     return { authorized: true, ruleId: 'judge.allow' };
                 }
-                return this.checkSubtree(signer, user, rootFrame.children, true);
+                return this.checkSubtree(signer, subject, rootFrame.children, true);
             }
         }
 
-        return this.checkSubtree(signer, user, rootFrame.children);
+        return this.checkSubtree(signer, subject, rootFrame.children);
     }
 
     private async checkSubtree(
         signer: Address,
-        user: UserWithRoles,
+        subject: S,
         frames: TraceFrame[],
         covered = false
     ): Promise<AuthorizationResult> {
@@ -315,7 +307,7 @@ export class JudgeService {
 
         while (frontier.length > 0) {
             const generation = frontier.filter((f) => f.frame.callKind !== 'constructor');
-            await this.evaluateFrames(signer, user, generation, evaluations);
+            await this.evaluateFrames(signer, subject, generation, evaluations);
 
             // Enqueue the next generation. Constructor frames have no row and
             // always recurse. A denied or erroring frame is not descended into
@@ -350,7 +342,7 @@ export class JudgeService {
      */
     private async evaluateFrames(
         signer: Address,
-        user: UserWithRoles,
+        subject: S,
         frames: CoveredFrame[],
         evaluations: Map<TraceFrame, FrameEvaluation>
     ): Promise<void> {
@@ -389,12 +381,13 @@ export class JudgeService {
                 calldata: (size(f.calldata) === 0 ? '0x' : f.calldata) as Hex,
                 umbrellaCovered: covered
             }));
-            const results = await this.authorizationService.checkUserAuthorizationForCalls({
-                fromAddress: signer,
-                user,
-                calls,
-                accessTypeCheck: 'unenforced'
+            const results = await this.authorizer.checkFrames(subject, calls, {
+                from: signer,
+                accessType: 'unenforced'
             });
+            if (results.length !== calls.length) {
+                throw new Error(`checkFrames returned ${results.length} results for ${calls.length} frames`);
+            }
             toLookup.forEach(({ frame }, i) => {
                 evaluations.set(frame, results[i]!);
             });

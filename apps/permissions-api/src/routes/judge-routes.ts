@@ -5,7 +5,7 @@ import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
 import { JudgeRequestSchema, JudgeResponseSchema } from './schemas/judge';
 
 type Deps = {
-    judgeService: JudgeService;
+    judgeService: JudgeService<unknown>;
     // first entry is the preferred version
     protocolVersions: string[];
 };

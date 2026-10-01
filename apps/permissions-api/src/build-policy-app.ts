@@ -4,11 +4,12 @@ import type { FeatureRuntime } from './build-app';
 import { RepositoriesCoreFacts } from './core-facts/repositories-core-facts';
 import { type DB, Repositories } from './db';
 import { errorHandler } from './error-handler';
+import type { UserWithRoles } from './repositories/users-repository';
 import { admitRoutes } from './routes/admit-routes';
 import { judgeRoutes } from './routes/judge-routes';
 import { TargetRpc } from './rpc/target-rpc';
 import { AdmitService } from './services/admit-service';
-import { AuthorizationService } from './services/authorization-service';
+import { AuthorizationService, type SequencerAuthorizer } from './services/authorization-service';
 import { InMemoryDecisionCache } from './services/decision-cache';
 import { JudgeService } from './services/judge-service';
 import { TransactionClassifier } from './services/transaction-classifier';
@@ -43,6 +44,11 @@ export type PolicyAppConfig = {
     decisionCache?: { ttlMs: number; maxEntries: number };
     /** Told of every refused `/admit` check. A provider, like the overlays, for the same reason. */
     onAdmitDenied?: (runtime: FeatureRuntime) => AdmitDeniedHook;
+    /** Decides `/admit` and `/judge` in place of `core`, which it may delegate to. Absent, `core` decides. */
+    sequencerAuthorizerFor?: (
+        runtime: FeatureRuntime,
+        core: SequencerAuthorizer<UserWithRoles>
+    ) => SequencerAuthorizer<unknown>;
     /**
      * A private feature's narrowing stage, consulted after the capability gate
      * allows a transaction. A provider rather than an instance because it reads
@@ -80,7 +86,7 @@ export function buildPolicyApp(db: DB, config: PolicyAppConfig) {
     }
 
     const repos = new Repositories(db);
-    const authorizationService = new AuthorizationService({
+    const coreAuthorizer = new AuthorizationService({
         repos,
         multiOrgEnabled: config.multiOrgEnabled,
         allowUmbrellaSystemReads: config.allowUmbrellaSystemReads
@@ -99,11 +105,12 @@ export function buildPolicyApp(db: DB, config: PolicyAppConfig) {
         logger: config.logger,
         multiOrgEnabled: config.multiOrgEnabled
     };
+    const authorizer: SequencerAuthorizer<unknown> =
+        config.sequencerAuthorizerFor?.(runtime, coreAuthorizer) ?? coreAuthorizer;
     const overlays = config.authorizationOverlays?.(runtime);
     const onAdmitDenied = config.onAdmitDenied?.(runtime);
     const admitService = new AdmitService({
-        repos,
-        authorizationService,
+        authorizer,
         transactionClassifier,
         logger: config.logger.child({ role: 'admit' }),
         protocolVersions: config.protocolVersions,
@@ -111,8 +118,7 @@ export function buildPolicyApp(db: DB, config: PolicyAppConfig) {
         ...(overlays === undefined ? {} : { overlays })
     });
     const judgeService = new JudgeService({
-        repos,
-        authorizationService,
+        authorizer,
         transactionClassifier,
         logger: config.logger.child({ role: 'judge' }),
         protocolVersions: config.protocolVersions,

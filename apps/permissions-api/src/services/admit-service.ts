@@ -1,8 +1,6 @@
 import { type AuthorizationOverlay, OVERLAY_UNAVAILABLE, OverlayRefusal } from '@repo/api-kit';
 import type { Address, Hex } from 'viem';
-import type { Repositories } from '../db';
-import { belongsToDeletedOrganization } from '../utils/organization-membership';
-import type { AuthorizationResult, AuthorizationService } from './authorization-service';
+import type { AuthorizationResult, SequencerAuthorizer } from './authorization-service';
 import { type DecisionCacheStore, withDecisionCache } from './decision-cache';
 import type { TransactionClassifier } from './transaction-classifier';
 
@@ -35,9 +33,8 @@ export type AdmitInput = {
     txHash?: Hex;
 };
 
-type Deps = {
-    repos: Repositories;
-    authorizationService: AuthorizationService;
+type Deps<S> = {
+    authorizer: SequencerAuthorizer<S>;
     transactionClassifier: TransactionClassifier;
     /** Versions accepted on the request. See `POLICY_PROTOCOL_VERSIONS` in env.ts. */
     protocolVersions: string[];
@@ -58,8 +55,8 @@ type OverlayLogger = {
 /**
  * Evaluates the Prividium admit policy for a user-submitted tx. Branches on
  * whether the tx is a method call (`to` present) or a contract creation
- * (`to` absent), dispatches to the shared ruleType evaluator in
- * `AuthorizationService`, and returns a structured decision.
+ * (`to` absent), dispatches to its {@link SequencerAuthorizer}, and returns
+ * a structured decision.
  *
  * Does NOT map decisions to HTTP status codes — the route handler returns
  * 200 with the decision payload on all "this-is-the-answer" paths, and the
@@ -67,26 +64,16 @@ type OverlayLogger = {
  * sequencer treats non-2xx as fail-closed (by design), so internal errors
  * must surface as errors, not `allow: false`.
  */
-export class AdmitService {
-    private repos: Repositories;
-    private authorizationService: AuthorizationService;
+export class AdmitService<S> {
+    private authorizer: SequencerAuthorizer<S>;
     private transactionClassifier: TransactionClassifier;
     private protocolVersions: string[];
     private cache?: DecisionCacheStore;
     private overlays: readonly AuthorizationOverlay[];
     private logger?: OverlayLogger;
 
-    constructor({
-        repos,
-        authorizationService,
-        transactionClassifier,
-        protocolVersions,
-        cache,
-        overlays,
-        logger
-    }: Deps) {
-        this.repos = repos;
-        this.authorizationService = authorizationService;
+    constructor({ authorizer, transactionClassifier, protocolVersions, cache, overlays, logger }: Deps<S>) {
+        this.authorizer = authorizer;
         this.transactionClassifier = transactionClassifier;
         this.protocolVersions = protocolVersions;
         this.cache = cache;
@@ -183,24 +170,22 @@ export class AdmitService {
             };
         }
 
-        const user = await this.repos.users.findByAddressWithRoles(input.from);
-        if (user === undefined) {
+        const subject = await this.authorizer.resolveSigner(input.from);
+        if (subject === undefined) {
             return { authorized: false, ruleId: 'user.not_found' };
         }
 
         // Resolved by from-address, so no credential check has run: the branches below include a native
-        // transfer and a deployment, neither of which reaches the gate in decidePermission.
-        if (belongsToDeletedOrganization(user)) {
-            return { authorized: false, ruleId: 'user.organization_deleted' };
+        // transfer and a deployment, neither of which reaches `checkCall`.
+        const refusal = await this.authorizer.checkSigner(subject);
+        if (refusal !== undefined) {
+            return refusal;
         }
 
         if (input.to === undefined) {
             // Contract-creation tx. Mirrors Prividium's existing RPC handler:
             // requires the contract_deployment system permission + wallet ownership.
-            return this.authorizationService.checkDeploymentAuthorization({
-                from: input.from,
-                user
-            });
+            return this.authorizer.checkDeployment(subject, input.from);
         }
 
         // A bare native transfer to an EOA runs no code, so there is no method to
@@ -215,12 +200,10 @@ export class AdmitService {
             return { authorized: true, ruleId: 'transfer.native.allow' };
         }
 
-        return this.authorizationService.checkMethodAuthorizationForUser({
-            fromAddress: input.from,
-            user,
-            contractAddress: input.to,
-            calldata: input.calldata,
-            accessTypeCheck: input.accessType
-        });
+        return this.authorizer.checkCall(
+            subject,
+            { contractAddress: input.to, calldata: input.calldata },
+            { from: input.from, accessType: input.accessType }
+        );
     }
 }

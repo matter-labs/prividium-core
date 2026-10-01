@@ -172,6 +172,35 @@ export interface MethodAuthorizer {
     ): Promise<AuthorizationResult>;
 }
 
+/** A call put to a {@link SequencerAuthorizer}; `contractAddress` is whose permission row governs it. */
+export type SequencerCall = { contractAddress: Address; calldata: Hex };
+
+/** One frame of a judged trace, with the umbrella coverage the walk derived for it. */
+export type SequencerFrame = SequencerCall & { umbrellaCovered: boolean };
+
+/** What the boundary established about the transaction: the acting wallet and the access intent. */
+export type SequencerFacts = { from: Address; accessType: AccessTypeCheck };
+
+/**
+ * The decision surface `/admit` and `/judge` call, generic in the subject a signer resolves to.
+ * The protocol check, classification, decision cache and overlays stay in the services. Decisions are
+ * cached by request, so each depends only on the request and the rules.
+ */
+export interface SequencerAuthorizer<S> {
+    /** `undefined` when the address resolves to no subject. */
+    resolveSigner(address: Address): Promise<S | undefined>;
+
+    /** Admit only: refuses the subject itself, before the call is classified. */
+    checkSigner(subject: S): Promise<AuthorizationResult | undefined>;
+
+    checkCall(subject: S, call: SequencerCall, facts: SequencerFacts): Promise<AuthorizationResult>;
+
+    /** Aligned to `frames` by index; a frame whose evaluation throws is captured, not thrown. */
+    checkFrames(subject: S, frames: SequencerFrame[], facts: SequencerFacts): Promise<FrameEvaluation[]>;
+
+    checkDeployment(subject: S, from: Address): Promise<AuthorizationResult>;
+}
+
 // Composite keys for matching prefetched permission rows to frames in memory.
 // Addresses and selectors are compared case-insensitively.
 const contractPermissionKey = (address: string, selector: string) =>
@@ -213,7 +242,7 @@ function checkArgumentRestrictions(
     return allMatch ? 'allowed' : 'denied';
 }
 
-export class AuthorizationService implements MethodAuthorizer {
+export class AuthorizationService implements MethodAuthorizer, SequencerAuthorizer<UserWithRoles> {
     private repos: Repositories;
     private multiOrgEnabled: boolean;
     private allowUmbrellaSystemReads: boolean;
@@ -222,6 +251,41 @@ export class AuthorizationService implements MethodAuthorizer {
         this.repos = repos;
         this.multiOrgEnabled = multiOrgEnabled;
         this.allowUmbrellaSystemReads = allowUmbrellaSystemReads;
+    }
+
+    resolveSigner(address: Address): Promise<UserWithRoles | undefined> {
+        return this.repos.users.findByAddressWithRoles(address);
+    }
+
+    checkSigner(subject: UserWithRoles): Promise<AuthorizationResult | undefined> {
+        return Promise.resolve(
+            belongsToDeletedOrganization(subject)
+                ? { authorized: false, ruleId: 'user.organization_deleted' }
+                : undefined
+        );
+    }
+
+    checkCall(subject: UserWithRoles, call: SequencerCall, facts: SequencerFacts): Promise<AuthorizationResult> {
+        return this.checkMethodAuthorizationForUser({
+            fromAddress: facts.from,
+            user: subject,
+            contractAddress: call.contractAddress,
+            calldata: call.calldata,
+            accessTypeCheck: facts.accessType
+        });
+    }
+
+    checkFrames(subject: UserWithRoles, frames: SequencerFrame[], facts: SequencerFacts): Promise<FrameEvaluation[]> {
+        return this.checkUserAuthorizationForCalls({
+            fromAddress: facts.from,
+            user: subject,
+            calls: frames,
+            accessTypeCheck: facts.accessType
+        });
+    }
+
+    checkDeployment(subject: UserWithRoles, from: Address): Promise<AuthorizationResult> {
+        return Promise.resolve(this.checkDeploymentAuthorization({ from, user: subject }));
     }
 
     async checkForTenant(

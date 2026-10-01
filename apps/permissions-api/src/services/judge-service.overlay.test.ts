@@ -2,7 +2,7 @@ import { type AuthorizationOverlay, OverlayRefusal, type OverlayVerdict } from '
 import { pad } from 'viem';
 import { describe, expect, it, vi } from 'vitest';
 import type { Repositories } from '../db';
-import type { AuthorizationService } from './authorization-service';
+import { AuthorizationService } from './authorization-service';
 import { JudgeService, type TraceFrame } from './judge-service';
 import type { TransactionClassifier } from './transaction-classifier';
 
@@ -38,8 +38,7 @@ describe('JudgeService — the overlay seam', () => {
         } as unknown as Repositories;
 
         return new JudgeService({
-            repos,
-            authorizationService: {} as AuthorizationService,
+            authorizer: new AuthorizationService({ repos }),
             transactionClassifier: {} as TransactionClassifier,
             logger: { error: vi.fn() } as never,
             protocolVersions: [PROTOCOL_VERSION],

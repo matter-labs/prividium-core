@@ -3,7 +3,7 @@ import { pad } from 'viem';
 import { describe, expect, it, vi } from 'vitest';
 import type { Repositories } from '../db';
 import { AdmitService } from './admit-service';
-import type { AuthorizationService } from './authorization-service';
+import { AuthorizationService } from './authorization-service';
 import type { TransactionClassifier } from './transaction-classifier';
 
 /**
@@ -35,8 +35,7 @@ describe('AdmitService — the overlay seam', () => {
         } as unknown as Repositories;
 
         return new AdmitService({
-            repos,
-            authorizationService: {} as AuthorizationService,
+            authorizer: new AuthorizationService({ repos }),
             transactionClassifier: {
                 classifyTransaction: vi.fn().mockResolvedValue({ type: 'transfer-to-eoa' })
             } as unknown as TransactionClassifier,
