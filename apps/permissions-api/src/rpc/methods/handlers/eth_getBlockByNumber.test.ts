@@ -29,6 +29,36 @@ describe('rpc method: eth_getBlockByNumber', () => {
     });
 
     rpcUnitTest(
+        'retries receipts when the node answering them has not applied the block yet',
+        async ({ reqContext, rpc, authorizer }) => {
+            const userAddress = getAddress('0x70997970c51812dc3a010c7d01b50e0d17dc79c8');
+            authorizer.setUserAddresses([userAddress]);
+            const from = pad('0x01', { size: 20 });
+            const blockData = createBlockWithTxDetails([createTransaction(someTxHash, { from, to: userAddress })]);
+
+            rpc.registerSend(reqId, blockData);
+            rpc.registerSendOnce(`${reqId}_getBlockReceipts`, null);
+            rpc.registerSend(`${reqId}_getBlockReceipts`, [createReceipt(someTxHash, { from, to: userAddress })]);
+
+            const res = await method.handle(reqContext, 'eth_getBlockByNumber', ['latest', true], reqId);
+            expect(res).toMatchObject({ id: reqId, result: { transactions: blockData.transactions } });
+            expect(rpc.sendRegistry.filter((e) => e.id === `${reqId}_getBlockReceipts`)).toHaveLength(2);
+        }
+    );
+
+    rpcUnitTest('fails when block receipts stay missing after retries', async ({ reqContext, rpc, authorizer }) => {
+        authorizer.setUserAddresses(['0x70997970c51812dc3a010c7d01b50e0d17dc79c8']);
+
+        rpc.registerSend(reqId, createBlockWithTxDetails());
+        rpc.registerSend(`${reqId}_getBlockReceipts`, null);
+
+        await expect(method.handle(reqContext, 'eth_getBlockByNumber', ['latest', true], reqId)).rejects.toThrow(
+            /Inconsistency/
+        );
+        expect(rpc.sendRegistry.filter((e) => e.id === `${reqId}_getBlockReceipts`)).toHaveLength(5);
+    });
+
+    rpcUnitTest(
         'filters out transactions when no match and second argument is false',
         async ({ reqContext, rpc, authorizer }) => {
             const userAddress = '0x90f79bf6eb2c4f870365e785982e1f101e93b906';

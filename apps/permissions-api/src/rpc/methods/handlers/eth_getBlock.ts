@@ -1,13 +1,12 @@
-import { numberToHex } from 'viem';
+import { setTimeout as sleep } from 'node:timers/promises';
+import { type Hex, numberToHex } from 'viem';
 import { z } from 'zod/v4';
 import { blockTagSchema } from '../../../utils/schemas/block-tag';
 import { hexSchema } from '../../../utils/schemas/hex-schema';
 import { ZERO_LOGS_BLOOM } from '../../constants';
 import type { JsonRpcResponse } from '../../json-rpc';
 import { response } from '../../json-rpc';
-import type { Authorizer } from '../../permissions';
 import type { AuthorizedRpcContext, MethodHandler } from '../../rpc-service';
-import type { ExternalRpc } from '../../target-rpc';
 import { filterTransactionAndReceipt, participantAddresses } from '../generic-handlers/filter-associated-transactions';
 import { BlockReceiptsSchema, type GetBlockReceiptsResponse } from './eth_getBlockReceipts';
 import { TransactionSchema } from './eth_getTransactionByHash';
@@ -22,22 +21,42 @@ const fullBlockSchema = z.looseObject({
     transactions: z.array(TransactionSchema)
 });
 
+// The receipts may come from a different upstream node than the block, one that has not applied it yet.
+const BLOCK_RECEIPTS_RETRY_DELAYS_MS = [50, 100, 200, 400];
+
+async function fetchBlockReceipts(
+    id: string | number,
+    context: AuthorizedRpcContext,
+    blockNumber: Hex
+): Promise<GetBlockReceiptsResponse> {
+    for (const [attempt, delayMs] of [0, ...BLOCK_RECEIPTS_RETRY_DELAYS_MS].entries()) {
+        if (delayMs > 0) {
+            await sleep(delayMs);
+        }
+        const receipts = await context.targetRpc.send(
+            `${id}_getBlockReceipts`,
+            'eth_getBlockReceipts',
+            [blockNumber],
+            BlockReceiptsSchema.nullable()
+        );
+        if (receipts !== null) {
+            if (attempt > 0) {
+                context.logger.warn({ blockNumber, attempt }, 'block receipts available after retry');
+            }
+            return receipts;
+        }
+    }
+
+    throw new Error(`Inconsistency: receipts for block ${blockNumber} still missing after retries`);
+}
+
 async function fetchBlockAndFilterTransactions(
     id: string | number,
-    targetRpc: ExternalRpc,
-    block: z.infer<typeof responseSchema>,
-    authorizer: Authorizer
+    context: AuthorizedRpcContext,
+    block: z.infer<typeof responseSchema>
 ): Promise<z.infer<typeof responseSchema>> {
-    const receipts = await targetRpc.send(
-        `${id}_getBlockReceipts`,
-        'eth_getBlockReceipts',
-        [block.number],
-        BlockReceiptsSchema.nullable()
-    );
-
-    if (receipts === null) {
-        throw new Error(`Inconsistency: Asking for recepients of non existing block ${block.number}`);
-    }
+    const { authorizer } = context;
+    const receipts = await fetchBlockReceipts(id, context, block.number);
 
     const receiptsMap: Record<GetBlockReceiptsResponse[number]['transactionHash'], GetBlockReceiptsResponse[number]> =
         {};
@@ -82,7 +101,7 @@ const filterBlock = async (context: AuthorizedRpcContext, method: string, params
         return response({ id, result: null });
     }
 
-    const result = await fetchBlockAndFilterTransactions(id, context.targetRpc, block, context.authorizer);
+    const result = await fetchBlockAndFilterTransactions(id, context, block);
 
     return response({ id, result });
 };
@@ -196,7 +215,7 @@ export const eth_getBlockTransactionCountByNumber: MethodHandler<
             });
         }
 
-        const filteredBlock = await fetchBlockAndFilterTransactions(id, context.targetRpc, block, context.authorizer);
+        const filteredBlock = await fetchBlockAndFilterTransactions(id, context, block);
         return response({
             id,
             result: numberToHex(filteredBlock.transactions.length)
@@ -236,7 +255,7 @@ export const eth_getBlockTransactionCountByHash: MethodHandler<
             return response({ id, result: numberToHex(block.transactions.length) });
         }
 
-        const result = await fetchBlockAndFilterTransactions(id, context.targetRpc, block, context.authorizer);
+        const result = await fetchBlockAndFilterTransactions(id, context, block);
         return response({ id, result: numberToHex(result.transactions.length) });
     }
 };

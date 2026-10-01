@@ -33,7 +33,8 @@ export const rpcUnitTest = baseIt.extend<Fixture>({
     reqContext: async ({ rpc, authorizer }, use) => {
         const context: AuthorizedRpcContext = {
             targetRpc: rpc,
-            authorizer
+            authorizer,
+            logger: pino({ level: 'silent' })
         } as unknown as AuthorizedRpcContext;
         await use(context);
     }

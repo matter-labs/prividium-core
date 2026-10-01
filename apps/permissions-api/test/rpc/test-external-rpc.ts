@@ -38,6 +38,7 @@ export class TestExternalRpc implements ExternalRpc {
     delegateRegistry: HistoryEntry[];
     sendResponses: Map<string, JSONLike>;
     sendErrors: Map<string, Error>;
+    sendOnceResponses: Map<string, JSONLike[]>;
     sendRegistry: HistoryEntry[];
     codes: Map<Address, Hex>;
     nonces: Map<Address, bigint>;
@@ -56,6 +57,7 @@ export class TestExternalRpc implements ExternalRpc {
         this.delegateResponses = new Map();
         this.sendResponses = new Map();
         this.sendErrors = new Map();
+        this.sendOnceResponses = new Map();
         this.delegateRegistry = [];
         this.sendRegistry = [];
         this.codes = new Map();
@@ -75,6 +77,7 @@ export class TestExternalRpc implements ExternalRpc {
         this.delegateResponses = new Map();
         this.sendResponses = new Map();
         this.sendErrors = new Map();
+        this.sendOnceResponses = new Map();
         this.delegateRegistry = [];
         this.sendRegistry = [];
         this.debugCallResponses = new Map();
@@ -106,6 +109,11 @@ export class TestExternalRpc implements ExternalRpc {
             throw new Error(`Response for ${id} already registered`);
         }
         this.sendErrors.set(id, err);
+    }
+
+    /** Answers the next `send` for `id` before falling back to `registerSend`; queues in call order. */
+    registerSendOnce(id: string, response: JSONLike) {
+        this.sendOnceResponses.set(id, [...(this.sendOnceResponses.get(id) ?? []), response]);
     }
 
     private isSendRegistered(id: string) {
@@ -155,7 +163,8 @@ export class TestExternalRpc implements ExternalRpc {
             throw err;
         }
 
-        const res = this.sendResponses.get(id.toString());
+        const queued = this.sendOnceResponses.get(id.toString());
+        const res = queued?.length ? queued.shift() : this.sendResponses.get(id.toString());
         if (res === undefined) {
             throw new Error(`Response for send ${id} not registered`);
         }
