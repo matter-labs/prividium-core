@@ -107,8 +107,11 @@ export const sessionsTable = pgTable(
         serviceId: text().references(() => servicesTable.id, { onDelete: 'cascade' }),
         revokedBy: text().references(() => usersTable.id, { onDelete: 'set null' }),
         revokedAt: timestampTz(),
-        // Currently only 'docs' is used (Swagger UI / OpenAPI spec reads under /docs).
-        scope: text().$type<'docs'>(),
+        // 'docs': Swagger UI reads under /docs. 'application': issued to an OAuth client on authorize,
+        // accepted only on routes that set `allowApplicationSession`.
+        scope: text().$type<'docs' | 'application'>(),
+        // The OAuth client an application-scoped session is bound to. Perpetual apps are not rows, so no FK.
+        oauthClientId: text(),
         // The latest expiresAt can ever slide to — the absolute session cap. Idle extension can move
         // expiresAt forward but never past this. Nullable so pre-migration rows backfill cleanly.
         renewableUntil: timestampTz()
@@ -116,9 +119,14 @@ export const sessionsTable = pgTable(
     (t) => [
         index('idx_sessions_token_hash').on(t.tokenHash),
         index('idx_sessions_expires_at').on(t.expiresAt),
+        index('idx_sessions_oauth_client_id').on(t.oauthClientId).where(sql`${t.oauthClientId} IS NOT NULL`),
         check(
             'chk_sessions_owner',
             sql`${t.userId} IS NOT NULL OR ${t.tenantId} IS NOT NULL OR ${t.serviceId} IS NOT NULL`
+        ),
+        check(
+            'chk_sessions_application_scope',
+            sql`(${t.scope} IS NOT DISTINCT FROM 'application') = (${t.oauthClientId} IS NOT NULL)`
         )
     ]
 );

@@ -46,6 +46,7 @@ export const AUDIT_ACTIONS = {
     SESSION_REVOKE_ALL: 'session.revoke-all',
     SESSION_REVOKE_OTHERS: 'session.revoke-others',
     SESSION_EXTEND: 'session.extend',
+    APPLICATION_SESSION_CREATE: 'application-session.create',
     PASSKEY_DELETE: 'passkey.delete',
     PASSKEY_ADMIN_RESET_ALL: 'passkey.admin-reset-all',
     PASSKEY_REGISTER_BEGIN: 'passkey.register-begin',

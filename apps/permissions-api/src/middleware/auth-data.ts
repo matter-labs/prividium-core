@@ -25,6 +25,8 @@ export class AuthData {
     public readonly expiresAt: Date;
     public readonly renewableUntil: Date;
     public readonly authMethod: AuthMethod;
+    /** The OAuth client an application-scoped session is bound to; null for every other credential. */
+    public readonly oauthClientId: string | null;
 
     constructor({
         user,
@@ -36,7 +38,8 @@ export class AuthData {
         expiresAt,
         renewableUntil,
         authMethod,
-        apiKeyId
+        apiKeyId,
+        oauthClientId
     }: {
         user?: UserWithRoles;
         tenant?: TenantWithRoles;
@@ -48,6 +51,7 @@ export class AuthData {
         renewableUntil?: Date;
         authMethod: AuthMethod;
         apiKeyId?: string;
+        oauthClientId?: string | null;
     }) {
         this.user = user;
         this.tenant = tenant;
@@ -59,6 +63,7 @@ export class AuthData {
         this.renewableUntil = renewableUntil ?? expiresAt;
         this.authMethod = authMethod;
         this.apiKeyId = apiKeyId;
+        this.oauthClientId = oauthClientId ?? null;
     }
 
     get isApiKeyAuth(): boolean {

@@ -88,5 +88,8 @@ declare module 'fastify' {
         /** False for routes that raise audit events without core DB writes, so no audit-trigger
          * connection is held through slow external work. */
         audit_db_context?: boolean;
+        /** Accept application-scoped sessions (tokens issued to an OAuth client) on this route.
+         * Default deny: the session validator rejects them everywhere else. */
+        allowApplicationSession?: boolean;
     }
 }

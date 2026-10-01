@@ -49,6 +49,8 @@ export const PublicApplicationSchema = ApplicationSchema.pick({
     oauthClientId: true,
     oauthRedirectUris: true,
     name: true
+}).extend({
+    sessionKind: z.enum(['account', 'application'])
 });
 
 export const PublicApplicationCardSchema = ApplicationSchema.pick({

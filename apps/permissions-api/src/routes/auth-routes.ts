@@ -3,6 +3,7 @@ import { z } from 'zod/v4';
 import type { FastifyServer } from '../build-app';
 import type { SessionsAuthValidator } from '../middleware/sessions-auth';
 import type { AdminMfaService } from '../services/admin-mfa-service';
+import type { ApplicationsService } from '../services/applications-service';
 import { type AuditLogsService, auditLogContext } from '../services/audit-logs-service';
 import type { JwtValidatorService } from '../services/jwt-validator-service';
 import type { SessionService } from '../services/session-service';
@@ -12,7 +13,8 @@ import { currentSessionSchema, sessionTypes } from '../utils/schemas/auth';
 import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
 import { hexSchema } from '../utils/schemas/hex-schema';
 import { WebAuthnAuthenticationResponseSchema } from '../utils/schemas/webauthn';
-import { AuthResponseSchema, AuthResponseWithMfaSchema } from './schemas/auth';
+import { selfOriginFromRequest } from '../utils/self-origin';
+import { ApplicationSessionBodySchema, AuthResponseSchema, AuthResponseWithMfaSchema } from './schemas/auth';
 
 interface Deps {
     jwtValidatorService: JwtValidatorService;
@@ -21,6 +23,7 @@ interface Deps {
     siweService: SiweService;
     auditLogsService: AuditLogsService;
     adminMfaService: AdminMfaService;
+    applicationsService: ApplicationsService;
     tenantsEnabled: boolean;
 }
 
@@ -33,6 +36,7 @@ export function authRoutes(
         siweService,
         auditLogsService,
         adminMfaService,
+        applicationsService,
         tenantsEnabled
     }: Deps
 ) {
@@ -357,7 +361,7 @@ export function authRoutes(
     server.post(
         '/logout',
         {
-            config: { audit_action: AUDIT_ACTIONS.AUTH_LOGOUT },
+            config: { audit_action: AUDIT_ACTIONS.AUTH_LOGOUT, allowApplicationSession: true },
             onRequest: [
                 sessionAuthValidator.buildHook({
                     targets: [
@@ -385,6 +389,7 @@ export function authRoutes(
     server.get(
         '/current-session',
         {
+            config: { allowApplicationSession: true },
             onRequest: [
                 sessionAuthValidator.buildHook({
                     targets: [
@@ -405,11 +410,12 @@ export function authRoutes(
             }
         },
         async (req, reply) => {
-            const { type, expiresAt, renewableUntil } = req.auth;
+            const { type, expiresAt, renewableUntil, oauthClientId } = req.auth;
             return reply.status(200).send({
                 type,
                 expiresAt: expiresAt.toISOString(),
-                renewableUntil: renewableUntil.toISOString()
+                renewableUntil: renewableUntil.toISOString(),
+                oauthClientId
             });
         }
     );
@@ -422,7 +428,7 @@ export function authRoutes(
     server.post(
         '/extend-session',
         {
-            config: { audit_action: AUDIT_ACTIONS.SESSION_EXTEND },
+            config: { audit_action: AUDIT_ACTIONS.SESSION_EXTEND, allowApplicationSession: true },
             onRequest: [
                 // Idle extension is a user-session concern only. Tenant and service principals
                 // mint their own tokens programmatically, so they have no reason to extend; the
@@ -453,6 +459,73 @@ export function authRoutes(
                 });
             }
             return reply.status(200).send({
+                expiresAt: expiresAt.toISOString(),
+                renewableUntil: renewableUntil.toISOString()
+            });
+        }
+    );
+
+    server.post(
+        '/application-session',
+        {
+            onRequest: [
+                sessionAuthValidator.buildHook({
+                    targets: [{ type: sessionTypes.enum.user }]
+                })
+            ],
+            schema: {
+                description:
+                    'Issue a session bound to an OAuth client from the account session ("Login with Prividium"). ' +
+                    'The returned token is accepted only on the application surface (RPC, profile, wallet, ABI, session lifecycle).',
+                tags: ['auth'],
+                body: ApplicationSessionBodySchema,
+                response: {
+                    200: AuthResponseSchema,
+                    401: ErrorResponseSchema,
+                    404: ErrorResponseSchema
+                }
+            }
+        },
+        async (req, reply) => {
+            // Only the account session mints application sessions: no chaining from another scoped token.
+            const accountSession = await req.repos.sessions.findActiveByTokenHash(req.auth.tokenHash);
+            if (accountSession?.scope !== null) {
+                throw new UnauthorizedError('Invalid session');
+            }
+
+            const selfOrigin = selfOriginFromRequest(req);
+            const { client, token, expiresAt, renewableUntil } = await req.repos.transaction(async (tx) => {
+                const txRepos = tx.repositories();
+                const client = await applicationsService.lockByOauthClientId(
+                    txRepos,
+                    req.body.oauthClientId,
+                    selfOrigin
+                );
+                const issued = await sessionService.withRepositories(txRepos).createApplicationSession(
+                    {
+                        userId: req.auth.currentUser().id,
+                        oauthClientId: client.oauthClientId,
+                        ipAddress: req.ip,
+                        userAgent: req.headers['user-agent']
+                    },
+                    { renewableUntilCap: accountSession.renewableUntil ?? accountSession.expiresAt }
+                );
+                return { client, ...issued };
+            });
+
+            // Public scope: no audit-context preHandler, so emit by hand (see extend-session above).
+            try {
+                const context = auditLogContext(req, auditLogsService);
+                await context.logSecurityEvent(AUDIT_ACTIONS.APPLICATION_SESSION_CREATE, 'session', undefined, {
+                    oauthClientId: client.oauthClientId,
+                    expiresAt: expiresAt.toISOString()
+                });
+            } catch (err) {
+                req.log.error({ err }, 'Failed to write application-session.create audit log');
+            }
+
+            return reply.status(200).send({
+                token,
                 expiresAt: expiresAt.toISOString(),
                 renewableUntil: renewableUntil.toISOString()
             });

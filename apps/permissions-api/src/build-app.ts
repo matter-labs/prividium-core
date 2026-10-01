@@ -762,6 +762,7 @@ export async function buildApp(db: DB, config: AppConfig) {
                     jwtValidatorService,
                     auditLogsService,
                     adminMfaService,
+                    applicationsService,
                     tenantsEnabled: config.tenantsEnabled
                 });
             });

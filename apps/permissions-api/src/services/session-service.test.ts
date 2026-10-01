@@ -170,6 +170,54 @@ describe('SessionService', () => {
         expect(created.expiresAt).toEqual(created.renewableUntil);
     });
 
+    it('binds an application session to its OAuth client with the user session lifetime policy', async () => {
+        const service = new SessionService({
+            repos,
+            opts: {
+                userSessionDurationSeconds: 3600,
+                tenantSessionDurationSeconds: 3600,
+                serviceSessionDurationSeconds: 3600,
+                userIdleTimeoutSeconds: 600
+            }
+        });
+
+        const created = await service.createApplicationSession(
+            {
+                userId,
+                oauthClientId: 'third-party-app',
+                ipAddress: '127.0.0.1',
+                userAgent: 'session-service-test'
+            },
+            { renewableUntilCap: new Date(Date.now() + 7200 * 1000) }
+        );
+
+        const session = await repos.sessions.findActiveByTokenHash(SessionService.hashToken(created.token));
+        expect(session).toMatchObject({ userId, scope: 'application', oauthClientId: 'third-party-app' });
+        // Same idle sliding as a user session: expiresAt is the idle deadline, renewableUntil the cap.
+        expect(created.expiresAt.getTime()).toBeLessThan(created.renewableUntil.getTime());
+    });
+
+    it('caps an application session at the account session it was issued from', async () => {
+        const service = new SessionService({
+            repos,
+            opts: {
+                userSessionDurationSeconds: 3600,
+                tenantSessionDurationSeconds: 3600,
+                serviceSessionDurationSeconds: 3600,
+                userIdleTimeoutSeconds: 600
+            }
+        });
+        const renewableUntilCap = new Date(Date.now() + 60 * 1000);
+
+        const created = await service.createApplicationSession(
+            { userId, oauthClientId: 'third-party-app' },
+            { renewableUntilCap }
+        );
+
+        expect(created.renewableUntil).toEqual(renewableUntilCap);
+        expect(created.expiresAt).toEqual(renewableUntilCap);
+    });
+
     describe('extendSession', () => {
         it('idle enabled, user session: returns slid expiresAt within renewableUntil', async () => {
             const capSeconds = 3600;

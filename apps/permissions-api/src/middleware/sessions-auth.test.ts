@@ -1022,6 +1022,102 @@ describe('SessionsAuthValidator', () => {
             expect(response.json().message).toContain('Invalid session');
         });
     });
+    describe('buildHook - application-scoped sessions', () => {
+        async function applicationSession() {
+            const tok = createTestToken('application-session-token');
+            await sessionsRepo.create({
+                tokenHash: tok.hash,
+                userId: user.id,
+                scope: 'application',
+                oauthClientId: 'third-party-app',
+                expiresAt: new Date(Date.now() + 10000)
+            });
+            return tok;
+        }
+
+        it('rejects an application session on a route that does not opt in', async () => {
+            const tok = await applicationSession();
+
+            const app = Fastify();
+            app.addHook('preHandler', validator.buildHook({ targets: [{ type: TargetTypes.enum.user }] }));
+            app.get('/test', async (_req, reply) => reply.send({ ok: true }));
+
+            const response = await app.inject({
+                method: 'GET',
+                url: '/test',
+                headers: { authorization: `Bearer ${tok.plaintext}` }
+            });
+
+            expect(response.statusCode).toEqual(401);
+            expect(response.json().message).toContain('Invalid session');
+        });
+
+        it('accepts an application session on a route that opts in and exposes the bound client', async () => {
+            const tok = await applicationSession();
+
+            const app = Fastify();
+            app.addHook('preHandler', validator.buildHook({ targets: [{ type: TargetTypes.enum.user }] }));
+            app.get('/test', { config: { allowApplicationSession: true } }, async (req, reply) =>
+                reply.send({ userId: req.auth.currentUser().id, oauthClientId: req.auth.oauthClientId })
+            );
+
+            const response = await app.inject({
+                method: 'GET',
+                url: '/test',
+                headers: { authorization: `Bearer ${tok.plaintext}` }
+            });
+
+            expect(response.statusCode).toEqual(200);
+            expect(response.json()).toEqual({ userId: user.id, oauthClientId: 'third-party-app' });
+        });
+
+        it('reads the opt-in from the matched route even when a scope hook authenticates first', async () => {
+            const tok = await applicationSession();
+
+            const app = Fastify();
+            app.addHook('onRequest', validator.buildHook({ targets: [{ type: TargetTypes.enum.user }] }));
+            app.get(
+                '/allowed',
+                {
+                    config: { allowApplicationSession: true },
+                    preHandler: validator.buildHook({ targets: [{ type: TargetTypes.enum.user }] })
+                },
+                async (_req, reply) => reply.send({ ok: true })
+            );
+            app.get(
+                '/denied',
+                { preHandler: validator.buildHook({ targets: [{ type: TargetTypes.enum.user }] }) },
+                async (_req, reply) => reply.send({ ok: true })
+            );
+
+            const headers = { authorization: `Bearer ${tok.plaintext}` };
+            expect((await app.inject({ method: 'GET', url: '/allowed', headers })).statusCode).toEqual(200);
+            expect((await app.inject({ method: 'GET', url: '/denied', headers })).statusCode).toEqual(401);
+        });
+
+        it('leaves the account session with a null bound client', async () => {
+            const tok = createTestToken('account-session-token');
+            await sessionsRepo.create({
+                tokenHash: tok.hash,
+                userId: user.id,
+                expiresAt: new Date(Date.now() + 10000)
+            });
+
+            const app = Fastify();
+            app.addHook('preHandler', validator.buildHook({ targets: [{ type: TargetTypes.enum.user }] }));
+            app.get('/test', async (req, reply) => reply.send({ oauthClientId: req.auth.oauthClientId }));
+
+            const response = await app.inject({
+                method: 'GET',
+                url: '/test',
+                headers: { authorization: `Bearer ${tok.plaintext}` }
+            });
+
+            expect(response.statusCode).toEqual(200);
+            expect(response.json()).toEqual({ oauthClientId: null });
+        });
+    });
+
     describe('buildHook - stacked hooks', () => {
         async function userSession() {
             const tok = createTestToken('stacked-hooks-token');

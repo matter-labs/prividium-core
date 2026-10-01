@@ -1,7 +1,7 @@
 import cors, { type FastifyCorsOptions } from '@fastify/cors';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyContextConfig, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { jsonSchemaTransform } from 'fastify-type-provider-zod';
 import type { AppConfig, FastifyServer } from './build-app';
 
@@ -65,9 +65,17 @@ function stripBase64urlEncoding(schema: unknown): void {
     for (const value of Object.values(record)) stripBase64urlEncoding(value);
 }
 
-export const swaggerSchemaTransform: typeof jsonSchemaTransform = (input) => {
+type SwaggerTransformInput = Parameters<typeof jsonSchemaTransform>[0] & {
+    route?: { config?: FastifyContextConfig };
+};
+
+export const swaggerSchemaTransform = (input: SwaggerTransformInput): ReturnType<typeof jsonSchemaTransform> => {
     const result = jsonSchemaTransform(input);
     stripBase64urlEncoding(result.schema);
+    // Marks the application surface in the spec so the authn coverage guard can pin the allowlist.
+    if (input.route?.config?.allowApplicationSession === true) {
+        result.schema = Object.assign(result.schema ?? {}, { 'x-application-session': true });
+    }
     return result;
 };
 

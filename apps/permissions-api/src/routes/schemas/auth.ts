@@ -15,3 +15,7 @@ export const MfaChallengeResponseSchema = z.object({
 });
 
 export const AuthResponseWithMfaSchema = z.union([AuthResponseSchema, MfaChallengeResponseSchema]);
+
+export const ApplicationSessionBodySchema = z.object({
+    oauthClientId: z.string().min(1).max(200)
+});

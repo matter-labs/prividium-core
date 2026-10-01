@@ -215,6 +215,15 @@ export class SessionsAuthValidator {
             throw new UnauthorizedError('Invalid session');
         }
 
+        // Application-scoped sessions reach only routes that opt in; the account session stays with the user panel.
+        if (session.scope === 'application' && request.routeOptions.config?.allowApplicationSession !== true) {
+            this.logger.debug(
+                { oauthClientId: session.oauthClientId, url: request.url },
+                'Rejecting application-scoped session outside the application surface'
+            );
+            throw new UnauthorizedError('Invalid session');
+        }
+
         if (session.userId) {
             const user = await this.repos.users.findByIdWithRoles(session.userId);
             if (!user) {
@@ -298,7 +307,8 @@ export class SessionsAuthValidator {
             sessionTokenHash: tokenHash,
             expiresAt: session.expiresAt,
             renewableUntil: session.renewableUntil ?? session.expiresAt,
-            authMethod: 'session'
+            authMethod: 'session',
+            oauthClientId: session.oauthClientId
         });
     }
 

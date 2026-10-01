@@ -13,5 +13,7 @@ export type SessionType = z.infer<typeof sessionTypes>;
 export const currentSessionSchema = z.object({
     type: sessionTypes,
     expiresAt: z.iso.datetime(),
-    renewableUntil: z.iso.datetime()
+    renewableUntil: z.iso.datetime(),
+    // Set on application-scoped sessions so a service validating a forwarded token can tell them apart.
+    oauthClientId: z.string().nullable()
 });

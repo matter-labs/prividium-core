@@ -27,6 +27,22 @@ export interface ExtendedSession {
     extended: boolean;
 }
 
+type UserSessionInput = Omit<
+    InsertSession,
+    'tokenHash' | 'expiresAt' | 'tenantId' | 'serviceId' | 'scope' | 'oauthClientId'
+>;
+
+interface SessionPolicy {
+    durationSeconds: number;
+    idleTimeoutSeconds?: number;
+    /** Never lets renewableUntil pass this date, e.g. the account session an application session is issued from. */
+    renewableUntilCap?: Date;
+}
+
+function earliest(date: Date, cap?: Date): Date {
+    return cap !== undefined && cap < date ? cap : date;
+}
+
 export class SessionService {
     private repos: Repositories;
     private opts: SessionServiceOpts;
@@ -36,13 +52,35 @@ export class SessionService {
         this.opts = opts;
     }
 
-    async createUserSession(
-        data: Omit<InsertSession, 'tokenHash' | 'expiresAt' | 'tenantId' | 'serviceId'>
+    async createUserSession(data: UserSessionInput): Promise<CreatedSession> {
+        return this.createSession(data, this.userSessionPolicy());
+    }
+
+    /**
+     * Creates a user session bound to one OAuth client ("Login with Prividium"). `SessionsAuthValidator`
+     * accepts it only on routes that opt in with `allowApplicationSession`, so a dApp never holds the
+     * account session. Same idle sliding as a user session, capped at the account session's `renewableUntil`.
+     */
+    async createApplicationSession(
+        data: UserSessionInput & { oauthClientId: string },
+        { renewableUntilCap }: { renewableUntilCap: Date }
     ): Promise<CreatedSession> {
-        return this.createSession(data, {
+        return this.createSession(
+            { ...data, scope: 'application' },
+            { ...this.userSessionPolicy(), renewableUntilCap }
+        );
+    }
+
+    /** The same policies bound to other repositories, for creating a session inside a caller's transaction. */
+    withRepositories(repos: Repositories): SessionService {
+        return new SessionService({ repos, opts: this.opts });
+    }
+
+    private userSessionPolicy() {
+        return {
             durationSeconds: this.opts.userSessionDurationSeconds,
             idleTimeoutSeconds: this.opts.userIdleTimeoutSeconds
-        });
+        };
     }
 
     async createTenantSession(
@@ -66,9 +104,7 @@ export class SessionService {
      * tokens used exclusively to gate the Swagger UI, and extending their lifetime on activity
      * would add complexity for no user-visible benefit. expiresAt == renewableUntil == cap.
      */
-    async createDocsSession(
-        data: Omit<InsertSession, 'tokenHash' | 'expiresAt' | 'tenantId' | 'serviceId' | 'scope'>
-    ): Promise<CreatedSession> {
+    async createDocsSession(data: UserSessionInput): Promise<CreatedSession> {
         return this.createSession(
             { ...data, scope: 'docs' },
             { durationSeconds: this.opts.userSessionDurationSeconds }
@@ -126,14 +162,17 @@ export class SessionService {
 
     private async createSession(
         data: Omit<InsertSession, 'tokenHash' | 'expiresAt' | 'renewableUntil'>,
-        { durationSeconds, idleTimeoutSeconds }: { durationSeconds: number; idleTimeoutSeconds?: number }
+        { durationSeconds, idleTimeoutSeconds, renewableUntilCap }: SessionPolicy
     ): Promise<CreatedSession> {
         const token = this.generateSessionToken();
         const tokenHash = SessionService.hashToken(token);
         const now = Date.now();
-        const renewableUntil = new Date(now + durationSeconds * 1000);
+        const renewableUntil = earliest(new Date(now + durationSeconds * 1000), renewableUntilCap);
         // expiresAt is the idle deadline when idle timeout is set, otherwise equals the cap.
-        const expiresAt = idleTimeoutSeconds !== undefined ? new Date(now + idleTimeoutSeconds * 1000) : renewableUntil;
+        const expiresAt =
+            idleTimeoutSeconds !== undefined
+                ? earliest(new Date(now + idleTimeoutSeconds * 1000), renewableUntil)
+                : renewableUntil;
         const session = await this.repos.sessions.create({
             ...data,
             tokenHash,

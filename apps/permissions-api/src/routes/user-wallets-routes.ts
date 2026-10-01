@@ -111,6 +111,7 @@ export function walletAssociationRoutes(
     server.get(
         '/',
         {
+            config: { allowApplicationSession: true },
             schema: {
                 description: 'List all wallets associated with the current user',
                 tags: ['wallets'],

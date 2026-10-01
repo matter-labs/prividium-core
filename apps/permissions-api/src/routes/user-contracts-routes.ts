@@ -21,6 +21,7 @@ export function userContractsRoutes(server: FastifyServer, { repos, multiOrgEnab
     server.get(
         '/:contractAddress/abi',
         {
+            config: { allowApplicationSession: true },
             schema: {
                 description:
                     'Get contract ABI filtered to only functions the authenticated user can access. ' +

@@ -40,6 +40,25 @@ export class ApplicationsRepository extends ApplicationsRepositoryBase {
         return app;
     }
 
+    /** Share-locks the row for the caller's transaction, so a concurrent delete waits for it to commit. */
+    async lockByOauthClientId(clientId: string): Promise<PublicApplication> {
+        const [app] = await this.db
+            .select({
+                oauthClientId: applicationsTable.oauthClientId,
+                oauthRedirectUris: applicationsTable.oauthRedirectUris,
+                name: applicationsTable.name
+            })
+            .from(applicationsTable)
+            .where(eq(applicationsTable.oauthClientId, clientId))
+            .for('share');
+
+        if (app === undefined) {
+            throw new EntityNotFound('Application', { oauthClientId: clientId });
+        }
+
+        return app;
+    }
+
     async searchPublicPaginated({ limit, offset }: PaginationParams): Promise<PaginatedResult<PublicApplicationCard>> {
         const countRes = await this.db
             .select({ count: count() })

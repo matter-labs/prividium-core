@@ -37,7 +37,8 @@ export function adminSessionsRoutes(server: FastifyServer) {
                 userId: session.userId,
                 ipAddress: session.ipAddress,
                 userAgent: session.userAgent,
-                createdAt: session.createdAt
+                createdAt: session.createdAt,
+                oauthClientId: session.oauthClientId
             }));
 
             return { items };

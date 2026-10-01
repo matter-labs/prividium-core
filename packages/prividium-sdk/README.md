@@ -505,6 +505,11 @@ req.userId = result.userId;
 
 The helper accepts either a raw token (`abc123…`) or a full `Bearer abc123…` header and won't double-prefix.
 
+A token obtained through the popup flow is bound to your application: the Permissions API accepts it on `/rpc`, the
+profile, wallet, contract ABI and session endpoints, and rejects it everywhere else, including the admin API, even for
+an administrator. The helper still validates it, since it calls `GET /api/profiles/me`. To tell an application token
+from an account session, call `GET /api/auth/current-session` and check `oauthClientId`.
+
 ### Auto-Reauthentication
 
 When `autoReauthenticate` is `true` (default), the SDK automatically handles expired sessions:

@@ -33,7 +33,8 @@ export function sessionsRoutes(server: FastifyServer) {
                 ipAddress: session.ipAddress,
                 userAgent: session.userAgent,
                 createdAt: session.createdAt,
-                isCurrent: session.tokenHash === currentTokenHash
+                isCurrent: session.tokenHash === currentTokenHash,
+                oauthClientId: session.oauthClientId
             }));
 
             return { items };

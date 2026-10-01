@@ -118,7 +118,7 @@ export function adminApplicationsRoutes(app: FastifyServer, { applicationsServic
             }
         },
         async (req, reply) => {
-            await applicationsService.delete(req.params.id);
+            await applicationsService.delete(req.params.id, req.auth.currentUser().id);
             return reply.status(204).send();
         }
     );

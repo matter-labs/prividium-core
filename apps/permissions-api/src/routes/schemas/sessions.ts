@@ -5,7 +5,8 @@ export const SessionSchema = z.object({
     ipAddress: z.string().nullable(),
     userAgent: z.string().nullable(),
     createdAt: z.date(),
-    isCurrent: z.boolean()
+    isCurrent: z.boolean(),
+    oauthClientId: z.string().nullable()
 });
 
 export const SessionsListSchema = z.object({
@@ -17,7 +18,8 @@ export const AdminSessionSchema = z.object({
     userId: z.string().nullable(),
     ipAddress: z.string().nullable(),
     userAgent: z.string().nullable(),
-    createdAt: z.date()
+    createdAt: z.date(),
+    oauthClientId: z.string().nullable()
 });
 
 export const AdminSessionsListSchema = z.object({

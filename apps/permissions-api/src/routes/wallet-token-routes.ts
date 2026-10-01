@@ -28,6 +28,7 @@ export function walletRoutes(
     fastify.get(
         '/personal-rpc-token',
         {
+            config: { allowApplicationSession: true },
             schema: {
                 description: 'Get the Per-User RPC token for the authenticated user',
                 tags: ['wallet'],
@@ -56,7 +57,7 @@ export function walletRoutes(
     fastify.post(
         '/invalidate',
         {
-            config: { audit_action: AUDIT_ACTIONS.WALLET_TOKEN_INVALIDATE },
+            config: { audit_action: AUDIT_ACTIONS.WALLET_TOKEN_INVALIDATE, allowApplicationSession: true },
             schema: {
                 description: 'Invalidate current RPC token and generate a new one',
                 tags: ['wallet'],
@@ -141,7 +142,7 @@ export function walletRoutes(
     fastify.post(
         '/transaction-authorization',
         {
-            config: { audit_action: AUDIT_ACTIONS.TRANSACTION_ALLOWANCE_CREATE },
+            config: { audit_action: AUDIT_ACTIONS.TRANSACTION_ALLOWANCE_CREATE, allowApplicationSession: true },
             schema: {
                 description: 'Enable RPC for a specific transaction for 1 hour',
                 tags: ['wallet'],

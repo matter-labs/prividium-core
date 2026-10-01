@@ -17,6 +17,21 @@ export type ApplicationServiceOpts = {
     cacheDurationMs: number;
 };
 
+/**
+ * Which session the user panel hands a client on authorize. 'account': the user's own session (the admin
+ * panel needs admin routes; the docs exchange requires an unscoped token). 'application': a session bound
+ * to the client, accepted only on the application surface.
+ */
+export type SessionKind = 'account' | 'application';
+
+export const ACCOUNT_SESSION_CLIENT_IDS: ReadonlySet<string> = new Set(['admin-panel', 'swagger-docs']);
+
+export type OauthClient = PublicApplication & { sessionKind: SessionKind };
+
+function sessionKindFor(oauthClientId: string): SessionKind {
+    return ACCOUNT_SESSION_CLIENT_IDS.has(oauthClientId) ? 'account' : 'application';
+}
+
 export class ApplicationsService {
     private readonly staticPerpetualApps: Record<string, Application>;
     private byClientIdCache: Map<string, { app: PublicApplication; expiresAt: number }>;
@@ -68,7 +83,27 @@ export class ApplicationsService {
         return this.repos.applications.getById(id);
     }
 
-    async getByOauthClientId(clientId: string, selfOrigin?: string): Promise<PublicApplication> {
+    async getByOauthClientId(clientId: string, selfOrigin?: string): Promise<OauthClient> {
+        const app = await this.findPublicApplication(clientId, selfOrigin);
+        return { ...app, sessionKind: sessionKindFor(app.oauthClientId) };
+    }
+
+    /**
+     * Uncached lookup for issuing a session: share-locks the row in the caller's transaction, so a delete on any
+     * replica waits for that transaction and then revokes the session it created. Perpetual clients are never deleted.
+     */
+    async lockByOauthClientId(txRepos: Repositories, clientId: string, selfOrigin?: string): Promise<OauthClient> {
+        const app =
+            this.perpetualApp(clientId, selfOrigin) ?? (await txRepos.applications.lockByOauthClientId(clientId));
+        return { ...app, sessionKind: sessionKindFor(app.oauthClientId) };
+    }
+
+    private perpetualApp(clientId: string, selfOrigin?: string): Application | undefined {
+        const perpetual = this.perpetualApps(selfOrigin);
+        return Object.hasOwn(perpetual, clientId) ? perpetual[clientId] : undefined;
+    }
+
+    private async findPublicApplication(clientId: string, selfOrigin?: string): Promise<PublicApplication> {
         // Perpetual apps use id === oauthClientId, return the full object (typed as PublicApplication)
         const perpetual = this.perpetualApps(selfOrigin);
         if (perpetual[clientId] !== undefined) {
@@ -172,7 +207,8 @@ export class ApplicationsService {
         return updated;
     }
 
-    async delete(appId: string): Promise<void> {
+    /** Deleting a client also revokes every session it was issued, so its tokens stop working with it. */
+    async delete(appId: string, deletedByUserId: string): Promise<void> {
         if (this.perpetualApps()[appId] !== undefined) {
             throw new InvalidEntity('Perpetual apps cannot be removed');
         }
@@ -181,6 +217,7 @@ export class ApplicationsService {
             const txRepos = tx.repositories();
             const existing = await txRepos.applications.getById(appId);
             await txRepos.applications.deleteById(appId);
+            await txRepos.sessions.revokeAllByOauthClientId(existing.oauthClientId, deletedByUserId);
             this.byClientIdCache.delete(existing.oauthClientId);
         });
         this.invalidateOriginsCache();

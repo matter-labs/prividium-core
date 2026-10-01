@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, vi } from 'vitest';
 import { type Fixture, it } from '../../test/unit-test-context';
 import { Repositories } from '../db';
+import { EntityNotFound } from '../utils/error-types';
 import { ApplicationsService } from './applications-service';
+import { SessionService } from './session-service';
 
 describe('ApplicationsService', () => {
     let service: ApplicationsService;
@@ -201,7 +203,78 @@ describe('ApplicationsService', () => {
     });
 
     it('#delete throws when trying to remove a perpetual app', async () => {
-        await expect(service.delete('admin-panel')).rejects.toThrow('Perpetual apps cannot be removed');
+        await expect(service.delete('admin-panel', 'deleting-admin')).rejects.toThrow(
+            'Perpetual apps cannot be removed'
+        );
+    });
+
+    it('#delete revokes the sessions bound to the removed client', async ({ db }: Fixture) => {
+        const repos = new Repositories(db);
+        const admin = await repos.users.create({
+            displayName: 'deleting-admin',
+            oidcSub: 'deleting-admin',
+            source: 'adminPanel'
+        });
+        const app = await service.create({ name: 'some app', oauthRedirectUris: [], origin: null });
+        const other = await service.create({ name: 'other app', oauthRedirectUris: [], origin: null });
+        const sessionService = new SessionService({
+            repos,
+            opts: {
+                userSessionDurationSeconds: 3600,
+                tenantSessionDurationSeconds: 3600,
+                serviceSessionDurationSeconds: 3600
+            }
+        });
+        const renewableUntilCap = new Date(Date.now() + 3600 * 1000);
+        const bound = await sessionService.createApplicationSession(
+            { userId: admin.id, oauthClientId: app.oauthClientId },
+            { renewableUntilCap }
+        );
+        const unrelated = await sessionService.createApplicationSession(
+            { userId: admin.id, oauthClientId: other.oauthClientId },
+            { renewableUntilCap }
+        );
+
+        await service.delete(app.id, admin.id);
+
+        expect(await repos.sessions.findActiveByTokenHash(SessionService.hashToken(bound.token))).toBeUndefined();
+        expect(await repos.sessions.findActiveByTokenHash(SessionService.hashToken(unrelated.token))).toBeDefined();
+    });
+
+    it('#lockByOauthClientId reads the database even when this replica cached the deleted client', async ({
+        db
+    }: Fixture) => {
+        const repos = new Repositories(db);
+        const admin = await repos.users.create({
+            displayName: 'deleting-admin',
+            oidcSub: 'deleting-admin',
+            source: 'adminPanel'
+        });
+        const app = await service.create({ name: 'some app', oauthRedirectUris: [], origin: null });
+        await otherServiceReplica.getByOauthClientId(app.oauthClientId);
+
+        await service.delete(app.id, admin.id);
+
+        const stale = await otherServiceReplica.getByOauthClientId(app.oauthClientId);
+        expect(stale.oauthClientId).toBe(app.oauthClientId);
+        await expect(
+            repos.transaction((tx) => otherServiceReplica.lockByOauthClientId(tx.repositories(), app.oauthClientId))
+        ).rejects.toThrow(EntityNotFound);
+
+        const perpetual = await repos.transaction((tx) =>
+            otherServiceReplica.lockByOauthClientId(tx.repositories(), 'admin-panel')
+        );
+        expect(perpetual.sessionKind).toBe('account');
+    });
+
+    it('#getByOauthClientId reports the account session for the admin panel and Swagger docs only', async () => {
+        expect((await service.getByOauthClientId('admin-panel')).sessionKind).toBe('account');
+        expect((await service.getByOauthClientId('swagger-docs')).sessionKind).toBe('account');
+        expect((await service.getByOauthClientId('block-explorer')).sessionKind).toBe('application');
+        expect((await service.getByOauthClientId('proxy-cli')).sessionKind).toBe('application');
+
+        const app = await service.create({ name: 'third party', oauthRedirectUris: [], origin: null });
+        expect((await service.getByOauthClientId(app.oauthClientId)).sessionKind).toBe('application');
     });
 
     it('#searchPublicPaginated returns only public perpetual apps', async () => {
@@ -439,7 +512,7 @@ describe('ApplicationsService', () => {
         // Warm the cache within the TTL window.
         expect(await service.allAppOrigins()).toEqual([origin]);
 
-        await service.delete(app.id);
+        await service.delete(app.id, 'deleting-admin');
 
         // No time advance — deletion must be visible immediately.
         expect(await service.allAppOrigins()).toEqual([]);

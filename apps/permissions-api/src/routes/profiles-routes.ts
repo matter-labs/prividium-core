@@ -6,6 +6,7 @@ export function profilesRoutes(server: FastifyServer) {
     server.get(
         '/me',
         {
+            config: { allowApplicationSession: true },
             schema: {
                 description: 'Get own user profile',
                 tags: ['profiles'],

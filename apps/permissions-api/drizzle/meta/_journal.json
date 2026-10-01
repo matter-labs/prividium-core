@@ -624,6 +624,13 @@
             "when": 1789584523173,
             "tag": "0088_add_audit_event_organization_audiences",
             "breakpoints": true
+        },
+        {
+            "idx": 89,
+            "version": "7",
+            "when": 1790766508033,
+            "tag": "0089_add_sessions_oauth_client_id",
+            "breakpoints": true
         }
     ]
 }

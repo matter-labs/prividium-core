@@ -22,6 +22,7 @@ export function regularRpcRoutes(app: FastifyServer, options: RegularRpcRoutesOp
         path: '/',
         role: 'rpc',
         preHandler: options.preHandler,
+        allowApplicationSession: true,
         cors: {
             origin: '*',
             allowedHeaders: ['Content-Type', 'Authorization'],

@@ -76,6 +76,14 @@ export class SessionsRepository extends SessionsRepositoryBase {
         return count;
     }
 
+    async revokeAllByOauthClientId(oauthClientId: string, revokedByUserId: string): Promise<number> {
+        const result = await this.db
+            .update(sessionsTable)
+            .set({ revokedBy: revokedByUserId, revokedAt: new Date() })
+            .where(and(eq(sessionsTable.oauthClientId, oauthClientId), isNull(sessionsTable.revokedAt)));
+        return result.rowCount ?? 0;
+    }
+
     async extendByTokenHash(tokenHash: string, newExpiresAt: Date): Promise<Session | undefined> {
         const [updated] = await this.db
             .update(sessionsTable)
