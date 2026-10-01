@@ -17,7 +17,7 @@ overrides:
   '@noble/hashes@<1.8': ^1.8.0
   fast-uri@<3.1.5: ^3.1.5
   flatted@<3.4.2: ^3.4.2
-  axios@<1.18.0: ^1.18.0
+  axios@<1.20.0: ^1.20.0
   shell-quote@<1.9.0: ^1.9.0
   viem>ws@<8.21.0: ^8.21.0
   engine.io-client>ws@<8.21.0: ^8.21.0
@@ -127,11 +127,11 @@ importers:
         specifier: ^0.8.3
         version: 0.8.3(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.0))(zod@4.3.5)
       fastify:
-        specifier: ^5.12.1
-        version: 5.12.1
+        specifier: ^5.12.5
+        version: 5.12.5
       fastify-type-provider-zod:
         specifier: ^6.1.0
-        version: 6.1.0(@fastify/swagger@9.8.1)(fastify@5.12.1)(openapi-types@12.1.3)(zod@4.3.5)
+        version: 6.1.0(@fastify/swagger@9.8.1)(fastify@5.12.5)(openapi-types@12.1.3)(zod@4.3.5)
       ipaddr.js:
         specifier: ^2.3.0
         version: 2.5.0
@@ -143,7 +143,7 @@ importers:
         version: 5.1.16
       permix:
         specifier: ^3.5.0
-        version: 3.8.1(fastify-plugin@6.0.0)(fastify@5.12.1)
+        version: 3.8.1(fastify-plugin@6.0.0)(fastify@5.12.5)
       pg:
         specifier: 8.23.0
         version: 8.23.0
@@ -225,7 +225,7 @@ importers:
     dependencies:
       permix:
         specifier: ^3.5.0
-        version: 3.8.1(fastify-plugin@6.0.0)(fastify@5.12.1)
+        version: 3.8.1(fastify-plugin@6.0.0)(fastify@5.12.5)
     devDependencies:
       typescript:
         specifier: ^5.8.3
@@ -249,11 +249,11 @@ importers:
         specifier: ^0.8.3
         version: 0.8.3(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.0))(zod@4.3.5)
       fastify:
-        specifier: ^5.12.1
-        version: 5.12.1
+        specifier: ^5.12.5
+        version: 5.12.5
       fastify-type-provider-zod:
         specifier: ^6.1.0
-        version: 6.1.0(@fastify/swagger@9.8.1)(fastify@5.12.1)(openapi-types@12.1.3)(zod@4.3.5)
+        version: 6.1.0(@fastify/swagger@9.8.1)(fastify@5.12.5)(openapi-types@12.1.3)(zod@4.3.5)
       nanoid:
         specifier: ^5.1.16
         version: 5.1.16
@@ -283,8 +283,8 @@ importers:
   packages/api-metrics:
     dependencies:
       fastify:
-        specifier: ^5.12.1
-        version: 5.12.1
+        specifier: ^5.12.5
+        version: 5.12.5
       prom-client:
         specifier: ^15.1.0
         version: 15.1.3
@@ -332,11 +332,11 @@ importers:
         specifier: ^4.1.0
         version: 4.4.0
       fastify:
-        specifier: ^5.12.1
-        version: 5.12.1
+        specifier: ^5.12.5
+        version: 5.12.5
       fastify-type-provider-zod:
         specifier: ^6.1.0
-        version: 6.1.0(@fastify/swagger@9.8.1)(fastify@5.12.1)(openapi-types@12.1.3)(zod@4.3.5)
+        version: 6.1.0(@fastify/swagger@9.8.1)(fastify@5.12.5)(openapi-types@12.1.3)(zod@4.3.5)
       kleur:
         specifier: ^4.1.5
         version: 4.1.5
@@ -2150,8 +2150,8 @@ packages:
       openapi-types: ^12.1.3
       zod: 4.3.5
 
-  fastify@5.12.1:
-    resolution: {integrity: sha512-FWi+tQvwxR/PeRX7Z2mhfEF5ozJ3jn9asiiclzKXNSzJRHAYcU924aIOKAdHFJ+YIKieh3cqr1IwCOvTr41B3Q==}
+  fastify@5.12.5:
+    resolution: {integrity: sha512-OB2k1dlxs5/NAABqeKV2FUHkSD2BbENsCak8yULVcymn3fHIPDVa9TI3SDnJSWYSllZmSYuZXy2gTnsT+Sut1A==}
 
   fastq@1.20.1:
     resolution: {integrity: sha512-GGToxJ/w1x32s/D2EKND7kTil4n8OVk/9mycTc4VDza13lOvpUZTGX3mFSCtV9ksdGBVzvsyAVLM6mHFThxXxw==}
@@ -4908,15 +4908,15 @@ snapshots:
 
   fastify-plugin@6.0.0: {}
 
-  fastify-type-provider-zod@6.1.0(@fastify/swagger@9.8.1)(fastify@5.12.1)(openapi-types@12.1.3)(zod@4.3.5):
+  fastify-type-provider-zod@6.1.0(@fastify/swagger@9.8.1)(fastify@5.12.5)(openapi-types@12.1.3)(zod@4.3.5):
     dependencies:
       '@fastify/error': 4.2.0
       '@fastify/swagger': 9.8.1
-      fastify: 5.12.1
+      fastify: 5.12.5
       openapi-types: 12.1.3
       zod: 4.3.5
 
-  fastify@5.12.1:
+  fastify@5.12.5:
     dependencies:
       '@fastify/ajv-compiler': 4.0.5
       '@fastify/error': 4.2.0
@@ -5390,9 +5390,9 @@ snapshots:
 
   perfect-debounce@1.0.0: {}
 
-  permix@3.8.1(fastify-plugin@6.0.0)(fastify@5.12.1):
+  permix@3.8.1(fastify-plugin@6.0.0)(fastify@5.12.5):
     optionalDependencies:
-      fastify: 5.12.1
+      fastify: 5.12.5
       fastify-plugin: 6.0.0
 
   pg-cloudflare@1.4.0:
