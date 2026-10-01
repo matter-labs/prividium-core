@@ -1,4 +1,4 @@
-import { type AuthorizationOverlay, OVERLAY_UNAVAILABLE, OverlayRefusal } from '@repo/api-kit';
+import { type AuthorizationOverlay, OVERLAY_UNAVAILABLE, type OverlayMoment, OverlayRefusal } from '@repo/api-kit';
 import { type Address, type Hex, size } from 'viem';
 import type { PinoLogger } from '../utils/logger';
 import type { AuthorizationResult, FrameEvaluation, SequencerAuthorizer } from './authorization-service';
@@ -47,6 +47,7 @@ export type JudgeInput = {
      * inner call's recorded decision cannot be bound to a single transaction.
      */
     txHash?: Hex;
+    moment?: OverlayMoment;
 };
 
 /** A frame plus whether an umbrella row above it waived the permission gate for it. */
@@ -190,27 +191,47 @@ export class JudgeService<S> {
             () => this.evaluate(input)
         );
 
-        const rootFrame = input.trace.frame;
-        if (!capability.authorized || rootFrame === null || this.overlays.length === 0) {
-            return capability;
-        }
-
         // Same as admit: a simulated read moves nothing, so putting it to limits and
         // approvals would refuse `eth_call` and gas estimation for a routed operation.
-        if (input.accessType === 'read') {
+        if (!capability.authorized || this.overlays.length === 0 || input.accessType === 'read') {
             return capability;
         }
 
         // Narrowing only, and outside the cache, as in `AdmitService`. `isUmbrella` is
         // not honoured here: the row that prunes a subtree is what would hide a routed
         // transfer, so a limit a permission row can switch off is not a limit.
-        for (const overlay of this.overlays) {
-            const verdict = await this.overlayTraceVerdict(overlay, rootFrame, rootFrame.caller, input.txHash);
-            if (verdict !== undefined && !verdict.authorized) {
-                return verdict;
+        const rootFrame = input.trace.frame;
+        if (rootFrame !== null) {
+            for (const overlay of this.overlays) {
+                const verdict = await this.overlayTraceVerdict(overlay, rootFrame, rootFrame.caller, input);
+                if (verdict !== undefined && !verdict.authorized) {
+                    return verdict;
+                }
             }
         }
-        return capability;
+        return (await this.confirmExecution(input)) ?? capability;
+    }
+
+    /**
+     * Last, so nothing an overlay holds becomes final for a transaction a check refused.
+     * A moment left unsaid is an execution, as on admit.
+     */
+    private async confirmExecution({ txHash, moment }: JudgeInput): Promise<AuthorizationResult | undefined> {
+        if (txHash === undefined || (moment !== undefined && moment !== 'execution')) {
+            return undefined;
+        }
+        for (const overlay of this.overlays) {
+            try {
+                await overlay.confirm?.({ txHash });
+            } catch (error) {
+                if (error instanceof OverlayRefusal) {
+                    return error.verdict;
+                }
+                this.logger.error({ err: error }, 'authorization overlay threw on confirm');
+                return OVERLAY_UNAVAILABLE;
+            }
+        }
+        return undefined;
     }
 
     /** Fail-closed: an enabled overlay that throws is a denial, unless it raised a
@@ -219,10 +240,10 @@ export class JudgeService<S> {
         overlay: AuthorizationOverlay,
         root: TraceFrame,
         signerAddress: Address,
-        txHash: Hex | undefined
+        subject: { txHash?: Hex; moment?: OverlayMoment }
     ): Promise<AuthorizationResult | undefined> {
         try {
-            return await overlay.checkTrace({ signerAddress, root, txHash });
+            return await overlay.checkTrace({ signerAddress, root, txHash: subject.txHash, moment: subject.moment });
         } catch (error) {
             if (error instanceof OverlayRefusal) {
                 return error.verdict;

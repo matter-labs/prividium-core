@@ -1,5 +1,9 @@
 import type { Address, Hex } from 'viem';
 
+/** A stateful overlay consumes nothing on a simulation and holds otherwise; only {@link AuthorizationOverlay.confirm} makes a hold final. */
+export const OVERLAY_MOMENTS = ['simulation', 'submission', 'execution'] as const;
+export type OverlayMoment = (typeof OVERLAY_MOMENTS)[number];
+
 /**
  * A narrowing authorization stage a private feature contributes at the chain
  * boundary, declared here and called only by the open core.
@@ -20,6 +24,8 @@ export type OverlaySubject = {
     calldata: Hex;
     /** The transaction this subject is about; absent where the caller holds no single one. */
     txHash?: Hex;
+    /** Absent from an older sequencer: treat as an execution, never a simulation. */
+    moment?: OverlayMoment;
 };
 
 /**
@@ -60,6 +66,7 @@ export type OverlayTraceSubject = {
     root: OverlayFrame;
     /** Absent where the boundary holds no single transaction. See {@link OverlaySubject.txHash}. */
     txHash?: Hex;
+    moment?: OverlayMoment;
 };
 
 export interface AuthorizationOverlay {
@@ -79,6 +86,14 @@ export interface AuthorizationOverlay {
      * operation reached through a router meets no rule at all.
      */
     checkTrace(subject: OverlayTraceSubject): Promise<OverlayVerdict | undefined>;
+
+    /**
+     * Called once a transaction has cleared every check at execution, including a trace
+     * that captured no frame. What the overlay holds for it becomes final; until then the
+     * transaction may still be refused or never run. Throwing is a denial, as for `check`,
+     * and an {@link OverlayRefusal} is refused with its own verdict.
+     */
+    confirm?(subject: { txHash: Hex }): Promise<void>;
 }
 
 /**

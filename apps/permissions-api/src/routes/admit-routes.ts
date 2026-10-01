@@ -39,7 +39,8 @@ export function admitRoutes(server: FastifyServer, { admitService, protocolVersi
                 calldata,
                 gasLimit,
                 accessType,
-                txHash
+                txHash,
+                moment
             } = req.body;
 
             const decision = await admitService.admit({
@@ -50,7 +51,8 @@ export function admitRoutes(server: FastifyServer, { admitService, protocolVersi
                 calldata,
                 gasLimit,
                 accessType,
-                txHash
+                txHash,
+                moment
             });
 
             policyDecisionCounter.inc({

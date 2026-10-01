@@ -118,4 +118,73 @@ describe('JudgeService — the overlay seam', () => {
         expect(result).toMatchObject({ authorized: true });
         expect(overlay.checkTrace).not.toHaveBeenCalled();
     });
+
+    describe('confirming a transaction that cleared execution', () => {
+        const txHash = pad('0x0a', { size: 32 });
+        const executed = { ...write, txHash, moment: 'execution' as const };
+
+        const confirming = (verdict?: OverlayVerdict) => ({
+            ...overlayReturning(verdict),
+            confirm: vi.fn().mockResolvedValue(undefined)
+        });
+
+        it('confirms once every check has let the transaction through', async () => {
+            const overlay = confirming();
+
+            expect(await serviceWith(overlay).judge(executed)).toMatchObject({ authorized: true });
+            expect(overlay.confirm).toHaveBeenCalledWith({ txHash });
+        });
+
+        it('confirms a transaction whose trace captured no frame', async () => {
+            const overlay = confirming();
+
+            await serviceWith(overlay).judge({ ...executed, trace: { frame: null } });
+
+            expect(overlay.checkTrace).not.toHaveBeenCalled();
+            expect(overlay.confirm).toHaveBeenCalledWith({ txHash });
+        });
+
+        it('confirms nothing for a transaction an overlay refused', async () => {
+            const overlay = confirming({ authorized: false, ruleId: 'policy.rule.block', reason: 'blocked' });
+
+            await serviceWith(overlay).judge(executed);
+
+            expect(overlay.confirm).not.toHaveBeenCalled();
+        });
+
+        it('confirms nothing short of an execution, nor without a transaction to name', async () => {
+            const overlay = confirming();
+            const service = serviceWith(overlay);
+
+            await service.judge({ ...executed, moment: 'submission' });
+            await service.judge({ ...executed, moment: 'simulation' });
+            await service.judge({ ...write, moment: 'execution' });
+
+            expect(overlay.confirm).not.toHaveBeenCalled();
+        });
+
+        it('takes a moment left unsaid as an execution, as an older sequencer sends it', async () => {
+            const overlay = confirming();
+
+            await serviceWith(overlay).judge({ ...write, txHash });
+
+            expect(overlay.confirm).toHaveBeenCalledWith({ txHash });
+        });
+
+        it('refuses with the verdict an overlay raises while confirming', async () => {
+            const lapsed: OverlayVerdict = { authorized: false, ruleId: 'policy.decision_required', reason: 'lapsed' };
+            const overlay = { ...confirming(), confirm: vi.fn().mockRejectedValue(new OverlayRefusal(lapsed)) };
+
+            expect(await serviceWith(overlay).judge(executed)).toMatchObject(lapsed);
+        });
+
+        it('fails closed as an outage when confirming throws', async () => {
+            const overlay = { ...confirming(), confirm: vi.fn().mockRejectedValue(new Error('unreachable')) };
+
+            expect(await serviceWith(overlay).judge(executed)).toMatchObject({
+                authorized: false,
+                ruleId: 'overlay.unavailable'
+            });
+        });
+    });
 });

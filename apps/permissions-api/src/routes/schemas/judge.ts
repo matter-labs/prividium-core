@@ -1,3 +1,4 @@
+import { OVERLAY_MOMENTS } from '@repo/api-kit';
 import { z } from 'zod/v4';
 import { addressSchema } from '../../utils/schemas/address';
 import { hexSchema, hexSizedSchema, u256HexSchema } from '../../utils/schemas/hex-schema';
@@ -34,7 +35,8 @@ export const JudgeRequestSchema = z.object({
     // Optional so a sequencer that predates it stays compatible. See the same field on
     // `/admit`: without it a decision recorded for an inner call admits every
     // transaction that makes the same call.
-    txHash: hexSizedSchema(32).optional()
+    txHash: hexSizedSchema(32).optional(),
+    moment: z.enum(OVERLAY_MOMENTS).optional()
 });
 
 export const JudgeResponseSchema = z.object({

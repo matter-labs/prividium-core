@@ -69,8 +69,10 @@ export {
 } from './feature-permissions';
 export {
     type AuthorizationOverlay,
+    OVERLAY_MOMENTS,
     OVERLAY_UNAVAILABLE,
     type OverlayFrame,
+    type OverlayMoment,
     OverlayRefusal,
     type OverlayRuleId,
     type OverlaySubject,

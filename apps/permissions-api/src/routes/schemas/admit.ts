@@ -1,3 +1,4 @@
+import { OVERLAY_MOMENTS } from '@repo/api-kit';
 import { z } from 'zod/v4';
 import { addressSchema } from '../../utils/schemas/address';
 import { hexSchema, hexSizedSchema, u256HexSchema } from '../../utils/schemas/hex-schema';
@@ -11,9 +12,9 @@ export const AdmitRequestSchema = z.object({
     calldata: hexSchema,
     gasLimit: z.number().int().nonnegative(),
     accessType: z.enum(['read', 'write']),
-    // Optional so a sequencer that predates it stays compatible: omitted on the
-    // gas-estimation and block-build paths, which hold no single transaction.
-    txHash: hexSizedSchema(32).optional()
+    // Optional: older sequencers omit it, and a simulation carries none.
+    txHash: hexSizedSchema(32).optional(),
+    moment: z.enum(OVERLAY_MOMENTS).optional()
 });
 
 export const AdmitResponseSchema = z.object({

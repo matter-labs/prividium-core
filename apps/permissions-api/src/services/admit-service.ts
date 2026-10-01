@@ -1,4 +1,4 @@
-import { type AuthorizationOverlay, OVERLAY_UNAVAILABLE, OverlayRefusal } from '@repo/api-kit';
+import { type AuthorizationOverlay, OVERLAY_UNAVAILABLE, type OverlayMoment, OverlayRefusal } from '@repo/api-kit';
 import type { Address, Hex } from 'viem';
 import type { AuthorizationResult, SequencerAuthorizer } from './authorization-service';
 import { type DecisionCacheStore, withDecisionCache } from './decision-cache';
@@ -31,6 +31,7 @@ export type AdmitInput = {
      * block-build path omit it: they admit an operation, not a transaction.
      */
     txHash?: Hex;
+    moment?: OverlayMoment;
 };
 
 type Deps<S> = {
@@ -88,8 +89,8 @@ export class AdmitService<S> {
      * `set`, so it stays fail-closed and uncached. Every request field the
      * capability gate can read is part of the key, so the key is always a superset
      * of the decision inputs: the cache stays correct even if the gate starts
-     * reading a field it ignores today. `txHash` is kept out of `evaluate` entirely, so
-     * a per-transaction discriminator cannot creep into a cached decision.
+     * reading a field it ignores today. `txHash` and `moment` are excluded: only the
+     * overlay reads them, and it runs outside this cache.
      */
     async admit(input: AdmitInput): Promise<AuthorizationResult> {
         const capability = await withDecisionCache(
@@ -136,7 +137,8 @@ export class AdmitService<S> {
             to: input.to,
             value: input.value,
             calldata: input.calldata,
-            txHash: input.txHash
+            txHash: input.txHash,
+            moment: input.moment
         };
 
         // A conjunction: the first denial wins and the rest are not consulted, so
