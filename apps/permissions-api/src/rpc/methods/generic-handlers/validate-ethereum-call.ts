@@ -1,6 +1,7 @@
-import { type Hex, toFunctionSelector, zeroAddress } from 'viem';
+import { type Address, type Hex, toFunctionSelector, zeroAddress } from 'viem';
 import { z } from 'zod/v4';
 import type { MethodAccessType } from '../../../db/schema';
+import type { AuthorizationResult } from '../../../services/authorization-service';
 import { areHexEqual } from '../../../utils/hex';
 import { addressSchema } from '../../../utils/schemas/address';
 import { hexSchema } from '../../../utils/schemas/hex-schema';
@@ -91,7 +92,7 @@ export function validatedEthereumCall(
 
             const authResult =
                 data === '0x' || whitelistedMethods.includes(data)
-                    ? undefined
+                    ? await checkFromOwnership(context, call.from)
                     : await context.authorizer.checkContractAccess(
                           call.from,
                           call.to ?? zeroAddress,
@@ -99,7 +100,7 @@ export function validatedEthereumCall(
                           accessType,
                           method
                       );
-            if (authResult && !authResult.authorized) {
+            if (!authResult.authorized) {
                 throw new ForbiddenRpcError(
                     undefined,
                     `Permission check for method call returned false`,
@@ -114,4 +115,15 @@ export function validatedEthereumCall(
             return context.targetRpc.delegate(id, method, params);
         }
     };
+}
+
+// An omitted `from` simulates as the zero address, which nobody owns.
+async function checkFromOwnership(
+    context: AuthorizedRpcContext,
+    from: Address | undefined
+): Promise<AuthorizationResult> {
+    if (from === undefined || (await context.authorizer.checkAddressOwnership(from))) {
+        return { authorized: true };
+    }
+    return { authorized: false, ruleId: 'wallet.not_owned_by_user' };
 }

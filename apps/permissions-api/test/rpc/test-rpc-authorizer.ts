@@ -49,8 +49,8 @@ export class TestRpcAuthorizer implements Authorizer {
         return Promise.resolve(this.allowRead);
     }
 
-    checkAddressOwnership(_address: Address): Promise<boolean> {
-        return Promise.resolve(false);
+    checkAddressOwnership(address: Address): Promise<boolean> {
+        return Promise.resolve(new AddressSet(this.addresses).has(address));
     }
 
     getTokenSupplyDisclosureConfig(_address: Address): Promise<DisclosureConfig | null> {
