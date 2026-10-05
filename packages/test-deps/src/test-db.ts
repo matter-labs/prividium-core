@@ -95,17 +95,24 @@ export async function stopTestDeps(): Promise<void> {
     });
 }
 
+// Clones per worker kept ready; a clone takes ~150 ms, most unit tests less.
+const SPARE_DATABASES = 2;
+
 export class TestDatabaseBuilder<TDB> {
     // biome-ignore lint/suspicious/noExplicitAny: generic DB factory accepts any logger
     private createDb: (url: string, logger: any) => TDB;
     private adminPool: Pool;
     private dbs: Map<TDB, { name: string; fn: () => void; promise: Promise<void> }>;
+    private spares = new Map<string, Promise<TDB>[]>();
+    private pendingDrops: Promise<void>[] = [];
+    private backgroundError: unknown;
     // biome-ignore lint/suspicious/noExplicitAny: generic DB factory accepts any logger
     constructor(createDb: (url: string, logger: any) => TDB) {
         this.createDb = createDb;
         this.adminPool = new Pool({
             connectionString: ADMIN_URL,
-            max: 1,
+            // One connection clones the next spare while another drops the released database.
+            max: 2,
             // Shorter timeout than hook timeout to be able to debug if this times out
             query_timeout: 60_000,
             statement_timeout: 60_000
@@ -133,9 +140,60 @@ export class TestDatabaseBuilder<TDB> {
         return db;
     }
 
+    /**
+     * A fresh clone with the wait hidden: spares are cloned in the background while the previous
+     * test runs, and `release` drops without blocking the next test.
+     */
+    async acquire(prefix: string): Promise<TDB> {
+        if (this.backgroundError !== undefined) {
+            const error = this.backgroundError;
+            this.backgroundError = undefined;
+            throw error;
+        }
+        const spares = this.spares.get(prefix) ?? [];
+        this.spares.set(prefix, spares);
+        const db = await (spares.shift() ?? this.build(prefix));
+        while (spares.length < SPARE_DATABASES) {
+            this.cloneSpare(prefix, spares);
+        }
+        return db;
+    }
+
+    // A clone or drop that fails in the background would be an unhandled rejection, not a test
+    // failure: the error is kept and thrown by the next acquire().
+    private cloneSpare(prefix: string, spares: Promise<TDB>[]): void {
+        const spare = this.build(prefix);
+        spares.push(spare);
+        spare.catch((error) => {
+            const index = spares.indexOf(spare);
+            if (index === -1) {
+                // Already handed out: the acquire() awaiting it threw.
+                return;
+            }
+            spares.splice(index, 1);
+            this.backgroundError ??= error;
+        });
+    }
+
+    release(db: TDB): void {
+        const drop = this.tearDown(db);
+        drop.catch((error) => {
+            this.backgroundError ??= error;
+        });
+        this.pendingDrops.push(drop);
+    }
+
+    // Drops whatever is still open instead of waiting for it: with worker processes reused across
+    // files, a database a file never tore down would otherwise block the worker's shutdown forever.
     async stop(): Promise<void> {
-        const allPromises = [...this.dbs.values()].map((v) => v.promise);
-        await Promise.all(allPromises);
+        for (const spares of this.spares.values()) {
+            for (const spare of spares) {
+                this.pendingDrops.push(spare.then((db) => this.tearDown(db)));
+            }
+        }
+        this.spares.clear();
+        await Promise.allSettled(this.pendingDrops);
+        await Promise.allSettled([...this.dbs.keys()].map((db) => this.tearDown(db)));
 
         await this.adminPool.end();
     }
@@ -143,17 +201,33 @@ export class TestDatabaseBuilder<TDB> {
     async tearDown(db: TDB): Promise<void> {
         const dbData = this.dbs.get(db);
         if (dbData === undefined) {
-            throw new Error('unknown db');
+            // Already torn down, by the owner or by stop(); closing the pool twice throws.
+            return;
         }
-        await (db as { close: () => Promise<void> }).close();
-        // Do not remove WITH (FORCE)
-        // WITH (FORCE) is required: pool.end() may return while connections are still
-        // draining (e.g. an in-flight rollback). Without it, DROP DATABASE silently
-        // fails when lingering connections exist, leaving orphaned DBs that hold
-        // catalog locks and block concurrent workers from cloning the template DB.
-        await this.adminPool.query(`DROP DATABASE IF EXISTS ${dbData.name} WITH (FORCE)`);
         this.dbs.delete(db);
+        await (db as { close: () => Promise<void> }).close();
+        await this.waitForBackendsToClose(dbData.name);
+        // Keep WITH (FORCE): a backend that outlives the wait would otherwise make DROP fail
+        // silently, leaving an orphaned DB whose catalog locks block other workers' clones.
+        await this.adminPool.query(`DROP DATABASE IF EXISTS ${dbData.name} WITH (FORCE)`);
         dbData.fn();
+    }
+
+    // pool.end() resolves before the server has closed every backend. Dropping WITH (FORCE)
+    // at that moment kills a live client, which surfaces as an uncaught "terminating
+    // connection due to administrator command" and fails an otherwise green run.
+    private async waitForBackendsToClose(name: string, timeoutMs = 5_000): Promise<void> {
+        const deadline = Date.now() + timeoutMs;
+        while (Date.now() < deadline) {
+            const { rows } = await this.adminPool.query<{ n: string }>(
+                'SELECT count(*)::text AS n FROM pg_stat_activity WHERE datname = $1',
+                [name]
+            );
+            if (rows[0]?.n === '0') {
+                return;
+            }
+            await new Promise((resolve) => setTimeout(resolve, 50));
+        }
     }
 
     async clearData(db: TDB) {

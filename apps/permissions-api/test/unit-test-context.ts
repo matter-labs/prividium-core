@@ -20,10 +20,11 @@ const unitIt = it.extend<Fixture>({
         },
         { scope: 'worker' }
     ],
+    // A fresh clone per test, pre-cloned while the previous test ran and dropped in the background.
     db: async ({ dbBuilder }, use) => {
-        const db = await dbBuilder.build(TEMPLATE_DB_PREFIX);
+        const db = await dbBuilder.acquire(TEMPLATE_DB_PREFIX);
         await use(db);
-        await dbBuilder.tearDown(db);
+        dbBuilder.release(db);
     }
 });
 
