@@ -1,5 +1,7 @@
 {
     "compilerOptions": {
+        "incremental": true,
+        "tsBuildInfoFile": "./node_modules/.cache/tsconfig.tsbuildinfo",
         "esModuleInterop": true,
         "skipLibCheck": true,
         "target": "es2022",
