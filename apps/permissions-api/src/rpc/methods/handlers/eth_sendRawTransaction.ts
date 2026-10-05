@@ -12,13 +12,15 @@ import type { AuthorizedRpcContext, MethodHandler } from '../../rpc-service';
 import type { TxData } from '../../types';
 import { handleAndVerifyDeployment, isDeploy } from '../generic-handlers';
 
-/** Helper — understands *both* canonical RLP tx (types 0,1,2,3…) */
+const SUPPORTED_TX_TYPES: ReadonlySet<string> = new Set(['legacy', 'eip2930', 'eip1559']);
+
 export async function decodeTx(raw: Hex): Promise<TxData> {
-    // Legacy / 2930 / 1559 / blob  :contentReference[oaicite:1]{index=1}
     const parsedTx = parseTransaction(raw);
 
-    if (parsedTx.type === 'eip4844') {
-        throw new WrongArguments('Unsupported eip4844 transaction');
+    // Fail closed: eip4844 carries blobs and eip7702 installs code on the signer via
+    // authorizationList, neither of which {to, calldata, value} classification can see.
+    if (parsedTx.type === undefined || !SUPPORTED_TX_TYPES.has(parsedTx.type)) {
+        throw new WrongArguments(`Unsupported ${parsedTx.type ?? 'unknown'} transaction`);
     }
 
     // At this stage we are sure that the raw hex string is a valid tx

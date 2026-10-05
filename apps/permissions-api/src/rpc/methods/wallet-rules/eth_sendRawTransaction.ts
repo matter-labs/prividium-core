@@ -1,13 +1,13 @@
-import { type Address, parseTransaction, type SerializedTransactionReturnType } from 'viem';
 import { z } from 'zod/v4';
-import { recoverTransactionAddressNative } from '../../../utils/recover-tx-address-native';
 import { hexSchema } from '../../../utils/schemas/hex-schema';
 import { EIP_7966_TIMEOUT_CODE } from '../../constants';
-import { ForbiddenRpcError, WrongArguments } from '../../errors';
+import { ForbiddenRpcError, RpcException, WrongArguments } from '../../errors';
 import type { JsonRpcResponse } from '../../json-rpc';
 import { forwardAndRecordSubmission } from '../../rpc-observer';
 import type { MethodHandler, WalletContext } from '../../rpc-service';
+import type { TxData } from '../../types';
 import { handleContractDeployment, isDeploy } from '../generic-handlers';
+import { decodeTx } from '../handlers/eth_sendRawTransaction';
 
 const paramsSchema = z.tuple([hexSchema], z.unknown());
 
@@ -18,30 +18,20 @@ export const eth_sendRawTransaction: MethodHandler<WalletContext, typeof paramsS
     async handle(context, method, params, id): Promise<JsonRpcResponse> {
         const [rawTx] = params;
 
-        // Decode the transaction to get nonce, data (calldata), to, and from address
-        let transaction: ReturnType<typeof parseTransaction>;
-        let from: Address;
+        let tx: TxData;
         try {
-            transaction = parseTransaction(rawTx);
-            from = await recoverTransactionAddressNative({
-                serializedTransaction: rawTx as SerializedTransactionReturnType
-            });
-        } catch {
+            tx = await decodeTx(rawTx);
+        } catch (e) {
+            if (e instanceof RpcException) throw e;
             throw new WrongArguments('Invalid transaction format or cannot recover sender address');
         }
 
-        const to = transaction.to ?? null;
-        const nonce = transaction.nonce || 0;
-        const calldata = transaction.data || '0x';
-        const value = transaction.value || 0n;
-
-        // Check if transaction is allowed using wallet authorizer
         const authResult = await context.walletAuthorizer.checkTransactionAllowed(
-            from,
-            to,
-            nonce,
-            calldata,
-            value,
+            tx.from,
+            tx.to ?? null,
+            tx.nonce,
+            tx.data,
+            tx.value,
             method
         );
         if (!authResult.authorized) {
@@ -49,20 +39,8 @@ export const eth_sendRawTransaction: MethodHandler<WalletContext, typeof paramsS
         }
 
         let txResponse: JsonRpcResponse;
-        if (isDeploy(transaction)) {
-            txResponse = await handleContractDeployment(
-                {
-                    from,
-                    to: transaction.to ?? undefined,
-                    data: transaction.data ?? '0x',
-                    nonce: transaction.nonce ?? 0,
-                    value
-                },
-                context,
-                id,
-                rawTx,
-                context.walletAuthorizer.userId
-            );
+        if (isDeploy(tx)) {
+            txResponse = await handleContractDeployment(tx, context, id, rawTx, context.walletAuthorizer.userId);
         } else {
             txResponse = await forwardAndRecordSubmission(context, id, rawTx);
         }

@@ -193,6 +193,7 @@ export class AdmitService<S> {
         // A bare native transfer to an EOA runs no code, so there is no method to
         // gate (mirrors the RPC transfer-to-eoa path). Transfers to a contract
         // (receive/fallback runs) and empty txs fall through to the method check.
+        // An EIP-7702 tx would look like a bare transfer here; decodeTx rejects it at the RPC gate.
         const classification = await this.transactionClassifier.classifyTransaction(
             input.to,
             input.calldata,
