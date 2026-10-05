@@ -1,11 +1,19 @@
-import { createDbPool, type DbInstrumentation, type DbLogger, type RawTx, withJobContext } from '@repo/api-kit';
+import {
+    connectionFromUrl,
+    createDbPool,
+    type DatabaseConnection,
+    type DbInstrumentation,
+    type DbLogger,
+    type RawTx,
+    withJobContext
+} from '@repo/api-kit';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { PoolClient } from 'pg';
 import * as schema from '../db/schema';
 import { Repositories, type TxType } from './repositories';
 
 export function createDb(
-    databaseUrl: string,
+    target: string | DatabaseConnection,
     logger: DbLogger,
     enableSSL: boolean = false,
     rejectUnauthorized: boolean = true,
@@ -13,10 +21,12 @@ export function createDb(
     statementTimeoutMs: number = 10_000,
     maxConnections: number = 10,
     connectionTimeoutMs: number = 5_000,
-    instrumentation?: DbInstrumentation
+    instrumentation?: DbInstrumentation,
+    maxLifetimeSeconds: number = 0
 ) {
+    const connection = typeof target === 'string' ? connectionFromUrl(target) : target;
     const pool = createDbPool(
-        databaseUrl,
+        connection,
         logger,
         enableSSL,
         rejectUnauthorized,
@@ -24,7 +34,8 @@ export function createDb(
         statementTimeoutMs,
         maxConnections,
         connectionTimeoutMs,
-        instrumentation
+        instrumentation,
+        maxLifetimeSeconds
     );
 
     const rawDb = drizzle(pool, { schema, casing: 'snake_case' });
@@ -32,6 +43,7 @@ export function createDb(
         repositories: () => new Repositories(db),
         close: async () => {
             await pool.end();
+            await connection.close();
         }
     });
     return db;

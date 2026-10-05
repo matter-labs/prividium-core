@@ -5,6 +5,7 @@
     "type": "module",
     "exports": {
         ".": "./src/index.ts",
+        "./db/credentials": "./src/db/credentials.ts",
         "./stable-stringify": "./src/stable-stringify.ts",
         "./schemas/hex-schema": "./src/schemas/hex-schema.ts"
     },
@@ -21,6 +22,7 @@
         "fastify-type-provider-zod": "^6.1.0",
         "nanoid": "^5.1.16",
         "pg": "^8.13.1",
+        "pg-connection-string": "^2.14.0",
         "viem": "^2.30.4",
         "zod": "^4.3.5"
     },

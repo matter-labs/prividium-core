@@ -1,7 +1,8 @@
 import type { ExtractTablesWithRelations } from 'drizzle-orm';
 import type { NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
 import type { PgTransaction } from 'drizzle-orm/pg-core/session';
-import { Pool, type PoolClient } from 'pg';
+import { Client, Pool, type PoolClient } from 'pg';
+import { connectionFromUrl, type DatabaseConnection } from './credentials';
 
 export interface DbLogger {
     error(obj: unknown, msg?: string): void;
@@ -19,8 +20,9 @@ export type RawTx<TSchema extends Record<string, unknown>> = PgTransaction<
     ExtractTablesWithRelations<TSchema>
 >;
 
+/** `target` is a URL or a provider's resolved connection; pool sizing and deadlines stay the caller's. */
 export function createDbPool(
-    databaseUrl: string,
+    target: string | DatabaseConnection,
     logger: DbLogger,
     enableSSL: boolean = false,
     rejectUnauthorized: boolean = true,
@@ -28,19 +30,31 @@ export function createDbPool(
     statementTimeoutMs: number = 10_000,
     maxConnections: number = 10,
     connectionTimeoutMs: number = 5_000,
-    instrumentation?: DbInstrumentation
+    instrumentation?: DbInstrumentation,
+    maxLifetimeSeconds: number = 0
 ): Pool {
     const ssl = enableSSL ? (rejectUnauthorized ? true : { rejectUnauthorized: false }) : false;
+    const connection = typeof target === 'string' ? connectionFromUrl(target) : target;
+    if (connection.poolConfig.connectionString && connection.poolConfig.password) {
+        // pg lays the parsed URL over the config, and the parse always carries a password, even an empty one.
+        throw new Error(
+            "A database connection may not set both connectionString and password: the password would be replaced by the URL's. Decompose the URL with poolConfigFromUrl."
+        );
+    }
 
     const pool = new Pool({
-        connectionString: databaseUrl,
         query_timeout: queryTimeoutMs,
         statement_timeout: statementTimeoutMs,
         ssl,
+        // After the defaults it may override, as a URL's own parameters override them.
+        ...connection.poolConfig,
         max: maxConnections,
         // Unset, node-postgres waits for a free connection forever, so one stalled request turns into a
         // permanent outage. Failing the acquire lets the caller error and give its own connection back.
-        connectionTimeoutMillis: connectionTimeoutMs
+        connectionTimeoutMillis: connectionTimeoutMs,
+        // Postgres authenticates only at connect, so recycling bounds how long a revoked credential stays usable.
+        maxLifetimeSeconds,
+        Client: SocketClosingClient
     });
 
     // Prevent pool-level errors from crashing the process when the DB goes away.
@@ -54,6 +68,32 @@ export function createDbPool(
     }
 
     return pool;
+}
+
+type ConnectCallback = (err: Error | null, client?: Client) => void;
+
+/**
+ * Closes its socket when connecting fails. pg leaves it open when a password callback rejects, and pg-pool drops
+ * the client without ending it, so each failure would hold a server slot until `authentication_timeout`.
+ */
+class SocketClosingClient extends Client {
+    override connect(): Promise<Client>;
+    override connect(callback: ((err: Error) => void) | ((err: null, c: Client) => void)): void;
+    override connect(
+        callback?: ((err: Error) => void) | ((err: null, c: Client) => void)
+    ): Promise<Client> | undefined {
+        if (callback === undefined) {
+            return new Promise((resolve, reject) => {
+                this.connect((err: Error | null) => (err ? reject(err) : resolve(this)));
+            });
+        }
+        super.connect(((err: Error | null, client?: Client) => {
+            if (err) {
+                this.connection.stream.destroy();
+            }
+            (callback as ConnectCallback)(err, client);
+        }) as (err: Error) => void);
+    }
 }
 
 export type PoolState = { max: number; total: number; active: number; idle: number; waiting: number };

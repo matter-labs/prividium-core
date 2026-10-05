@@ -147,6 +147,9 @@ importers:
       pg:
         specifier: 8.23.0
         version: 8.23.0
+      pg-connection-string:
+        specifier: ^2.14.0
+        version: 2.14.0
       pino:
         specifier: ^9.9.5
         version: 9.14.0
@@ -260,6 +263,9 @@ importers:
       pg:
         specifier: 8.23.0
         version: 8.23.0
+      pg-connection-string:
+        specifier: ^2.14.0
+        version: 2.14.0
       viem:
         specifier: ^2.30.4
         version: 2.55.10(typescript@5.9.3)(zod@4.3.5)

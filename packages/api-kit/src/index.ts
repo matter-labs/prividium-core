@@ -13,6 +13,15 @@ export {
 } from './db/client';
 export { createdAt, publicId, timestampTz, updatedAt } from './db/common-schema';
 export {
+    type CredentialProvider,
+    connectionFromUrl,
+    type DatabaseConnection,
+    type DatabaseCredentials,
+    databaseUrlCarriesPassword,
+    PASSWORD_DATABASE_AUTH,
+    poolConfigFromUrl
+} from './db/credentials';
+export {
     addressColumn,
     hexBigInt,
     hexBigIntColumn,

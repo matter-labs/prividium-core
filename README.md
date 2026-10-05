@@ -67,6 +67,13 @@ is missing or malformed.
 Secrets can come from mounted files: set `<NAME>_FILE` to a path instead of setting `<NAME>`, for `DATABASE_URL`,
 `DATABASE_PASSWORD`, `POLICY_AUTH_TOKEN`, `SIWE_HMAC_SECRET`, and `FAUCET_OPERATOR_PRIVATE_KEY`.
 
+`DATABASE_AUTH` selects how database connections authenticate. The core supports `password`, the default, which sends
+the password in `DATABASE_URL`; a process that embeds the API can supply a credential provider for another mode through
+`ServiceFeatures.databaseCredentials`. Outside `password`, boot requires a verified TLS connection:
+`sslmode=verify-full` in `DATABASE_URL`, or `DATABASE_ENABLE_SSL=true` and `DATABASE_SSL_REJECT_UNAUTHORIZED=true`.
+`DATABASE_MAX_CONNECTION_LIFETIME_SECONDS` (default `1800`) recycles pooled connections, so none outlives a revoked role
+or a short-lived credential.
+
 ## Migrate
 
 Migrations run automatically at startup only when `NODE_ENV=production`. In development, apply them yourself:

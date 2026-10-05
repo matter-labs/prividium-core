@@ -1,6 +1,8 @@
 import path from 'node:path';
+import { databaseUrlCarriesPassword, PASSWORD_DATABASE_AUTH } from '@repo/api-kit/db/credentials';
 import { createEnv } from '@t3-oss/env-core';
 import { config } from 'dotenv';
+import { parse as parseConnectionString } from 'pg-connection-string';
 import { z } from 'zod/v4';
 import { addressSchema } from './utils/schemas/address';
 import { hexSchema } from './utils/schemas/hex-schema';
@@ -44,6 +46,8 @@ const siweHmacSecretSchema = commaSeparatedString
     .pipe(siweHmacSecretEntrySchema.array())
     .transform((secrets) => secrets.join(','));
 
+const DEFAULT_DB_POOL_CONNECTION_TIMEOUT_MS = 5_000;
+
 /** Each can instead be read from the file its `<NAME>_FILE` variable points at. */
 const SECRET_FILE_VARS = [
     'DATABASE_URL',
@@ -66,6 +70,17 @@ export const loadEnv = () =>
             DATABASE_ENABLE_SSL: booleanFromString.default(false),
             DATABASE_SSL_REJECT_UNAUTHORIZED: booleanFromString.default(false),
             DATABASE_NAME: z.string().optional(),
+            // `password` uses the password in DATABASE_URL. Any other value names a credential provider's mode;
+            // an unclaimed mode fails boot, naming it.
+            DATABASE_AUTH: z.string().default(PASSWORD_DATABASE_AUTH),
+            // Postgres authenticates only at connect, so this bounds how long a pooled connection outlives a
+            // short-lived token or a revoked role. 0 keeps connections open indefinitely.
+            DATABASE_MAX_CONNECTION_LIFETIME_SECONDS: z.coerce
+                .number()
+                .int()
+                .nonnegative()
+                .max(2_147_483)
+                .default(1800),
             // Where this service's migration journal sits, resolved against the working
             // directory. Only set when something boots this service from elsewhere.
             MIGRATIONS_DIR: z.string().default('./drizzle'),
@@ -88,7 +103,11 @@ export const loadEnv = () =>
             DB_QUERY_TIMEOUT_MS: z.coerce.number().default(100_000), // 100 seconds
             DB_STATEMENT_TIMEOUT_MS: z.coerce.number().default(100_000), // 100 seconds
             DB_POOL_MAX_CONNECTIONS: z.coerce.number().int().min(1).default(10),
-            DB_POOL_CONNECTION_TIMEOUT_MS: z.coerce.number().int().min(1).default(5_000), // 5 seconds
+            DB_POOL_CONNECTION_TIMEOUT_MS: z.coerce
+                .number()
+                .int()
+                .min(1)
+                .default(DEFAULT_DB_POOL_CONNECTION_TIMEOUT_MS),
             CORS_CACHE_DURATION_MS: z.coerce.number(),
 
             // SIWE
@@ -396,6 +415,19 @@ export const loadEnv = () =>
                     return z.NEVER;
                 }
 
+                const databasePasswordConflict = findDatabasePasswordConflict({
+                    ...env,
+                    PGPASSWORD: process.env.PGPASSWORD
+                });
+                if (databasePasswordConflict) {
+                    ctx.addIssue({
+                        code: 'custom',
+                        message: databasePasswordConflict.message,
+                        path: [databasePasswordConflict.variable]
+                    });
+                    return z.NEVER;
+                }
+
                 // Construct DATABASE_URL from individual components if not provided
                 let databaseUrl: string;
                 try {
@@ -406,6 +438,16 @@ export const loadEnv = () =>
                         message: error instanceof Error ? error.message : 'Failed to construct DATABASE_URL',
                         path: ['DATABASE_URL']
                     });
+                    return z.NEVER;
+                }
+
+                const databaseTlsConflict = findDatabaseTlsConflict({
+                    ...env,
+                    DATABASE_URL: databaseUrl,
+                    NODE_TLS_REJECT_UNAUTHORIZED: process.env.NODE_TLS_REJECT_UNAUTHORIZED
+                });
+                if (databaseTlsConflict) {
+                    ctx.addIssue({ code: 'custom', message: databaseTlsConflict, path: ['DATABASE_URL'] });
                     return z.NEVER;
                 }
 
@@ -476,6 +518,90 @@ export function findTargetChainTypeConflict(env: {
     return undefined;
 }
 
+/** Outside `password` mode the provider supplies the credential, so a password left anywhere pg reads one is refused. */
+export function findDatabasePasswordConflict(env: {
+    DATABASE_AUTH: string;
+    DATABASE_URL?: string;
+    DATABASE_PASSWORD?: string;
+    PGPASSWORD?: string;
+}): { variable: string; message: string } | undefined {
+    if (env.DATABASE_AUTH === PASSWORD_DATABASE_AUTH) {
+        return undefined;
+    }
+    const reason = `DATABASE_AUTH=${env.DATABASE_AUTH} supplies the database credential, so a password here is one this deployment is not meant to hold`;
+    if (env.DATABASE_URL && databaseUrlCarriesPassword(env.DATABASE_URL)) {
+        return {
+            variable: 'DATABASE_URL',
+            message: `DATABASE_URL must not carry a password when ${reason}. Remove it; a URL whose sslcert, sslkey or sslrootcert cannot be read is refused too, as it cannot be checked.`
+        };
+    }
+    if (env.DATABASE_PASSWORD) {
+        return {
+            variable: 'DATABASE_PASSWORD',
+            message: `DATABASE_PASSWORD (or DATABASE_PASSWORD_FILE) must be unset when ${reason}.`
+        };
+    }
+    if (env.PGPASSWORD) {
+        return { variable: 'PGPASSWORD', message: `PGPASSWORD must be unset when ${reason}.` };
+    }
+    return undefined;
+}
+
+/**
+ * Outside `password` mode the credential travels as the connection password, so the connection must verify the
+ * server. The URL's SSL parameters win over the env pair, as pg lays the parsed URL over the pool config.
+ */
+export function findDatabaseTlsConflict(env: {
+    DATABASE_AUTH: string;
+    DATABASE_URL: string;
+    DATABASE_ENABLE_SSL: boolean;
+    DATABASE_SSL_REJECT_UNAUTHORIZED: boolean;
+    NODE_TLS_REJECT_UNAUTHORIZED?: string;
+}): string | undefined {
+    if (env.DATABASE_AUTH === PASSWORD_DATABASE_AUTH) {
+        return undefined;
+    }
+    // pg never sets `rejectUnauthorized` itself, so Node's process-wide default decides whether the server is verified.
+    if (env.NODE_TLS_REJECT_UNAUTHORIZED === '0') {
+        return `NODE_TLS_REJECT_UNAUTHORIZED=0 turns off server certificate checks for the whole process, so DATABASE_AUTH=${env.DATABASE_AUTH} would send its credential to an unverified server. Unset it.`;
+    }
+    const fix = `DATABASE_AUTH=${env.DATABASE_AUTH} sends its credential as the connection password, so the connection must verify the server: set sslmode=verify-full in DATABASE_URL, or leave SSL out of DATABASE_URL and set DATABASE_ENABLE_SSL=true and DATABASE_SSL_REJECT_UNAUTHORIZED=true`;
+    if (!/^postgres(ql)?:\/\//i.test(env.DATABASE_URL)) {
+        return `DATABASE_URL must be a postgres:// or postgresql:// URL, as pg applies no SSL parameter of a socket: URL and can connect without TLS. ${fix}.`;
+    }
+    let url: ReturnType<typeof parseConnectionString>;
+    try {
+        url = parseConnectionString(env.DATABASE_URL);
+    } catch {
+        return `DATABASE_URL cannot be parsed, so its TLS setting cannot be checked. ${fix}.`;
+    }
+    if (url.ssl === undefined) {
+        if (!env.DATABASE_ENABLE_SSL) {
+            return `DATABASE_URL names no SSL parameter and DATABASE_ENABLE_SSL=false, so connections are not encrypted. ${fix}.`;
+        }
+        if (!env.DATABASE_SSL_REJECT_UNAUTHORIZED) {
+            return `DATABASE_URL names no SSL parameter and DATABASE_SSL_REJECT_UNAUTHORIZED=false, so the server's certificate is not checked. ${fix}.`;
+        }
+        return undefined;
+    }
+    if (url.sslmode === 'verify-full') {
+        return undefined;
+    }
+    return `DATABASE_URL requests ${describeUrlTls(env.DATABASE_URL, url)}, which does not guarantee a verified server. ${fix}.`;
+}
+
+/** The SSL parameters in effect, as the operator wrote them; pg keeps the last of a repeated one. */
+function describeUrlTls(databaseUrl: string, url: ReturnType<typeof parseConnectionString>): string {
+    if (url.sslmode) {
+        return `sslmode=${url.sslmode}${url.uselibpqcompat === 'true' ? ' with uselibpqcompat=true' : ''}`;
+    }
+    const params = URL.canParse(databaseUrl) ? new URL(databaseUrl).searchParams : new URLSearchParams();
+    const named = ['ssl', 'sslcert', 'sslkey', 'sslrootcert', 'sslnegotiation'].filter((name) => params.has(name));
+    return named.length === 0
+        ? 'SSL parameters other than sslmode=verify-full'
+        : named.map((name) => `${name}=${params.getAll(name).at(-1)}`).join(', ');
+}
+
 /** True when the idle timeout is set and strictly exceeds the session cap (equal is allowed). */
 function isIdleTimeoutExceedsSessionCap(env: {
     USER_IDLE_TIMEOUT_SECONDS?: number;
@@ -501,6 +627,7 @@ function constructDatabaseUrl(env: {
     DATABASE_USER?: string;
     DATABASE_PASSWORD?: string;
     DATABASE_NAME?: string;
+    DATABASE_AUTH: string;
 }): string {
     if (env.DATABASE_URL) {
         return env.DATABASE_URL;
@@ -512,13 +639,18 @@ function constructDatabaseUrl(env: {
     const password = env.DATABASE_PASSWORD;
     const database = env.DATABASE_NAME;
 
-    if (!host || !username || !password || !database || !port) {
+    const passwordRequired = env.DATABASE_AUTH === PASSWORD_DATABASE_AUTH;
+
+    if (!host || !username || (passwordRequired && !password) || !database || !port) {
         throw new Error(
-            'Missing required database components. Either provide DATABASE_URL or all of: DATABASE_HOST, DATABASE_USER, DATABASE_PASSWORD, DATABASE_NAME, DATABASE_PORT'
+            `Missing required database components. Either provide DATABASE_URL or all of: DATABASE_HOST, DATABASE_USER, ${passwordRequired ? 'DATABASE_PASSWORD, ' : ''}DATABASE_NAME, DATABASE_PORT`
         );
     }
 
-    return `postgres://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${host}:${port}/${database}`;
+    const credentials = password
+        ? `${encodeURIComponent(username)}:${encodeURIComponent(password)}`
+        : encodeURIComponent(username);
+    return `postgres://${credentials}@${host}:${port}/${database}`;
 }
 
 export type Env = ReturnType<typeof loadEnv>;

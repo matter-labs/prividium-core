@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { parse } from 'dotenv';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+    findDatabasePasswordConflict,
+    findDatabaseTlsConflict,
     findTargetChainTypeConflict,
     loadEnv,
     shouldRequirePolicyAuthToken,
@@ -282,6 +284,293 @@ describe('secret files and the database URL (via loadEnv)', () => {
         expect(decodeURIComponent(url.username)).toBe('app@ops');
         expect(decodeURIComponent(url.password)).toBe('p/w#d?%41 x');
         expect(url.hostname).toBe('db.internal');
+    });
+
+    it('builds a password-less URL from the components when a provider supplies the credential', () => {
+        delete process.env.DATABASE_URL;
+        Object.assign(process.env, components, {
+            DATABASE_AUTH: 'iam-token',
+            DATABASE_ENABLE_SSL: 'true',
+            DATABASE_SSL_REJECT_UNAUTHORIZED: 'true'
+        });
+        expect(loadEnv().DATABASE_URL).toBe('postgres://app@db.internal:5432/prividium_api');
+    });
+
+    it('refuses a password read from DATABASE_PASSWORD_FILE outside password auth', () => {
+        Object.assign(process.env, {
+            DATABASE_AUTH: 'iam-token',
+            DATABASE_URL: 'postgres://app@db.internal:5432/prividium_api?sslmode=verify-full'
+        });
+        expect(() => loadEnv()).not.toThrow();
+        process.env.DATABASE_PASSWORD_FILE = secretFile('database-password', 'leftover\n');
+        expect(() => loadEnv()).toThrow();
+    });
+
+    it('refuses a password inside DATABASE_URL_FILE outside password auth', () => {
+        delete process.env.DATABASE_URL;
+        process.env.DATABASE_AUTH = 'iam-token';
+        process.env.DATABASE_URL_FILE = secretFile(
+            'database-url-without-password',
+            'postgres://app@db.internal:5432/prividium_api?sslmode=verify-full\n'
+        );
+        expect(() => loadEnv()).not.toThrow();
+        process.env.DATABASE_URL_FILE = secretFile(
+            'database-url-with-password',
+            'postgres://app:leftover@db.internal:5432/prividium_api?sslmode=verify-full\n'
+        );
+        expect(() => loadEnv()).toThrow();
+    });
+
+    it('still requires DATABASE_PASSWORD with the components under password auth', () => {
+        delete process.env.DATABASE_URL;
+        Object.assign(process.env, components);
+        expect(() => loadEnv()).toThrow();
+    });
+});
+
+describe('database auth and connection lifetime (via loadEnv)', () => {
+    const ORIGINAL_ENV = process.env;
+    const PASSWORDLESS_URL = 'postgres://app@db.internal:5432/prividium_api?sslmode=verify-full';
+
+    beforeEach(() => {
+        process.env = { ...EXAMPLE_ENV };
+    });
+
+    afterEach(() => {
+        process.env = ORIGINAL_ENV;
+    });
+
+    it('defaults to password auth and a 30-minute connection lifetime', () => {
+        delete process.env.DATABASE_AUTH;
+        delete process.env.DATABASE_MAX_CONNECTION_LIFETIME_SECONDS;
+        const env = loadEnv();
+        expect(env.DATABASE_AUTH).toBe('password');
+        expect(env.DATABASE_MAX_CONNECTION_LIFETIME_SECONDS).toBe(1800);
+    });
+
+    it('reads the connection lifetime, where 0 disables recycling and blank keeps the default', () => {
+        process.env.DATABASE_MAX_CONNECTION_LIFETIME_SECONDS = '0';
+        expect(loadEnv().DATABASE_MAX_CONNECTION_LIFETIME_SECONDS).toBe(0);
+        process.env.DATABASE_MAX_CONNECTION_LIFETIME_SECONDS = '';
+        expect(loadEnv().DATABASE_MAX_CONNECTION_LIFETIME_SECONDS).toBe(1800);
+    });
+
+    it('refuses a negative connection lifetime', () => {
+        process.env.DATABASE_MAX_CONNECTION_LIFETIME_SECONDS = '-1';
+        expect(() => loadEnv()).toThrow();
+    });
+
+    it('caps the connection lifetime at the longest timer Node schedules', () => {
+        process.env.DATABASE_MAX_CONNECTION_LIFETIME_SECONDS = '2147483';
+        expect(loadEnv().DATABASE_MAX_CONNECTION_LIFETIME_SECONDS).toBe(2_147_483);
+        process.env.DATABASE_MAX_CONNECTION_LIFETIME_SECONDS = '2147484';
+        expect(() => loadEnv()).toThrow();
+    });
+
+    it('accepts a mode it does not know, leaving boot to find the provider that claims it', () => {
+        Object.assign(process.env, { DATABASE_AUTH: 'iam-token', DATABASE_URL: PASSWORDLESS_URL });
+        expect(loadEnv()).toMatchObject({ DATABASE_AUTH: 'iam-token', DATABASE_URL: PASSWORDLESS_URL });
+    });
+
+    it.each([
+        [
+            'a password in DATABASE_URL',
+            { DATABASE_URL: 'postgres://app:leftover@db.internal:5432/prividium_api?sslmode=verify-full' }
+        ],
+        ['DATABASE_PASSWORD', { DATABASE_URL: PASSWORDLESS_URL, DATABASE_PASSWORD: 'leftover' }],
+        ['PGPASSWORD', { DATABASE_URL: PASSWORDLESS_URL, PGPASSWORD: 'leftover' }]
+    ])('refuses %s outside password auth', (_leftover, vars) => {
+        Object.assign(process.env, { DATABASE_AUTH: 'iam-token', ...vars });
+        expect(() => loadEnv()).toThrow();
+    });
+
+    it('leaves every password alone under password auth', () => {
+        Object.assign(process.env, { DATABASE_PASSWORD: 'unused', PGPASSWORD: 'unused' });
+        expect(loadEnv().DATABASE_URL).toBe(EXAMPLE_ENV.DATABASE_URL);
+    });
+});
+
+describe('findDatabasePasswordConflict', () => {
+    const PASSWORDLESS_URL = 'postgres://app@db.internal:5432/prividium_api';
+    const REASON = 'DATABASE_AUTH=iam-token supplies the database credential';
+
+    it('finds nothing under password auth, wherever a password sits', () => {
+        expect(
+            findDatabasePasswordConflict({
+                DATABASE_AUTH: 'password',
+                DATABASE_URL: 'postgres://app:secret@db/app',
+                DATABASE_PASSWORD: 'secret',
+                PGPASSWORD: 'secret'
+            })
+        ).toBeUndefined();
+    });
+
+    it('finds nothing when a provider mode has no password anywhere', () => {
+        expect(
+            findDatabasePasswordConflict({ DATABASE_AUTH: 'iam-token', DATABASE_URL: PASSWORDLESS_URL })
+        ).toBeUndefined();
+    });
+
+    it.each([
+        ['userinfo', 'postgres://app:leftover@db.internal:5432/prividium_api'],
+        ['the query string', 'postgres://app@db.internal:5432/prividium_api?password=leftover'],
+        ['an unreadable sslrootcert', 'postgres://app@db.internal:5432/prividium_api?sslrootcert=/nonexistent/ca.pem']
+    ])('refuses DATABASE_URL carrying a password in %s', (_where, url) => {
+        const conflict = findDatabasePasswordConflict({ DATABASE_AUTH: 'iam-token', DATABASE_URL: url });
+        expect(conflict?.variable).toBe('DATABASE_URL');
+        expect(conflict?.message).toContain('DATABASE_URL must not carry a password');
+        expect(conflict?.message).toContain(REASON);
+    });
+
+    it('refuses DATABASE_PASSWORD', () => {
+        const conflict = findDatabasePasswordConflict({
+            DATABASE_AUTH: 'iam-token',
+            DATABASE_URL: PASSWORDLESS_URL,
+            DATABASE_PASSWORD: 'leftover'
+        });
+        expect(conflict?.variable).toBe('DATABASE_PASSWORD');
+        expect(conflict?.message).toContain('DATABASE_PASSWORD (or DATABASE_PASSWORD_FILE) must be unset');
+        expect(conflict?.message).toContain(REASON);
+    });
+
+    it('refuses PGPASSWORD', () => {
+        const conflict = findDatabasePasswordConflict({
+            DATABASE_AUTH: 'iam-token',
+            DATABASE_URL: PASSWORDLESS_URL,
+            PGPASSWORD: 'leftover'
+        });
+        expect(conflict?.variable).toBe('PGPASSWORD');
+        expect(conflict?.message).toContain('PGPASSWORD must be unset');
+        expect(conflict?.message).toContain(REASON);
+    });
+});
+
+describe('findDatabaseTlsConflict', () => {
+    const at = (query: string) => `postgres://app@db.internal:5432/prividium_api${query}`;
+    const verifiedEnv = { DATABASE_ENABLE_SSL: true, DATABASE_SSL_REJECT_UNAUTHORIZED: true };
+    const conflict = (url: string, env = { DATABASE_ENABLE_SSL: false, DATABASE_SSL_REJECT_UNAUTHORIZED: false }) =>
+        findDatabaseTlsConflict({ DATABASE_AUTH: 'iam-token', DATABASE_URL: url, ...env });
+
+    it('checks nothing under password auth', () => {
+        expect(
+            findDatabaseTlsConflict({
+                DATABASE_AUTH: 'password',
+                DATABASE_URL: at('?sslmode=disable'),
+                DATABASE_ENABLE_SSL: false,
+                DATABASE_SSL_REJECT_UNAUTHORIZED: false
+            })
+        ).toBeUndefined();
+    });
+
+    it('accepts sslmode=verify-full, whatever the env pair says', () => {
+        expect(conflict(at('?sslmode=verify-full'))).toBeUndefined();
+        expect(conflict(at('?uselibpqcompat=true&sslmode=verify-full'))).toBeUndefined();
+    });
+
+    it('accepts sslmode=verify-full with an sslrootcert', () => {
+        const dir = mkdtempSync(join(tmpdir(), 'env-tls-'));
+        try {
+            const ca = join(dir, 'ca.pem');
+            writeFileSync(ca, 'not parsed here');
+            expect(conflict(at(`?sslmode=verify-full&sslrootcert=${ca}`))).toBeUndefined();
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
+    });
+
+    it('accepts a URL with no SSL parameter when the env pair verifies the server', () => {
+        expect(conflict(at(''), verifiedEnv)).toBeUndefined();
+    });
+
+    it.each([
+        ['?sslmode=disable', 'sslmode=disable'],
+        ['?sslmode=no-verify', 'sslmode=no-verify'],
+        ['?ssl=0', 'ssl=0'],
+        ['?uselibpqcompat=true&sslmode=require', 'sslmode=require with uselibpqcompat=true'],
+        ['?uselibpqcompat=true&sslmode=prefer', 'sslmode=prefer with uselibpqcompat=true'],
+        ['?sslmode=require', 'sslmode=require'],
+        ['?sslmode=prefer', 'sslmode=prefer'],
+        ['?sslmode=verify-ca', 'sslmode=verify-ca'],
+        ['?sslmode=verify-full&sslmode=disable', 'sslmode=disable']
+    ])('refuses %s, naming the effective setting', (query, effective) => {
+        // Even beside an env pair that would verify: the URL's setting is the one pg uses.
+        const message = conflict(at(query), verifiedEnv);
+        expect(message).toContain(`DATABASE_URL requests ${effective}, which does not guarantee a verified server`);
+        expect(message).toContain('set sslmode=verify-full in DATABASE_URL');
+    });
+
+    it('refuses a socket: URL, whose SSL parameters pg does not apply', () => {
+        expect(
+            conflict('socket:db.internal?db=prividium_api&user=app&ssl=1&sslmode=verify-full', verifiedEnv)
+        ).toContain('DATABASE_URL must be a postgres:// or postgresql:// URL');
+    });
+
+    it('refuses NODE_TLS_REJECT_UNAUTHORIZED=0, which unverifies even sslmode=verify-full', () => {
+        const refused = (value: string | undefined) =>
+            findDatabaseTlsConflict({
+                DATABASE_AUTH: 'iam-token',
+                DATABASE_URL: at('?sslmode=verify-full'),
+                ...verifiedEnv,
+                NODE_TLS_REJECT_UNAUTHORIZED: value
+            });
+        expect(refused('0')).toContain('NODE_TLS_REJECT_UNAUTHORIZED=0 turns off server certificate checks');
+        expect(refused('1')).toBeUndefined();
+        expect(refused(undefined)).toBeUndefined();
+        expect(
+            findDatabaseTlsConflict({
+                DATABASE_AUTH: 'password',
+                DATABASE_URL: at(''),
+                ...verifiedEnv,
+                NODE_TLS_REJECT_UNAUTHORIZED: '0'
+            })
+        ).toBeUndefined();
+    });
+
+    it('accepts the postgresql: scheme', () => {
+        expect(conflict(at('?sslmode=verify-full').replace('postgres:', 'postgresql:'))).toBeUndefined();
+    });
+
+    it('refuses uselibpqcompat=true with sslmode=verify-ca', () => {
+        // pg refuses to parse verify-ca without an sslrootcert under libpq semantics, and with one it skips the hostname.
+        const dir = mkdtempSync(join(tmpdir(), 'env-tls-'));
+        try {
+            const ca = join(dir, 'ca.pem');
+            writeFileSync(ca, 'not parsed here');
+            expect(conflict(at(`?uselibpqcompat=true&sslmode=verify-ca&sslrootcert=${ca}`), verifiedEnv)).toContain(
+                'DATABASE_URL requests sslmode=verify-ca with uselibpqcompat=true'
+            );
+            expect(conflict(at('?uselibpqcompat=true&sslmode=verify-ca'), verifiedEnv)).toContain(
+                'DATABASE_URL cannot be parsed'
+            );
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
+    });
+
+    it('refuses no SSL parameter with DATABASE_ENABLE_SSL=false', () => {
+        expect(conflict(at(''), { DATABASE_ENABLE_SSL: false, DATABASE_SSL_REJECT_UNAUTHORIZED: true })).toContain(
+            'DATABASE_URL names no SSL parameter and DATABASE_ENABLE_SSL=false'
+        );
+    });
+
+    it('refuses no SSL parameter with DATABASE_SSL_REJECT_UNAUTHORIZED=false', () => {
+        expect(conflict(at(''), { DATABASE_ENABLE_SSL: true, DATABASE_SSL_REJECT_UNAUTHORIZED: false })).toContain(
+            'DATABASE_URL names no SSL parameter and DATABASE_SSL_REJECT_UNAUTHORIZED=false'
+        );
+    });
+
+    it('is enforced by loadEnv', () => {
+        const ORIGINAL_ENV = process.env;
+        process.env = { ...EXAMPLE_ENV, DATABASE_AUTH: 'iam-token', DATABASE_URL: at('?sslmode=require') };
+        try {
+            expect(() => loadEnv()).toThrow();
+            process.env.DATABASE_URL = at('?sslmode=verify-full');
+            expect(() => loadEnv()).not.toThrow();
+            process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+            expect(() => loadEnv()).toThrow();
+        } finally {
+            process.env = ORIGINAL_ENV;
+        }
     });
 });
 

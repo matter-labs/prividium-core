@@ -1,5 +1,11 @@
 import { setTimeout as sleep } from 'node:timers/promises';
-import { type FeaturePermission, type PoolState, poolState, type RpcObserverFactory } from '@repo/api-kit';
+import {
+    type DatabaseCredentials,
+    type FeaturePermission,
+    type PoolState,
+    poolState,
+    type RpcObserverFactory
+} from '@repo/api-kit';
 import * as Sentry from '@sentry/node';
 import closeWithGrace from 'close-with-grace';
 import type { Pool } from 'pg';
@@ -8,6 +14,7 @@ import { buildPolicyApp, type PolicyAppConfig } from './build-policy-app';
 import { RepositoriesCoreFacts } from './core-facts/repositories-core-facts';
 import { createDb, runWithJobContext } from './db';
 import { auditAudienceIndexIsValid } from './db/audit-audience-index';
+import { resolveDatabaseConnection } from './db/credentials';
 import { runMigrations } from './db/migrate';
 import { envHasCryptoNativeAuthMethod, loadEnv } from './env';
 import { findAuthorizerConflict } from './feature-host/feature-conflicts';
@@ -65,24 +72,12 @@ if (env.SENTRY_DSN) {
     });
 }
 
-const db = createDb(
-    env.DATABASE_URL,
-    logger,
-    env.DATABASE_ENABLE_SSL,
-    env.DATABASE_SSL_REJECT_UNAUTHORIZED,
-    env.DB_QUERY_TIMEOUT_MS,
-    env.DB_STATEMENT_TIMEOUT_MS,
-    env.DB_POOL_MAX_CONNECTIONS,
-    env.DB_POOL_CONNECTION_TIMEOUT_MS,
-    { onQuery: (ms, outcome) => dbQueryDuration.observe({ outcome }, ms / 1000) }
-);
-
 const DB_POOL_GAUGE_INTERVAL_MS = 5_000;
 /** Budget for closing the servers and the DB pool after the drain. */
 const SHUTDOWN_CLOSE_MS = 5_000;
 
-function observeDbPool(): void {
-    const pool = poolState(db.$client);
+function observeDbPool(dbPool: Pool): void {
+    const pool = poolState(dbPool);
     const connections: Record<keyof PoolState, number> = {
         max: pool.max,
         total: pool.total,
@@ -112,6 +107,8 @@ export type ServiceFeatures = {
     sequencerAuthorizerFor?: PolicyAppConfig['sequencerAuthorizerFor'];
     /** After this service's: a feature's tables may reference the core's. */
     runFeatureMigrations?: (pool: Pool) => Promise<void>;
+    /** Connects the pool when DATABASE_AUTH names its mode. */
+    databaseCredentials?: DatabaseCredentials;
 };
 
 const MIGRATION_ADVISORY_LOCK_ID = 0x91620;
@@ -147,6 +144,25 @@ export async function start(features: ServiceFeatures = {}) {
     const deps = buildServerDeps(env);
     // Before migrations, so a bad declaration fails the boot before it touches the database.
     const permissionCatalog = new PermissionCatalog(features.featurePermissions);
+
+    // Before migrations, so a credential that cannot authenticate fails the boot naming its own cause.
+    const connection = await resolveDatabaseConnection(
+        env.DATABASE_AUTH,
+        { databaseUrl: env.DATABASE_URL, connectionTimeoutMs: env.DB_POOL_CONNECTION_TIMEOUT_MS },
+        features.databaseCredentials
+    );
+    const db = createDb(
+        connection,
+        logger,
+        env.DATABASE_ENABLE_SSL,
+        env.DATABASE_SSL_REJECT_UNAUTHORIZED,
+        env.DB_QUERY_TIMEOUT_MS,
+        env.DB_STATEMENT_TIMEOUT_MS,
+        env.DB_POOL_MAX_CONNECTIONS,
+        env.DB_POOL_CONNECTION_TIMEOUT_MS,
+        { onQuery: (ms, outcome) => dbQueryDuration.observe({ outcome }, ms / 1000) },
+        env.DATABASE_MAX_CONNECTION_LIFETIME_SECONDS
+    );
 
     if (env.NODE_ENV === 'production') {
         await withMigrationLock(db.$client, async () => {
@@ -336,7 +352,7 @@ export async function start(features: ServiceFeatures = {}) {
 
     await metricsServer.listen(env.METRICS_PORT);
     logger.info(`Metrics server listening on port ${env.METRICS_PORT}`);
-    const dbPoolGaugeTimer = setInterval(observeDbPool, DB_POOL_GAUGE_INTERVAL_MS);
+    const dbPoolGaugeTimer = setInterval(() => observeDbPool(db.$client), DB_POOL_GAUGE_INTERVAL_MS);
     dbPoolGaugeTimer.unref();
 
     const shutdownDelayMs = env.SHUTDOWN_DRAIN_MS + SHUTDOWN_CLOSE_MS;
