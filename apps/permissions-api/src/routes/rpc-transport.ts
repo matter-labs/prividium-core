@@ -4,7 +4,7 @@ import type { ZodType } from 'zod/v4';
 import type { FastifyServer } from '../build-app';
 import { rpcErrorHandler } from '../rpc/error-handler';
 import { InvalidRpcRequest } from '../rpc/errors';
-import { type JsonRpcResponse, requestOrBatch } from '../rpc/json-rpc';
+import { assertBatchWithinLimit, type JsonRpcResponse, requestOrBatch } from '../rpc/json-rpc';
 import { rpcReqSchema } from '../rpc/rpc-service';
 import type { PinoLogger } from '../utils/logger';
 
@@ -37,10 +37,11 @@ export function rpcTransport(app: FastifyServer, options: RpcTransportOptions): 
     app.decorateRequest('rpcRequestId', '');
 
     app.addHook('preValidation', async (request) => {
+        request.setDecorator('rpcRequestId', null);
+        assertBatchWithinLimit(request.body);
         const parsed = requestOrBatch.safeParse(request.body);
         if (!parsed.success) {
-            request.setDecorator('rpcRequestId', null);
-            throw new InvalidRpcRequest('Bad rpc request', parsed.error.message);
+            throw new InvalidRpcRequest('Bad rpc request');
         }
 
         request.setDecorator('rpcRequestId', Array.isArray(parsed.data) ? 'unknown' : parsed.data.id);

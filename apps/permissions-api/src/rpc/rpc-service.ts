@@ -8,7 +8,13 @@ import { INTERNAL_RPC_ERROR } from './constants';
 import type { DeploymentContext } from './contract-deployment-context';
 import { ForbiddenRpcError, InvalidRpcRequest, RpcException, WrongArguments } from './errors';
 import { FilteredReadRpcError } from './filtered-read-error';
-import { errorResponse, type JsonRpcResponse, MAX_RPC_BATCH_SIZE } from './json-rpc';
+import {
+    assertBatchWithinLimit,
+    errorResponse,
+    type JsonRpcResponse,
+    rpcMethodNameSchema,
+    rpcRequestIdSchema
+} from './json-rpc';
 import { createBaseRpcMethodList } from './methods/base-rpc-method-list';
 import type { DispatcherConfig } from './methods/dispatchers';
 import { methodNotFound } from './methods/generic-handlers';
@@ -24,9 +30,9 @@ import type { ServiceAuthorizer } from './permissions/service-authorizer';
 import type { ExternalRpc } from './target-rpc';
 
 export const rpcReqSchema = z.object({
-    id: z.union([z.number(), z.string()]),
+    id: rpcRequestIdSchema,
     jsonrpc: z.literal('2.0'),
-    method: z.string(),
+    method: rpcMethodNameSchema,
     params: z.array(z.any()).optional().default([])
 });
 
@@ -78,7 +84,7 @@ export interface MethodHandler<Ctx, TSchema extends z.ZodType> {
 }
 
 export class RpcCallHandler<Ctx extends BaseContext> {
-    private handlers: Record<string, MethodHandler<Ctx, z.ZodType>>;
+    private handlers: Map<string, MethodHandler<Ctx, z.ZodType>>;
     private defaultHandler: MethodHandler<Ctx, z.ZodType>;
     private context: Ctx;
 
@@ -88,10 +94,7 @@ export class RpcCallHandler<Ctx extends BaseContext> {
         defaultHandler: MethodHandler<Ctx, z.ZodType> = methodNotFound('unknown')
     ) {
         this.context = context;
-        this.handlers = handlers.reduce<Record<string, MethodHandler<Ctx, z.ZodType>>>((acum, current) => {
-            acum[current.name] = current;
-            return acum;
-        }, {});
+        this.handlers = new Map(handlers.map((handler) => [handler.name, handler]));
         this.defaultHandler = defaultHandler;
     }
 
@@ -101,9 +104,7 @@ export class RpcCallHandler<Ctx extends BaseContext> {
             if (rawBody.length === 0) {
                 throw new InvalidRpcRequest();
             }
-            if (rawBody.length > MAX_RPC_BATCH_SIZE) {
-                throw new InvalidRpcRequest(`Batch too large: at most ${MAX_RPC_BATCH_SIZE} requests per batch`);
-            }
+            assertBatchWithinLimit(rawBody);
             const responses = await Promise.all(rawBody.map(async (item) => this.handleSingleRequest(item)));
             await this.context.rpcObserver?.flush();
             return responses;
@@ -118,7 +119,7 @@ export class RpcCallHandler<Ctx extends BaseContext> {
     private async handleSingleRequest(request: unknown): Promise<JsonRpcResponse> {
         const startedAt = Date.now();
         const parsed = rpcReqSchema.safeParse(request);
-        const method = parsed.data?.method ?? 'unknown';
+        const method = this.meteredMethodName(parsed.data?.method);
         try {
             const response = await this.respond(parsed);
             observeOperation(method, 'error' in response ? response.error.code : 0, startedAt);
@@ -159,7 +160,12 @@ export class RpcCallHandler<Ctx extends BaseContext> {
                         'RPC permission denied'
                     );
                     if (this.context.rpcObserver) {
-                        this.context.rpcObserver.recordDenial({ method, params, error: e });
+                        // The observer labels a metric by this name; keep it inside the registered set.
+                        this.context.rpcObserver.recordDenial({
+                            method: this.meteredMethodName(method),
+                            params,
+                            error: e
+                        });
                     }
                 } else if (e instanceof FilteredReadRpcError) {
                     this.context.logger.error({
@@ -206,8 +212,14 @@ export class RpcCallHandler<Ctx extends BaseContext> {
         }
     }
 
+    // Only a registered name may become a metric label: any other value is client-chosen and
+    // would pin a new series for the life of the process.
+    private meteredMethodName(method: string | undefined): string {
+        return method !== undefined && this.handlers.has(method) ? method : 'unknown';
+    }
+
     private async tryCall(method: string, params: unknown[] = [], id: number | string) {
-        const handler = this.handlers[method] ?? this.defaultHandler;
+        const handler = this.handlers.get(method) ?? this.defaultHandler;
 
         const validated = handler.paramsSchema.safeParse(params);
         if (!validated.success) {
@@ -228,7 +240,7 @@ export class RpcCallHandler<Ctx extends BaseContext> {
         return new RpcCallHandler(
             [fullSequencerAccessBroadcastTx, fullSequencerAccessEthCall, ...bundlerMethods, ...disclosureMethods],
             context,
-            requireFullSequencerAccess('default')
+            requireFullSequencerAccess('unknown')
         );
     }
 

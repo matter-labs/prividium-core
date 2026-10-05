@@ -12,7 +12,7 @@ import {
     METHOD_NOT_FOUND_ERROR_CODE
 } from './constants';
 import { ForbiddenRpcError, InvalidRpcRequest, WrongArguments } from './errors';
-import { MAX_RPC_BATCH_SIZE } from './json-rpc';
+import { MAX_RPC_BATCH_SIZE, MAX_RPC_METHOD_NAME_LENGTH, MAX_RPC_REQUEST_ID_LENGTH } from './json-rpc';
 import { eth_getBlockReceipts } from './methods/handlers/eth_getBlockReceipts';
 import { eth_getLogs } from './methods/handlers/eth_getLogs';
 import { eth_getTransactionByHash } from './methods/handlers/eth_getTransactionByHash';
@@ -295,7 +295,7 @@ describe('RpcCallHandler per-operation metrics', () => {
             .reduce((total, value) => total + value.value, 0);
     }
 
-    it('counts each operation of a batch with its own JSON-RPC code', async () => {
+    it('counts each operation of a batch with its own JSON-RPC code, unregistered names as `unknown`', async () => {
         const handler: MethodHandler<AuthorizedRpcContext, AnyParams> = {
             name: 'open_method',
             paramsSchema: anyParams,
@@ -305,11 +305,97 @@ describe('RpcCallHandler per-operation metrics', () => {
         const rpc = new RpcCallHandler([handler], context);
 
         const successBefore = await operationsCounted('open_method', 0);
-        const notFoundBefore = await operationsCounted('does_not_exist', METHOD_NOT_FOUND_ERROR_CODE);
+        const notFoundBefore = await operationsCounted('unknown', METHOD_NOT_FOUND_ERROR_CODE);
 
         await rpc.handle([jsonRpcRequest('open_method', [], 1), jsonRpcRequest('does_not_exist', [], 2)]);
 
         expect(await operationsCounted('open_method', 0)).toBe(successBefore + 1);
-        expect(await operationsCounted('does_not_exist', METHOD_NOT_FOUND_ERROR_CODE)).toBe(notFoundBefore + 1);
+        expect(await operationsCounted('unknown', METHOD_NOT_FOUND_ERROR_CODE)).toBe(notFoundBefore + 1);
+    });
+});
+
+describe('RpcCallHandler metric label cardinality', () => {
+    async function methodLabels(): Promise<Set<string>> {
+        const { values } = await jsonRpcOperationCounter.get();
+        return new Set(values.map((value) => String(value.labels.method)));
+    }
+
+    async function unknownNotFoundCounted(): Promise<number> {
+        const { values } = await jsonRpcOperationCounter.get();
+        return values
+            .filter(
+                (value) => value.labels.method === 'unknown' && value.labels.status_code === METHOD_NOT_FOUND_ERROR_CODE
+            )
+            .reduce((total, value) => total + value.value, 0);
+    }
+
+    it('reports every unregistered method name as `unknown`', async () => {
+        const rpc = new RpcCallHandler([], makeContext());
+        const labelsBefore = await methodLabels();
+        const unknownBefore = await unknownNotFoundCounted();
+        const names = Array.from({ length: 50 }, (_, i) => `made_up_${i}_${Date.now()}`);
+
+        await rpc.handle(names.map((method, i) => jsonRpcRequest(method, [], i)));
+
+        const added = [...(await methodLabels())].filter((label) => !labelsBefore.has(label));
+        expect(added.filter((label) => label !== 'unknown')).toEqual([]);
+        expect(await unknownNotFoundCounted()).toBe(unknownBefore + names.length);
+    });
+
+    it('forwards an unregistered method for full sequencer access under the `unknown` upstream label', async () => {
+        const delegate = vi.fn().mockResolvedValue({ jsonrpc: '2.0', id: 1, result: '0x1' });
+        const context = {
+            ...makeContext(),
+            targetRpc: { delegate } as never,
+            authorizer: { hasFullSequencerAccess: async () => true } as never
+        };
+        const rpc = RpcCallHandler.forFullAccess(context);
+
+        await rpc.handle(jsonRpcRequest('made_up_method', ['0x1']));
+
+        expect(delegate).toHaveBeenCalledWith(1, 'made_up_method', ['0x1'], 'unknown');
+    });
+
+    it('reports a denial from the full-access passthrough as `unknown`, not as the client name', async () => {
+        const recordDenial = vi.fn();
+        const context = {
+            ...makeContext(),
+            targetRpc: { delegate: vi.fn() } as never,
+            authorizer: { hasFullSequencerAccess: async () => false } as never,
+            rpcObserver: { recordDenial, flush: async () => {} } as never
+        };
+        const rpc = RpcCallHandler.forFullAccess(context);
+
+        const result = await rpc.handle(jsonRpcRequest('made_up_method', []));
+
+        expect(result).toMatchObject({ error: { code: FORBIDDEN_ERROR_CODE } });
+        expect(recordDenial).toHaveBeenCalledWith(expect.objectContaining({ method: 'unknown' }));
+    });
+
+    it('treats prototype member names as unregistered methods', async () => {
+        const rpc = new RpcCallHandler([], makeContext());
+
+        for (const method of ['constructor', '__proto__', 'toString', 'hasOwnProperty', 'valueOf']) {
+            const result = await rpc.handle(jsonRpcRequest(method, []));
+            expect(result).toMatchObject({ error: { code: METHOD_NOT_FOUND_ERROR_CODE } });
+        }
+    });
+
+    it('rejects an oversized method name or request id before dispatch', async () => {
+        const handle = vi.fn();
+        const handler: MethodHandler<AuthorizedRpcContext, AnyParams> = {
+            name: 'open_method',
+            paramsSchema: anyParams,
+            handle
+        };
+        const rpc = new RpcCallHandler([handler], makeContext());
+        const oversizedName = 'x'.repeat(MAX_RPC_METHOD_NAME_LENGTH + 1);
+        const oversizedId = 'x'.repeat(MAX_RPC_REQUEST_ID_LENGTH + 1);
+
+        await expect(rpc.handle(jsonRpcRequest(oversizedName, []))).rejects.toBeInstanceOf(InvalidRpcRequest);
+        await expect(rpc.handle(jsonRpcRequest('open_method', [], oversizedId))).rejects.toBeInstanceOf(
+            InvalidRpcRequest
+        );
+        expect(handle).not.toHaveBeenCalled();
     });
 });

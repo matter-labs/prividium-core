@@ -189,10 +189,12 @@ export async function submitRawTransactionUpstream(
 
 export interface ExternalRpc {
     readonly chainType: TargetChainType;
+    /** `metricMethod` is the upstream metric's label; pass the handler's registered name when `method` is client-chosen. */
     delegate(
         id: JsonRpcRequest['id'],
         method: JsonRpcRequest['method'],
-        params: JsonRpcRequest['params']
+        params: JsonRpcRequest['params'],
+        metricMethod?: string
     ): Promise<JsonRpcResponse>;
     /**
      * On zksync-os submits via `eth_sendRawTransactionSync` (reshaped to a
@@ -250,10 +252,11 @@ export class TargetRpc implements ExternalRpc {
     async delegate(
         id: JsonRpcRequest['id'],
         method: JsonRpcRequest['method'],
-        params: JsonRpcRequest['params']
+        params: JsonRpcRequest['params'],
+        metricMethod: string = method
     ): Promise<JsonRpcResponse> {
         const body = JSON.stringify(request({ id, method, params }));
-        const parsed = await this.observeUpstream(method, async () => {
+        const parsed = await this.observeUpstream(metricMethod, async () => {
             const res = await this.rawDelegate(body);
 
             // you can't just use response.body, which would be much faster

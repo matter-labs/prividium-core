@@ -298,6 +298,19 @@ describe('upstream RPC duration metric', () => {
         expect(await observations('eth_chainId', 'ok')).toBe(before + 1);
     });
 
+    it('delegate observes under the metric label it was given, not the forwarded method', async () => {
+        vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+            new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, result: '0x1' }))
+        );
+        const rpc = new TargetRpc('http://unused', 'zksync-os');
+        const before = await observations('unknown', 'ok');
+
+        await rpc.delegate(1, 'made_up_method', [], 'unknown');
+
+        expect(await observations('unknown', 'ok')).toBe(before + 1);
+        expect(await observations('made_up_method', 'ok')).toBe(0);
+    });
+
     it('send observes rpc_error on a JSON-RPC error envelope', async () => {
         vi.spyOn(globalThis, 'fetch').mockResolvedValue(
             new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, error: { code: 4, message: 'timeout' } }))

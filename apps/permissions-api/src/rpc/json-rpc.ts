@@ -1,5 +1,6 @@
 import { type ZodType, z } from 'zod/v4';
 import { INVALID_REQUEST_ERROR_CODE, METHOD_NOT_FOUND_ERROR_CODE } from './constants';
+import { InvalidRpcRequest } from './errors';
 
 export type JsonRpcRequest = {
     jsonrpc: '2.0';
@@ -98,10 +99,16 @@ export function bundlerNotEnabledResponse(id: JsonRpcResponse['id']): JsonRpcRes
     });
 }
 
+// Caps what a request can put into logs, responses and metric labels; real method names are under 50 chars.
+export const MAX_RPC_METHOD_NAME_LENGTH = 128;
+export const MAX_RPC_REQUEST_ID_LENGTH = 128;
+export const rpcMethodNameSchema = z.string().max(MAX_RPC_METHOD_NAME_LENGTH);
+export const rpcRequestIdSchema = z.union([z.string().max(MAX_RPC_REQUEST_ID_LENGTH), z.number()]);
+
 export const rpcRequestSchema = z.object({
-    id: z.union([z.string(), z.number()]),
+    id: rpcRequestIdSchema,
     jsonrpc: z.literal('2.0'),
-    method: z.string(),
+    method: rpcMethodNameSchema,
     params: z.array(z.unknown()).optional()
 });
 
@@ -109,3 +116,10 @@ export const requestOrBatch = z.union([rpcRequestSchema, rpcRequestSchema.array(
 
 // Rate limiting is per request, so batch items are otherwise unmetered. 1000 matches geth's default.
 export const MAX_RPC_BATCH_SIZE = 1000;
+
+// An O(1) gate to run before any per-item work: validating an unbounded array costs time and heap per item.
+export function assertBatchWithinLimit(body: unknown): void {
+    if (Array.isArray(body) && body.length > MAX_RPC_BATCH_SIZE) {
+        throw new InvalidRpcRequest(`Batch too large: at most ${MAX_RPC_BATCH_SIZE} requests per batch`);
+    }
+}

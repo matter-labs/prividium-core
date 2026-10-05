@@ -15,6 +15,11 @@ export type { Counter, Histogram };
 
 export const HTTP_REQUEST_DURATION_BUCKETS = [0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 30, 60];
 
+/** Keeps a caller-supplied label value inside a fixed set so the metric's series count stays bounded. */
+export function boundedLabelValue(allowed: ReadonlySet<string>, value: string, fallback: string): string {
+    return allowed.has(value) ? value : fallback;
+}
+
 declare module 'fastify' {
     interface FastifyRequest {
         metricsStartTime: number;

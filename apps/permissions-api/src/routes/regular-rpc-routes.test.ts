@@ -3,7 +3,8 @@ import { serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fas
 import pino from 'pino';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { FastifyServer } from '../build-app';
-import { METHOD_NOT_FOUND_ERROR_CODE, UNAUTHORIZED_ERROR_CODE } from '../rpc/constants';
+import { INVALID_REQUEST_ERROR_CODE, METHOD_NOT_FOUND_ERROR_CODE, UNAUTHORIZED_ERROR_CODE } from '../rpc/constants';
+import { MAX_RPC_BATCH_SIZE } from '../rpc/json-rpc';
 import type { Authorizer } from '../rpc/permissions';
 import type { ExternalRpc } from '../rpc/target-rpc';
 import { UnauthorizedError } from '../utils/error-types';
@@ -153,5 +154,59 @@ describe('regularRpcRoutes optional capabilities', () => {
 
         expect(response.statusCode).toBe(200);
         expect(response.json()).toMatchObject({ id: 1, error: bundlerDisabled });
+    });
+});
+
+describe('regularRpcRoutes batch validation', () => {
+    const invalidRequest = { code: INVALID_REQUEST_ERROR_CODE };
+
+    function registerRoutes(): FastifyServer {
+        const app = buildTestApp();
+        app.register(regularRpcRoutes, {
+            prefix: '/rpc',
+            preHandler: async () => {},
+            buildContext: () => ({
+                targetRpc: { chainType: 'besu', delegate: vi.fn() } as unknown as ExternalRpc,
+                authorizer: { hasFullSequencerAccess: async () => false } as unknown as Authorizer
+            }),
+            publicCodeAddresses: [],
+            disclosureMethodsEnabled: false
+        });
+        return app;
+    }
+
+    function emptyBatch(length: number): Record<string, never>[] {
+        return Array.from({ length }, () => ({}));
+    }
+
+    it('rejects a batch over the size limit before validating its items', async () => {
+        const app = registerRoutes();
+
+        const response = await app.inject({ method: 'POST', url: '/rpc', payload: emptyBatch(MAX_RPC_BATCH_SIZE + 1) });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.json()).toMatchObject({
+            error: { ...invalidRequest, message: `Batch too large: at most ${MAX_RPC_BATCH_SIZE} requests per batch` }
+        });
+    });
+
+    it('still validates a batch at the size limit', async () => {
+        const app = registerRoutes();
+
+        const response = await app.inject({ method: 'POST', url: '/rpc', payload: emptyBatch(MAX_RPC_BATCH_SIZE) });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.json()).toMatchObject({ error: { ...invalidRequest, message: 'Bad rpc request' } });
+    });
+
+    it('answers a huge malformed batch in constant time', async () => {
+        const app = registerRoutes();
+        const startedAt = performance.now();
+
+        const response = await app.inject({ method: 'POST', url: '/rpc', payload: emptyBatch(100_000) });
+
+        // Validating every item took ~2.7 s here before the size gate; the gate itself is O(1).
+        expect(performance.now() - startedAt).toBeLessThan(1_000);
+        expect(response.json()).toMatchObject({ error: invalidRequest });
     });
 });

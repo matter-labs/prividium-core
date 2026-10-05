@@ -24,7 +24,8 @@ export function requireFullSequencerAccess(
             if (!target) {
                 throw new RpcMethodNotFound(`${rpc} is not enabled`);
             }
-            return target.delegate(id, method, params);
+            // The default handler forwards any name, so the metric label is this handler's own.
+            return target.delegate(id, method, params, name);
         }
     };
 }
