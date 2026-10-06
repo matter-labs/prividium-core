@@ -291,7 +291,10 @@ describe('UsersRepository', () => {
     });
 
     describe('roles holding a permission no longer registered', () => {
-        const EXAMPLE_ACCESS = defineFeaturePermission('example_feature_access', { orgGrantable: true });
+        const EXAMPLE_ACCESS = defineFeaturePermission('example_feature_access', {
+            feature: 'example-feature',
+            orgGrantable: true
+        });
         const unknownPermission = new InvalidInputError('Unknown system permissions: example_feature_access');
         const adminScope = { catalog: CORE_PERMISSION_CATALOG };
 

@@ -9,12 +9,19 @@ import { CORE_PERMISSION_CATALOG, PermissionCatalog } from './permission-catalog
 import { ALL_SYSTEM_PERMISSIONS } from './system-permissions';
 
 const EXAMPLE_ACCESS = defineFeaturePermission('example_feature_access', {
-    orgGrantable: true,
-    description: 'Example feature access'
+    feature: 'example-feature',
+    orgGrantable: true
 });
-const EXAMPLE_OPERATE = defineFeaturePermission('example_feature_operate', { orgGrantable: false });
+const EXAMPLE_OPERATE = defineFeaturePermission('example_feature_operate', {
+    feature: 'example-feature',
+    orgGrantable: false
+});
 
-const forged = (name: string): FeaturePermission => ({ name: name as FeaturePermissionName, orgGrantable: false });
+const forged = (name: string): FeaturePermission => ({
+    name: name as FeaturePermissionName,
+    feature: 'example-feature',
+    orgGrantable: false
+});
 
 describe('PermissionCatalog', () => {
     describe('construction', () => {

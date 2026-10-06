@@ -5,7 +5,10 @@ import { Repositories } from '../db';
 import { PermissionCatalog } from '../permissions/permission-catalog';
 import { RepositoriesCoreFacts } from './repositories-core-facts';
 
-const EXAMPLE_ACCESS = defineFeaturePermission('example_feature_access', { orgGrantable: true });
+const EXAMPLE_ACCESS = defineFeaturePermission('example_feature_access', {
+    feature: 'example-feature',
+    orgGrantable: true
+});
 const withExampleFeature = new PermissionCatalog([EXAMPLE_ACCESS]);
 
 describe('RepositoriesCoreFacts with a feature permission', () => {

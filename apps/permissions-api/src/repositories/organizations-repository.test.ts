@@ -308,7 +308,10 @@ describe('OrganizationsRepository', () => {
     });
 
     describe('roles holding a permission no longer registered', () => {
-        const EXAMPLE_ACCESS = defineFeaturePermission('example_feature_access', { orgGrantable: true });
+        const EXAMPLE_ACCESS = defineFeaturePermission('example_feature_access', {
+            feature: 'example-feature',
+            orgGrantable: true
+        });
 
         async function memberAndRole(systemPermissions: string[], catalog?: PermissionCatalog) {
             const organization = await repository.create({ name: 'Org Checked Roles', defaultRoles: [] });

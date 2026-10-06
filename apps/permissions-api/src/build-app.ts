@@ -57,6 +57,7 @@ import { contractsRoutes } from './routes/contracts-routes';
 import { docsRoutes } from './routes/docs-routes';
 import { dotWellKnownRoutes, type PrividiumInfo } from './routes/dot-well-known-routes';
 import { faucetRoutes } from './routes/faucet-routes';
+import { featurePermissionsRoutes, orgFeaturePermissionsRoutes } from './routes/feature-permissions-routes';
 import { healthRoutes } from './routes/health-routes';
 import { infoRoutes } from './routes/info-routes';
 import { m2mAppApiKeysRoutes } from './routes/m2m-app-api-keys-routes';
@@ -238,7 +239,7 @@ export interface AppConfig {
     registerFeatures?: (app: FastifyServer, context: FeatureContext) => void | Promise<void>;
     /** Published on `GET /info` so a panel gates on what this server registered, not its own build flag. */
     featureNames?: readonly string[];
-    /** Passed up front, not built in `registerFeatures`: role validation and `/info` are built before it runs. */
+    /** Passed up front: role validation and the feature permission listing are built before `registerFeatures` runs. */
     permissionCatalog?: PermissionCatalog;
     /** Consulted once per RPC request; `undefined` leaves that request unobserved. */
     rpcObserverFor?: RpcObserverFactory;
@@ -554,6 +555,11 @@ export async function buildApp(db: DB, config: AppConfig) {
                     multiOrgEnabled: config.multiOrgEnabled,
                     permissionCatalog
                 });
+                app.register(featurePermissionsRoutes, {
+                    prefix: '/feature-permissions',
+                    permissionCatalog,
+                    featureNames: config.featureNames ?? []
+                });
                 app.register(usersRoutes, {
                     prefix: '/users',
                     walletAssociationGuard,
@@ -701,6 +707,14 @@ export async function buildApp(db: DB, config: AppConfig) {
                     auditLogsPaginationMaxItems: config.auditLogsPaginationMaxItems,
                     permissionCatalog
                 });
+                if (config.multiOrgEnabled) {
+                    app.register(orgFeaturePermissionsRoutes, {
+                        prefix: '/organizations',
+                        sessionAuthValidator,
+                        permissionCatalog,
+                        featureNames: config.featureNames ?? []
+                    });
+                }
             });
 
             // ------------------------------------------------------------
@@ -796,7 +810,6 @@ export async function buildApp(db: DB, config: AppConfig) {
                     prefix: '/info',
                     policyEnabled: config.policyEnabled,
                     features: config.featureNames ?? [],
-                    featurePermissions: permissionCatalog.featurePermissions,
                     multiOrgEnabled: config.multiOrgEnabled,
                     orgRoutingByDomain: config.orgRoutingByDomain,
                     passkeyRegistrationEnabled: config.passkeyRegistrationEnabled

@@ -12,8 +12,14 @@ import { OrganizationsRepository } from './organizations-repository';
 import { type InsertRole, RolesRepository } from './roles-repository';
 import { UsersRepository } from './users-repository';
 
-const EXAMPLE_ACCESS = defineFeaturePermission('example_feature_access', { orgGrantable: true });
-const EXAMPLE_OPERATE = defineFeaturePermission('example_feature_operate', { orgGrantable: false });
+const EXAMPLE_ACCESS = defineFeaturePermission('example_feature_access', {
+    feature: 'example-feature',
+    orgGrantable: true
+});
+const EXAMPLE_OPERATE = defineFeaturePermission('example_feature_operate', {
+    feature: 'example-feature',
+    orgGrantable: false
+});
 const withExampleFeature = new PermissionCatalog([EXAMPLE_ACCESS, EXAMPLE_OPERATE]);
 
 describe('RolesRepository', () => {

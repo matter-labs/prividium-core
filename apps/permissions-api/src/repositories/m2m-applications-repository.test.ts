@@ -608,7 +608,10 @@ describe('M2mApplicationsRepository', () => {
         });
     });
     describe('org credentials holding feature permissions', () => {
-        const EXAMPLE_ACCESS = defineFeaturePermission('example_feature_access', { orgGrantable: true });
+        const EXAMPLE_ACCESS = defineFeaturePermission('example_feature_access', {
+            feature: 'example-feature',
+            orgGrantable: true
+        });
         const withExampleFeature = new PermissionCatalog([EXAMPLE_ACCESS]);
 
         it('attaches an org role holding an org-grantable feature permission', async () => {

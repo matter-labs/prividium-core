@@ -268,7 +268,10 @@ describe('TenantsRepository', () => {
     });
 
     describe('default roles holding a permission no longer registered', () => {
-        const EXAMPLE_ACCESS = defineFeaturePermission('example_feature_access', { orgGrantable: false });
+        const EXAMPLE_ACCESS = defineFeaturePermission('example_feature_access', {
+            feature: 'example-feature',
+            orgGrantable: false
+        });
         const staleRole = () =>
             rolesRepo.create(
                 { roleName: 'stale', systemPermissions: [EXAMPLE_ACCESS.name] },

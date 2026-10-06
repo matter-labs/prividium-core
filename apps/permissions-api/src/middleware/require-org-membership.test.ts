@@ -4,7 +4,10 @@ import { describe, expect, it } from 'vitest';
 import { ForbiddenError } from '../utils/error-types';
 import { requireOrgPermissionForM2mCaller, requireZonePermissionForM2mCaller } from './require-org-membership';
 
-const EXAMPLE_ACCESS = defineFeaturePermission('example_feature_access', { orgGrantable: true });
+const EXAMPLE_ACCESS = defineFeaturePermission('example_feature_access', {
+    feature: 'example-feature',
+    orgGrantable: true
+});
 
 function m2mRequest(roles: { systemPermissions: string[]; organizationId: string | null }[]): FastifyRequest {
     const app = { id: 'app', roles: roles.map((role, i) => ({ id: `role-${i}`, roleName: `role-${i}`, ...role })) };

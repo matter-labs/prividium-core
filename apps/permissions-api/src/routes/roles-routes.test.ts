@@ -10,7 +10,10 @@ import { errorHandler } from '../error-handler';
 import { CORE_PERMISSION_CATALOG, PermissionCatalog } from '../permissions/permission-catalog';
 import { rolesRoutes } from './roles-routes';
 
-const EXAMPLE_ACCESS = defineFeaturePermission('example_feature_access', { orgGrantable: true });
+const EXAMPLE_ACCESS = defineFeaturePermission('example_feature_access', {
+    feature: 'example-feature',
+    orgGrantable: true
+});
 
 const apps: FastifyServer[] = [];
 
