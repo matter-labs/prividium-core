@@ -563,6 +563,7 @@ export function findDatabaseTlsConflict(env: {
     }
     // pg never sets `rejectUnauthorized` itself, so Node's process-wide default decides whether the server is verified.
     if (env.NODE_TLS_REJECT_UNAUTHORIZED === '0') {
+        // nosemgrep: trailofbits.generic.node-disable-certificate-validation.node-disable-certificate-validation
         return `NODE_TLS_REJECT_UNAUTHORIZED=0 turns off server certificate checks for the whole process, so DATABASE_AUTH=${env.DATABASE_AUTH} would send its credential to an unverified server. Unset it.`;
     }
     const fix = `DATABASE_AUTH=${env.DATABASE_AUTH} sends its credential as the connection password, so the connection must verify the server: set sslmode=verify-full in DATABASE_URL, or leave SSL out of DATABASE_URL and set DATABASE_ENABLE_SSL=true and DATABASE_SSL_REJECT_UNAUTHORIZED=true`;
