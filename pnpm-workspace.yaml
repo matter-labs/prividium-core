@@ -70,6 +70,8 @@ overrides:
   "postcss@<8.5.18": ^8.5.18
   "nanoid@<3.3.18": ^3.3.18
   "nanoid@>=5 <5.1.16": ^5.1.16
+  "tinypool@<2.1.2": ^2.1.2
+  "source-map-js@<1.2.2": ^1.2.2
 
 auditConfig:
   ignoreCves:
