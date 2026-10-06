@@ -23,6 +23,9 @@ import type { GetLogsFilter } from '../methods/handlers';
 import type { ExternalRpc } from '../target-rpc';
 import type { Authorizer, DeploymentAuthorization, DisclosureConfig, LogData } from './authorizer';
 
+// On an org-scoped role this grants every log of the org's contracts, through eth_getLogs only.
+const GET_LOGS_ORG_GRANT: SystemPermission[] = ['rpc_read_eth_getLogs'];
+
 export class RpcAuthorizer implements Authorizer {
     private auth: AuthData;
     private methodAuthService: MethodAuthorizer;
@@ -354,7 +357,16 @@ export class RpcAuthorizer implements Authorizer {
      *   - m2m_app: requires `org_rpc_access`, uses m2mApp.roles + all org wallets
      *     (not individual user roles).
      */
-    async checkBatchEventRead<T extends LogData>(logData: T[]): Promise<T[]> {
+    checkBatchEventRead<T extends LogData>(logData: T[]): Promise<T[]> {
+        return this.visibleLogs(logData, GET_LOGS_ORG_GRANT);
+    }
+
+    // Keeps the org-scoped rpc_read_eth_getLogs grant out: one visible log promotes the whole tx envelope.
+    checkReceiptLogsRead<T extends LogData>(logData: T[]): Promise<T[]> {
+        return this.visibleLogs(logData, []);
+    }
+
+    private async visibleLogs<T extends LogData>(logData: T[], orgGrantPermissions: SystemPermission[]): Promise<T[]> {
         const events = logData.map((l) => ({
             contractAddress: l.address,
             topic0: l.topics[0],
@@ -376,7 +388,7 @@ export class RpcAuthorizer implements Authorizer {
                             organizationId: user.organizationId
                         },
                         events,
-                        await this.orgContractAddresses(user),
+                        await this.orgContractAddresses(user, orgGrantPermissions),
                         contractOrgs
                     );
                 },
@@ -409,7 +421,7 @@ export class RpcAuthorizer implements Authorizer {
                             linkedOrgWallets
                         },
                         events,
-                        await this.orgContractAddresses(m2mApp),
+                        await this.orgContractAddresses(m2mApp, orgGrantPermissions),
                         contractOrgs
                     );
                 }
@@ -490,8 +502,12 @@ export class RpcAuthorizer implements Authorizer {
         return undefined;
     }
 
-    private async orgContractAddresses(roleHolder: RoleHolder) {
-        const orgIds = allOrgsWithFullVisibility(roleHolder, ['rpc_read_eth_getLogs']);
+    /** Contracts whose every log the holder may read: those of each org granting it full visibility or an extra grant. */
+    private async orgContractAddresses(
+        roleHolder: RoleHolder,
+        extraGrantPermissions: SystemPermission[]
+    ): Promise<Address[]> {
+        const orgIds = allOrgsWithFullVisibility(roleHolder, extraGrantPermissions);
         const queries = orgIds.map((orgId) => this.repos.contracts.allContractAddressesForOrg(orgId));
         return Promise.all(queries).then((queries) => queries.flat().filter((a) => !isReservedContractAddress(a)));
     }
@@ -501,7 +517,11 @@ export class RpcAuthorizer implements Authorizer {
             {
                 user: async () => {
                     const user = this.auth.currentUser();
-                    return this.eventVerifier.couldQueryMatch(user.id, filter, await this.orgContractAddresses(user));
+                    return this.eventVerifier.couldQueryMatch(
+                        user.id,
+                        filter,
+                        await this.orgContractAddresses(user, GET_LOGS_ORG_GRANT)
+                    );
                 },
                 tenant: async () => {
                     const tenant = this.auth.currentTenant();
@@ -521,7 +541,7 @@ export class RpcAuthorizer implements Authorizer {
                         addresses,
                         roleIds,
                         filter,
-                        await this.orgContractAddresses(m2mApp)
+                        await this.orgContractAddresses(m2mApp, GET_LOGS_ORG_GRANT)
                     );
                 }
             },

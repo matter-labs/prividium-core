@@ -44,7 +44,7 @@ export async function filterTransactionAndReceipt<T extends Tx>(
         return { keep: true, transaction: transaction, receipt: { ...receipt, logsBloom: ZERO_LOGS_BLOOM } };
     }
 
-    const logsToPreserve = await authorizer.checkBatchEventRead(receipt.logs);
+    const logsToPreserve = await authorizer.checkReceiptLogsRead(receipt.logs);
 
     if (logsToPreserve.length > 0) {
         let filteredTx = transaction;

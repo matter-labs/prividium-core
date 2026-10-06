@@ -138,6 +138,10 @@ export class TestRpcAuthorizer implements Authorizer {
         return Promise.resolve(logData.filter((_e, i) => this.eventAllowMask[i]));
     }
 
+    checkReceiptLogsRead<T extends LogData>(logData: T[]): Promise<T[]> {
+        return this.checkBatchEventRead(logData);
+    }
+
     checkContractAuthorship(_address: Hex): Promise<boolean> {
         return Promise.resolve(false);
     }

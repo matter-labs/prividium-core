@@ -57,7 +57,11 @@ export interface Authorizer {
 
     hasRpcMethodPermission(method: string): Promise<boolean>;
 
+    /** eth_getLogs: event rules plus every log of a contract in an org where the caller holds rpc_read_eth_getLogs. */
     checkBatchEventRead<T extends LogData>(logData: T[]): Promise<T[]>;
+
+    /** Receipt, transaction and block filtering: event rules plus the broad org grants, without the eth_getLogs one. */
+    checkReceiptLogsRead<T extends LogData>(logData: T[]): Promise<T[]>;
 
     checkContractAuthorship(address: Hex): Promise<boolean>;
 
