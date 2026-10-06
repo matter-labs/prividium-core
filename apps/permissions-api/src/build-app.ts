@@ -199,7 +199,8 @@ export type FeatureContext = {
     auditContextOf: (request: FastifyRequest) => FeatureAuditContext;
     /**
      * The projection of core data a feature may read, bound to this request's
-     * connection so its reads share the request's audit context.
+     * connection: its reads share the request's audit context, and run inside any
+     * transaction the feature has open on {@link FeatureContext.clientFor}.
      */
     coreFactsFor: (request: FastifyRequest) => CoreFacts;
     /** Bind a feature's schema to *this*, not the pool: the audit vars are session-level
