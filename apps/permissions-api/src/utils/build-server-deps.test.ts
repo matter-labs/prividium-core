@@ -54,18 +54,9 @@ describe('buildServerDeps', () => {
         rmSync(encryptedJwkPath, { recursive: true, force: true });
     });
 
-    it('should throw error when no auth methods configured', () => {
+    it('should build deps when only OIDC auth is configured', () => {
         const config = {
-            SIWE_CHAIN_ID: 1,
-            SIWE_EXPIRATION_MS: 3600000,
-            AUTH_METHODS: []
-        } as unknown as Env;
-
-        expect(() => buildServerDeps(config)).toThrow('Crypto native authentication method is required');
-    });
-
-    it('should throw error when only OIDC auth is configured', () => {
-        const config = {
+            ...WELL_KNOWN_CONFIG,
             SIWE_CHAIN_ID: 1,
             SIWE_EXPIRATION_MS: 3600000,
             AUTH_METHODS: ['oidc'],
@@ -74,7 +65,10 @@ describe('buildServerDeps', () => {
             OIDC_JWT_AUD: 'api://default'
         } as Env;
 
-        expect(() => buildServerDeps(config)).toThrow('Crypto native authentication method is required');
+        const deps = buildServerDeps(config);
+
+        expect(deps.siwe).toBeDefined();
+        expect(deps.oidcOpts?.iss).toBe(config.OIDC_JWT_ISSUER);
     });
 
     it('should build deps with crypto native auth when configured', () => {

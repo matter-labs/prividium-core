@@ -12,5 +12,6 @@ export {
     UnauthorizedError,
     UnexpectedDbError,
     WalletLimitExceededError,
+    WalletLoginDisabledError,
     WalletNotLinkedError
 } from '@repo/api-kit';

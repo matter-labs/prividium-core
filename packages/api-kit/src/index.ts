@@ -69,6 +69,7 @@ export {
     UnauthorizedError,
     UnexpectedDbError,
     WalletLimitExceededError,
+    WalletLoginDisabledError,
     WalletNotLinkedError
 } from './error-types';
 export {

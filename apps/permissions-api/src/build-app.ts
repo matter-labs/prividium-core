@@ -436,6 +436,7 @@ export async function buildApp(db: DB, config: AppConfig) {
         repos: repos,
         chainId: config.siwe.chainId,
         hmacSecret: config.siwe.hmacSecret,
+        walletLoginEnabled: config.authMethods.includes('crypto_native'),
         logger: config.logger.child({ role: 'SiweService' })
     });
     const siweChallengeService = new SiweChallengeService({
@@ -781,23 +782,21 @@ export async function buildApp(db: DB, config: AppConfig) {
                     tenantsEnabled: config.tenantsEnabled
                 });
             });
-            if (config.authMethods.includes('crypto_native')) {
-                app.register(async (app) => {
-                    if (config.rateLimit?.enabled) {
-                        await registerRateLimitForScope(app, {
-                            max: config.rateLimit.auth.max,
-                            timeWindow: config.rateLimit.windowMs
-                        });
-                    }
-                    app.register(siweMessageRoutes, {
-                        prefix: '/siwe-messages',
-                        siweChallengeService,
-                        auditLogsService,
-                        tenantsEnabled: config.tenantsEnabled
+            app.register(async (app) => {
+                if (config.rateLimit?.enabled) {
+                    await registerRateLimitForScope(app, {
+                        max: config.rateLimit.auth.max,
+                        timeWindow: config.rateLimit.windowMs
                     });
-                    app.register(publicApplicationsRoutes, { prefix: '/oauth-clients', applicationsService });
+                }
+                app.register(siweMessageRoutes, {
+                    prefix: '/siwe-messages',
+                    siweChallengeService,
+                    auditLogsService,
+                    tenantsEnabled: config.tenantsEnabled
                 });
-            }
+                app.register(publicApplicationsRoutes, { prefix: '/oauth-clients', applicationsService });
+            });
             app.register(async (app) => {
                 if (config.rateLimit?.enabled) {
                     await registerRateLimitForScope(app, {

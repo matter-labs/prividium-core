@@ -1,6 +1,6 @@
 import { createRemoteJWKSet } from 'jose';
 import { numberToHex } from 'viem';
-import { type Env, envHasCryptoNativeAuthMethod, envHasOidcAuthMethod } from '../env';
+import { type Env, envHasOidcAuthMethod } from '../env';
 import type { PrividiumInfo } from '../routes/dot-well-known-routes';
 import type { JwtValidationData } from '../services/jwt-validator-service';
 import type { SiweConfig } from '../siwe-config';
@@ -13,10 +13,6 @@ export type AppDeps = {
 };
 
 export function buildServerDeps(config: Env): AppDeps {
-    if (!envHasCryptoNativeAuthMethod(config)) {
-        throw new Error('Crypto native authentication method is required');
-    }
-
     const deps: AppDeps = {
         siwe: {
             expirationMs: config.SIWE_EXPIRATION_MS,

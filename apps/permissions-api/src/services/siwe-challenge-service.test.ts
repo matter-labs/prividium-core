@@ -7,7 +7,7 @@ import { servicesTable, siweChallengeLogTable, tenantsTable } from '../db/schema
 import { UsersRepository } from '../repositories/users-repository';
 import { AuditLogsService, fakeAuditLogContextForTests } from '../services/audit-logs-service';
 import { SiweService } from '../services/siwe-service';
-import { InvalidInputError, RateLimitError } from '../utils/error-types';
+import { InvalidInputError, RateLimitError, WalletLoginDisabledError } from '../utils/error-types';
 import { SiweChallengeService } from './siwe-challenge-service';
 
 type ServiceDeps = ConstructorParameters<typeof SiweChallengeService>[0];
@@ -50,7 +50,8 @@ describe('SiweChallengeService', () => {
         siweService = new SiweService({
             repos: repos,
             chainId,
-            hmacSecret: testSecret
+            hmacSecret: testSecret,
+            walletLoginEnabled: true
         });
         challengeService = buildService();
     });
@@ -251,6 +252,36 @@ describe('SiweChallengeService', () => {
                 fakeAuditLogContextForTests(auditLogsService)
             )
         ).rejects.toThrow(InvalidInputError);
+    });
+
+    it('refuses login, tenant and service challenges when wallet login is disabled', async () => {
+        await repos.roles.createOrUpdateAdminRole();
+        const disabled = buildService({
+            adminWallets: [testAddress],
+            siweService: new SiweService({ repos, chainId, hmacSecret: testSecret, walletLoginEnabled: false })
+        });
+
+        await expect(
+            disabled.createForLogin(
+                { address: testAddress, domain: 'example.com' },
+                fakeAuditLogContextForTests(auditLogsService)
+            )
+        ).rejects.toThrow(WalletLoginDisabledError);
+        await expect(disabled.createForTenant({ address: testAddress })).rejects.toThrow(WalletLoginDisabledError);
+        await expect(disabled.createForService({ address: testAddress })).rejects.toThrow(WalletLoginDisabledError);
+
+        expect(await usersRepository.findByAddress(testAddress)).toBeUndefined();
+    });
+
+    it('issues wallet-association challenges when wallet login is disabled', async () => {
+        const user = await usersRepository.create({ displayName: 'Wallet Owner', source: 'oidc', wallets: [] });
+        const disabled = buildService({
+            siweService: new SiweService({ repos, chainId, hmacSecret: testSecret, walletLoginEnabled: false })
+        });
+
+        const result = await disabled.createForWalletAssociation(testAddress, 'example.com', user.id);
+
+        expect(siweService.verifyNonceToken(result.nonceToken, result.nonce).targetId).toBe(user.id);
     });
 
     it('rolls back admin wallet auto-provisioning when challenge creation fails', async () => {

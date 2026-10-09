@@ -4,7 +4,7 @@ import { type Address, type Hex, verifyMessage } from 'viem';
 import { parseSiweMessage } from 'viem/siwe';
 import type { Repositories, TxType } from '../db';
 import { type TargetType, TargetTypes } from '../db/schema';
-import { InvalidInputError, UnauthorizedError } from '../utils/error-types';
+import { InvalidInputError, UnauthorizedError, WalletLoginDisabledError } from '../utils/error-types';
 import type { PinoLogger } from '../utils/logger';
 
 const NONCE_TOKEN_VERSION = 'v1';
@@ -36,23 +36,33 @@ export class SiweService {
     private hmacKeys: Buffer[];
     private repos: Repositories;
     private logger?: PinoLogger;
+    private readonly walletLoginEnabled: boolean;
     public readonly chainId: number;
 
     constructor({
         repos,
         chainId,
         hmacSecret,
+        walletLoginEnabled,
         logger
     }: {
         repos: Repositories;
         chainId: number;
         hmacSecret?: string;
+        walletLoginEnabled: boolean;
         logger?: PinoLogger;
     }) {
         this.repos = repos;
         this.chainId = chainId;
         this.hmacKeys = this.parseAndDeriveHmacKeys(hmacSecret);
+        this.walletLoginEnabled = walletLoginEnabled;
         this.logger = logger;
+    }
+
+    assertWalletLoginEnabled(): void {
+        if (!this.walletLoginEnabled) {
+            throw new WalletLoginDisabledError();
+        }
     }
 
     async validateSiwe({ message, signature, nonceToken }: { message: string; signature: Hex; nonceToken: string }) {
@@ -117,6 +127,7 @@ export class SiweService {
             address: tokenPayload.address
         }).catch(() => false);
         if (!messageVerified) throw new UnauthorizedError();
+        this.assertWalletLoginEnabled();
 
         if (markNonceAsUsed) {
             const consumed = await this.consumeSiweNonce(tokenPayload.nonce);

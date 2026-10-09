@@ -114,7 +114,7 @@ export const loadEnv = () =>
             SIWE_CHAIN_ID: z.coerce.number(),
             SIWE_EXPIRATION_MS: z.coerce.number().default(5 * 60 * 1000),
             SIWE_VALID_DOMAINS: commaSeparatedString,
-            SIWE_HMAC_SECRET: siweHmacSecretSchema.optional(),
+            SIWE_HMAC_SECRET: siweHmacSecretSchema,
             SIWE_CHALLENGE_RATE_LIMIT_COUNT: z.coerce.number().default(10),
             SIWE_CHALLENGE_RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().default(5 * 60),
             SIWE_CONSUMED_NONCE_TTL_SECONDS: z.coerce.number().default(600),
@@ -362,15 +362,6 @@ export const loadEnv = () =>
                     return z.NEVER;
                 }
 
-                if (shouldRequireSiweHmacSecret(env) && !env.SIWE_HMAC_SECRET) {
-                    ctx.addIssue({
-                        code: 'custom',
-                        message: 'SIWE_HMAC_SECRET is required when AUTH_METHODS includes crypto_native',
-                        path: ['SIWE_HMAC_SECRET']
-                    });
-                    return z.NEVER;
-                }
-
                 const chainTypeConflict = findTargetChainTypeConflict(env);
                 if (chainTypeConflict) {
                     ctx.addIssue({
@@ -461,14 +452,6 @@ export const loadEnv = () =>
 const oidcAuthRequiredVars = ['OIDC_JWKS_URI', 'OIDC_JWT_ISSUER', 'OIDC_JWT_AUD'] satisfies (keyof Env)[];
 export function envHasOidcAuthMethod(env: Env): env is Env & { [K in (typeof oidcAuthRequiredVars)[number]]: string } {
     return env.AUTH_METHODS.includes('oidc');
-}
-
-export function envHasCryptoNativeAuthMethod(env: Env): env is Env {
-    return env.AUTH_METHODS.includes('crypto_native');
-}
-
-export function shouldRequireSiweHmacSecret(env: { AUTH_METHODS: string[] }): boolean {
-    return env.AUTH_METHODS.includes('crypto_native');
 }
 
 /**

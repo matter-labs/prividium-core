@@ -1,11 +1,12 @@
 import { createHash, createHmac, hkdfSync } from 'node:crypto';
 import type { Address } from 'viem';
+import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { createSiweMessage } from 'viem/siwe';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { it as dbIt, type Fixture } from '../../test/unit-test-context';
 import { Repositories } from '../db';
 import type { TargetType } from '../db/schema';
-import { UnauthorizedError } from '../utils/error-types';
+import { UnauthorizedError, WalletLoginDisabledError } from '../utils/error-types';
 import type { PinoLogger } from '../utils/logger';
 import { SiweService } from './siwe-service';
 
@@ -53,6 +54,7 @@ function createService(secret: string, logger?: Pick<PinoLogger, 'warn'>): SiweS
         repos: {} as Repositories,
         chainId: 6565,
         hmacSecret: secret,
+        walletLoginEnabled: true,
         logger: logger as PinoLogger | undefined
     }) as unknown as SiweServiceTestAccess;
 }
@@ -199,7 +201,8 @@ describe('SiweService nonce token helpers', () => {
                 new SiweService({
                     repos: {} as Repositories,
                     chainId: 6565,
-                    hmacSecret: 'not-hex'
+                    hmacSecret: 'not-hex',
+                    walletLoginEnabled: true
                 })
         ).toThrow('SIWE HMAC secret must be hex encoded');
     });
@@ -210,7 +213,8 @@ describe('SiweService nonce token helpers', () => {
                 new SiweService({
                     repos: {} as Repositories,
                     chainId: 6565,
-                    hmacSecret: 'abab'
+                    hmacSecret: 'abab',
+                    walletLoginEnabled: true
                 })
         ).toThrow('SIWE HMAC secret must be at least 32 bytes');
     });
@@ -296,6 +300,44 @@ describe('SiweService.verifySiweChallenge', () => {
     });
 });
 
+describe('SiweService.validateSiwe with wallet login disabled', () => {
+    it('refuses a validly signed login without consuming its nonce', async () => {
+        const account = privateKeyToAccount(generatePrivateKey());
+        const insertHash = vi.fn();
+        const service = new SiweService({
+            repos: { consumedNonces: { insertHash } } as unknown as Repositories,
+            chainId: 6565,
+            hmacSecret: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+            walletLoginEnabled: false
+        });
+        const nonce = 'walletlogindisabled';
+        const now = Math.floor(Date.now() / 1000);
+        const message = createSiweMessage({
+            address: account.address,
+            nonce,
+            domain: 'example.com',
+            uri: 'prividium:access',
+            version: '1',
+            chainId: 6565,
+            expirationTime: new Date((now + 60) * 1000)
+        });
+        const nonceToken = service.generateNonceToken({
+            address: account.address,
+            nonce,
+            targetType: 'user',
+            targetId: null,
+            exp: now + 60,
+            iat: now,
+            message
+        });
+
+        await expect(
+            service.validateSiwe({ message, signature: await account.signMessage({ message }), nonceToken })
+        ).rejects.toThrow(WalletLoginDisabledError);
+        expect(insertHash).not.toHaveBeenCalled();
+    });
+});
+
 describe('SiweService.consumeSiweNonce', () => {
     const secret = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 
@@ -304,7 +346,8 @@ describe('SiweService.consumeSiweNonce', () => {
         const service = new SiweService({
             repos,
             chainId: 6565,
-            hmacSecret: secret
+            hmacSecret: secret,
+            walletLoginEnabled: true
         });
 
         expect(await service.consumeSiweNonce('nonce-1')).toBe(true);
@@ -322,7 +365,8 @@ describe('SiweService.consumeSiweNonce', () => {
         const service = new SiweService({
             repos,
             chainId: 6565,
-            hmacSecret: secret
+            hmacSecret: secret,
+            walletLoginEnabled: true
         });
 
         await expect(

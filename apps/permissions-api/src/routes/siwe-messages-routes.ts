@@ -27,7 +27,8 @@ export function siweMessageRoutes(
                 tags: ['siwe-message'],
                 response: {
                     200: SiweMsgSchema,
-                    400: ErrorResponseSchema
+                    400: ErrorResponseSchema,
+                    403: ErrorResponseSchema
                 }
             }
         },
@@ -47,7 +48,8 @@ export function siweMessageRoutes(
                     body: CreateTenantLoginSiweMsgSchema,
                     tags: ['siwe-message'],
                     response: {
-                        200: SiweMsgSchema
+                        200: SiweMsgSchema,
+                        403: ErrorResponseSchema
                     }
                 }
             },
@@ -66,7 +68,8 @@ export function siweMessageRoutes(
                 body: CreateServiceLoginSiweMsgSchema,
                 tags: ['siwe-message'],
                 response: {
-                    200: SiweMsgSchema
+                    200: SiweMsgSchema,
+                    403: ErrorResponseSchema
                 }
             }
         },

@@ -10,21 +10,8 @@ import {
     findTargetChainTypeConflict,
     loadEnv,
     shouldRequirePolicyAuthToken,
-    shouldRequirePolicyListener,
-    shouldRequireSiweHmacSecret
+    shouldRequirePolicyListener
 } from './env';
-
-describe('shouldRequireSiweHmacSecret', () => {
-    it('returns true when AUTH_METHODS includes crypto_native', () => {
-        expect(shouldRequireSiweHmacSecret({ AUTH_METHODS: ['crypto_native'] })).toBe(true);
-        expect(shouldRequireSiweHmacSecret({ AUTH_METHODS: ['oidc', 'crypto_native'] })).toBe(true);
-    });
-
-    it('returns false when AUTH_METHODS does not include crypto_native', () => {
-        expect(shouldRequireSiweHmacSecret({ AUTH_METHODS: ['oidc'] })).toBe(false);
-        expect(shouldRequireSiweHmacSecret({ AUTH_METHODS: [] })).toBe(false);
-    });
-});
 
 describe('shouldRequirePolicyListener', () => {
     it('returns true when multi-org is on and the opt-out is unset', () => {
@@ -167,6 +154,12 @@ describe('loadEnv', () => {
     it('turns PASSKEY_REGISTRATION_ENABLED off only on an explicit false', () => {
         process.env.PASSKEY_REGISTRATION_ENABLED = 'false';
         expect(loadEnv().PASSKEY_REGISTRATION_ENABLED).toBe(false);
+    });
+
+    it('requires SIWE_HMAC_SECRET for wallet association when crypto_native is off', () => {
+        process.env.AUTH_METHODS = 'oidc';
+        delete process.env.SIWE_HMAC_SECRET;
+        expect(() => loadEnv()).toThrow();
     });
 });
 
@@ -683,6 +676,7 @@ describe('USER_IDLE_TIMEOUT_SECONDS validation (via loadEnv)', () => {
         OIDC_JWT_AUD: 'test-aud',
         SIWE_CHAIN_ID: '1',
         SIWE_VALID_DOMAINS: 'localhost',
+        SIWE_HMAC_SECRET: 'aaaaaaaa00000000aaaaaaaa00000000aaaaaaaa00000000aaaaaaaa00000000',
         WEBAUTHN_RP_NAME: 'test',
         WEBAUTHN_RP_ID: 'localhost',
         WEBAUTHN_ORIGIN: 'http://localhost:3000',

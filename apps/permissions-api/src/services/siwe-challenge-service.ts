@@ -127,6 +127,7 @@ export class SiweChallengeService {
         _operationContext: AuditLogContext,
         clientIp?: string
     ): Promise<SiweChallenge> {
+        this.siweService.assertWalletLoginEnabled();
         const { address, domain, organizationId } = message;
         const resolvedDomain = domain ?? this.validDomains[0];
         if (!resolvedDomain) {
@@ -289,6 +290,7 @@ export class SiweChallengeService {
     }
 
     async createForTenant(data: CreateTenantSiweMessage, clientIp?: string): Promise<SiweChallenge> {
+        this.siweService.assertWalletLoginEnabled();
         return this.repos.transaction(async (tx) => {
             await this.insertChallengeLog(tx, data.address, TargetTypes.enum.tenant, clientIp);
             const nonce = secureRandomString();
@@ -308,6 +310,7 @@ export class SiweChallengeService {
     }
 
     async createForService(data: CreateServiceSiweMessage, clientIp?: string): Promise<SiweChallenge> {
+        this.siweService.assertWalletLoginEnabled();
         return this.repos.transaction(async (tx) => {
             await this.insertChallengeLog(tx, data.address, TargetTypes.enum.service, clientIp);
             const nonce = secureRandomString();

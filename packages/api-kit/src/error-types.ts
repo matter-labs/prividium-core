@@ -57,6 +57,13 @@ export class ForbiddenError extends PermissionApiError {
     }
 }
 
+export class WalletLoginDisabledError extends ForbiddenError {
+    override code = 'WALLET_LOGIN_DISABLED';
+    constructor() {
+        super('Wallet login is disabled.');
+    }
+}
+
 export class UnauthorizedError extends PermissionApiError {
     code = 'UNAUTHORIZED_ERROR';
     statusCode = 401;

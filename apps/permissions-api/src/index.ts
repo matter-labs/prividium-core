@@ -16,7 +16,7 @@ import { createDb, runWithJobContext } from './db';
 import { auditAudienceIndexIsValid } from './db/audit-audience-index';
 import { resolveDatabaseConnection } from './db/credentials';
 import { runMigrations } from './db/migrate';
-import { envHasCryptoNativeAuthMethod, loadEnv } from './env';
+import { loadEnv } from './env';
 import { findAuthorizerConflict } from './feature-host/feature-conflicts';
 import { PermissionCatalog } from './permissions/permission-catalog';
 import type { AuthorizerFactory } from './rpc/permissions/authorizer';
@@ -135,7 +135,7 @@ export async function start(features: ServiceFeatures = {}) {
         throw new Error(authorizerConflict);
     }
 
-    if (envHasCryptoNativeAuthMethod(env) && env.SIWE_HMAC_SECRET === INSECURE_HMAC_SECRET) {
+    if (env.SIWE_HMAC_SECRET === INSECURE_HMAC_SECRET) {
         logger.warn(
             'SIWE_HMAC_SECRET is set to the insecure all-zeros placeholder. Replace it with a strong secret before deploying to production.'
         );
