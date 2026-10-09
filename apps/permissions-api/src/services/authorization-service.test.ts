@@ -1,9 +1,9 @@
 import { eq } from 'drizzle-orm';
-import { type Abi, type Address, encodeFunctionData, getAddress } from 'viem';
+import { type Abi, type Address, encodeFunctionData, getAddress, parseAbi, toFunctionSelector } from 'viem';
 import { beforeEach, describe, expect } from 'vitest';
 import { type Fixture, it } from '../../test/unit-test-context';
 import { Repositories } from '../db';
-import { contractsTable } from '../db/schema';
+import { contractFunctionPermissionsTable, contractsTable } from '../db/schema';
 import type { SystemPermission } from '../permissions/system-permissions';
 import { ContractFunctionPermissionsRepository } from '../repositories/contract-function-permissions-repository';
 import { ContractsRepository } from '../repositories/contracts-repository';
@@ -12,7 +12,7 @@ import { TemplatePermissionsRepository } from '../repositories/template-permissi
 import { TemplatesRepository } from '../repositories/templates-repository';
 import { TenantsRepository } from '../repositories/tenants-repository';
 import type { User, UserWithRoles } from '../repositories/users-repository';
-import { AuthorizationService } from './authorization-service';
+import { AuthorizationService, type MethodAuthorizationRequest } from './authorization-service';
 
 const transferAbi: Abi = [
     {
@@ -319,6 +319,170 @@ describe('AuthorizationService', () => {
                 accessTypeCheck: 'write'
             });
             expect(result).toEqual({ authorized: false, ruleId: 'rule.restrict_argument.decode_failed' });
+        });
+    });
+
+    describe('domain discovery without a wallet', () => {
+        const functionSignature = 'function eip712Domain()';
+        const request = (overrides: Partial<MethodAuthorizationRequest> = {}): MethodAuthorizationRequest => ({
+            fromAddress: undefined,
+            user: fakeUser([]),
+            contractAddress,
+            calldata: toFunctionSelector('eip712Domain()'),
+            accessTypeCheck: 'read',
+            rpcMethod: 'eth_call',
+            ...overrides
+        });
+
+        beforeEach<Fixture>(async ({ db }) => {
+            await db
+                .update(contractsTable)
+                .set({
+                    abi: JSON.stringify(
+                        parseAbi([
+                            'function eip712Domain() view returns (bytes1,string,string,uint256,address,bytes32,uint256[])'
+                        ])
+                    )
+                })
+                .where(eq(contractsTable.contractAddress, contractAddress));
+        });
+
+        it('requires a method permission and respects its removal', async () => {
+            expect(await authService.checkMethodAuthorizationForUser(request())).toMatchObject({ authorized: false });
+            const permission = await permissionsRepo.create({
+                contractAddress,
+                functionSignature,
+                accessType: 'read',
+                ruleType: 'public'
+            });
+            expect(await authService.checkMethodAuthorizationForUser(request())).toEqual({
+                authorized: true,
+                ruleId: 'rule.public.allow'
+            });
+            await permissionsRepo.delete(permission.id);
+            expect(await authService.checkMethodAuthorizationForUser(request())).toMatchObject({ authorized: false });
+        });
+
+        it.each<Partial<MethodAuthorizationRequest>>([
+            { rpcMethod: 'eth_estimateGas' },
+            { rpcMethod: 'eth_sendRawTransaction' },
+            { rpcMethod: undefined },
+            { accessTypeCheck: 'write' },
+            { accessTypeCheck: 'unenforced' },
+            { calldata: `${toFunctionSelector('eip712Domain()')}00` },
+            { calldata: toFunctionSelector('name()') },
+            { fromAddress: movedWallet }
+        ])('does not waive wallet ownership for %j', async (overrides) => {
+            await permissionsRepo.create({
+                contractAddress,
+                functionSignature,
+                accessType: 'write',
+                ruleType: 'public'
+            });
+            expect(await authService.checkMethodAuthorizationForUser(request(overrides))).toEqual({
+                authorized: false,
+                ruleId: 'wallet.not_owned_by_user'
+            });
+        });
+
+        it('uses the template permission unless a contract rule overrides it', async ({ db }) => {
+            const template = await new TemplatesRepository(db).create({
+                templateKey: 'domain-template',
+                name: 'Domain template',
+                description: null,
+                abi: JSON.stringify(
+                    parseAbi([
+                        'function eip712Domain() view returns (bytes1,string,string,uint256,address,bytes32,uint256[])'
+                    ])
+                )
+            });
+            await new TemplatePermissionsRepository(db).create({
+                templateId: template.id,
+                functionSignature,
+                accessType: 'read',
+                ruleType: 'public'
+            });
+            await db
+                .update(contractsTable)
+                .set({ templateId: template.id })
+                .where(eq(contractsTable.contractAddress, contractAddress));
+            expect(await authService.checkMethodAuthorizationForUser(request())).toMatchObject({ authorized: true });
+
+            const role = await new Repositories(db).roles.create({ roleName: 'Domain readers', systemPermissions: [] });
+            await permissionsRepo.create({
+                contractAddress,
+                functionSignature,
+                accessType: 'read',
+                ruleType: 'checkRole',
+                roles: [role]
+            });
+            expect(await authService.checkMethodAuthorizationForUser(request())).toMatchObject({ authorized: false });
+        });
+
+        for (const [ruleType, allowed] of [
+            ['checkRole', true],
+            ['restrictArgument', false],
+            ['checkRoleOrRestrictArgument', true],
+            ['checkRoleAndRestrictArgument', false]
+        ] as const) {
+            it(`enforces ${ruleType} without a caller wallet`, async ({ db }) => {
+                const role = await new Repositories(db).roles.create({
+                    roleName: 'Domain readers',
+                    systemPermissions: []
+                });
+                const permission = await permissionsRepo.create({
+                    contractAddress,
+                    functionSignature,
+                    accessType: 'read',
+                    ruleType: 'checkRole',
+                    roles: [role]
+                });
+                // Legacy rows can carry argument rules even though this function has no arguments.
+                await db
+                    .update(contractFunctionPermissionsTable)
+                    .set({ ruleType })
+                    .where(eq(contractFunctionPermissionsTable.id, permission.id));
+                expect(
+                    await authService.checkMethodAuthorizationForUser(
+                        request({ user: { ...fakeUser([]), roles: [role] } })
+                    )
+                ).toMatchObject({ authorized: allowed });
+                expect(await authService.checkMethodAuthorizationForUser(request())).toMatchObject({
+                    authorized: false
+                });
+            });
+        }
+
+        it('keeps organization isolation and rejects users from deleted organizations', async ({ db }) => {
+            const repos = new Repositories(db);
+            const service = new AuthorizationService({ repos, multiOrgEnabled: true });
+            const org = await repos.organizations.create({ name: 'Domain owner', defaultRoles: [] });
+            await db
+                .update(contractsTable)
+                .set({ organizationId: org.id })
+                .where(eq(contractsTable.contractAddress, contractAddress));
+            await permissionsRepo.create({
+                contractAddress,
+                functionSignature,
+                accessType: 'read',
+                ruleType: 'public',
+                organizationOnly: true
+            });
+            const owner = { ...fakeUser([]), organizationId: org.id, organization: { ...org, deletedAt: null } };
+            expect(await service.checkMethodAuthorizationForUser(request({ user: owner }))).toMatchObject({
+                authorized: true
+            });
+            expect(await service.checkMethodAuthorizationForUser(request())).toEqual({
+                authorized: false,
+                ruleId: 'permission.org_mismatch'
+            });
+            expect(
+                await service.checkMethodAuthorizationForUser(
+                    request({
+                        user: { ...owner, organization: { ...owner.organization, deletedAt: new Date() } }
+                    })
+                )
+            ).toEqual({ authorized: false, ruleId: 'user.organization_deleted' });
         });
     });
 

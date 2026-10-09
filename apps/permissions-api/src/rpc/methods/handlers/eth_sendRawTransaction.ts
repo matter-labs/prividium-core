@@ -56,10 +56,19 @@ export const eth_sendRawTransaction: MethodHandler<AuthorizedRpcContext, typeof 
             return handleAndVerifyDeployment(tx, context, id, rawTx);
         }
 
-        // A value transfer to an EOA has no method to authorize.
+        // A transfer to an EOA has no method to authorize. Binding the signer to the caller stops an
+        // anonymous or revoked principal from moving the base token.
         const classifier = new TransactionClassifier(context.targetRpc);
         const { type } = await classifier.classifyTransaction(txTo.data ?? null, tx.data, tx.value);
         if (type === 'transfer-to-eoa') {
+            if (!(await context.authorizer.checkAddressOwnership(signer))) {
+                throw new ForbiddenRpcError(
+                    undefined,
+                    'signer is not a wallet of the caller',
+                    undefined,
+                    'wallet.not_owned_by_user'
+                );
+            }
             return forwardAndRecordSubmission(context, id, rawTx);
         }
 

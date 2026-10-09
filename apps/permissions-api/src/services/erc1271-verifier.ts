@@ -1,4 +1,5 @@
-import { type Address, type Hex, hashTypedData, type PublicClient, zeroAddress } from 'viem';
+import { type Address, encodeFunctionData, type Hex, hashTypedData, type PublicClient, zeroAddress } from 'viem';
+import { areHexEqual } from '../utils/hex';
 import type { PinoLogger } from '../utils/logger';
 
 const IERC1271_ABI = [
@@ -14,7 +15,10 @@ const IERC1271_ABI = [
     }
 ] as const;
 
+// The selector of isValidSignature(bytes32,bytes) is the magic value itself, so a contract that echoes
+// its calldata passes a prefix comparison. Only the exact ABI-encoded bytes4 word counts as valid.
 const ERC1271_MAGIC_VALUE = '0x1626ba7e' as const;
+const ERC1271_VALID_RESPONSE: Hex = `${ERC1271_MAGIC_VALUE}${'00'.repeat(28)}`;
 
 export class ERC1271Verifier {
     private client: PublicClient;
@@ -51,18 +55,20 @@ export class ERC1271Verifier {
             }
         });
 
-        const magicValue = await this.client
-            .readContract({
-                abi: IERC1271_ABI,
-                address: signerContract,
-                functionName: 'isValidSignature',
-                args: [digest, signature]
+        const { data } = await this.client
+            .call({
+                to: signerContract,
+                data: encodeFunctionData({
+                    abi: IERC1271_ABI,
+                    functionName: 'isValidSignature',
+                    args: [digest, signature]
+                })
             })
             .catch((error) => {
                 this.logger.error(error, 'Failed to verify ERC1271 signature');
-                return '';
+                return { data: undefined };
             });
 
-        return magicValue.toLowerCase() === ERC1271_MAGIC_VALUE;
+        return data !== undefined && areHexEqual(data, ERC1271_VALID_RESPONSE);
     }
 }

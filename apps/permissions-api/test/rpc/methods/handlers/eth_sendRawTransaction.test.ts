@@ -17,6 +17,7 @@ import { TestExternalRpc } from '../../test-external-rpc';
 import { TestRpcAuthorizer } from '../../test-rpc-authorizer';
 
 const SIGNER_KEY = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d';
+const SIGNER_ADDRESS = privateKeyToAccount(SIGNER_KEY).address;
 
 function fullSequencerContext(): AuthorizedRpcContext {
     return {
@@ -197,6 +198,7 @@ describe('eth_sendRawTransaction permission enforcement', () => {
         'allows a value transfer to an EOA without a permission check',
         async ({ reqContext, rpc, authorizer }) => {
             authorizer.setAllowRead(false); // proves the check is skipped, not merely passing
+            authorizer.setUserAddresses([SIGNER_ADDRESS]);
             rpc.registerCodeFor(EOA, '0x');
             rpc.registerDelegate('req-1', acceptedDelegateResponse('req-1'));
             const rawTx = await signRawTx({ to: EOA, data: '0x', value: 1n });
@@ -220,6 +222,7 @@ describe('eth_sendRawTransaction permission enforcement', () => {
     // A codeless address is indistinguishable from an EOA and runs no code on a value transfer.
     rpcUnitTest('allows a value transfer to a codeless address', async ({ reqContext, rpc, authorizer }) => {
         authorizer.setAllowRead(false);
+        authorizer.setUserAddresses([SIGNER_ADDRESS]);
         rpc.registerCodeFor(CODELESS_CONTRACT, '0x');
         rpc.registerDelegate('req-1', acceptedDelegateResponse('req-1'));
         const rawTx = await signRawTx({ to: CODELESS_CONTRACT, data: '0x', value: 1n });

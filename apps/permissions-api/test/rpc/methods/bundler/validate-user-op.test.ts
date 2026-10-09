@@ -224,7 +224,7 @@ describe('validateUserOpPermissions', () => {
         describe('plain ETH transfer (empty inner calldata)', () => {
             const recipient = '0xcccccccccccccccccccccccccccccccccccccccc' as Address;
 
-            it('allows ETH transfer to any address without a permission entry', async ({
+            it('allows ETH transfer to an address without code without a permission entry', async ({
                 reqContext,
                 authorizer,
                 rpc
@@ -238,6 +238,28 @@ describe('validateUserOpPermissions', () => {
                 const result = await validateUserOpPermissions(reqContext, userOp, 'eth_sendUserOperation');
 
                 expect(result.authorized).toBe(true);
+            });
+
+            it('requires the receive permission for an ETH transfer to a contract', async ({
+                reqContext,
+                authorizer,
+                rpc
+            }) => {
+                authorizer.setAllowRead(false);
+                authorizer.setUserAddresses([defaultSender]);
+                rpc.registerCodeFor(defaultSender, MOCK_BYTECODE);
+                rpc.registerCodeFor(recipient, MOCK_BYTECODE);
+                const callData = encodeExecute(recipient, 100000000000000000n, '0x' as Hex);
+                const userOp = createUserOp({ callData });
+
+                expect((await validateUserOpPermissions(reqContext, userOp, 'eth_sendUserOperation')).authorized).toBe(
+                    false
+                );
+
+                authorizer.setAllowRead(true);
+                expect((await validateUserOpPermissions(reqContext, userOp, 'eth_sendUserOperation')).authorized).toBe(
+                    true
+                );
             });
 
             it('still requires permission for calls with non-empty calldata', async ({

@@ -216,7 +216,10 @@ export interface ExternalRpc {
 
     getCodeFor(id: string, address: Address, block?: BlockTag): Promise<Hex>;
 
-    isContract(address: Address, id?: string): Promise<boolean>;
+    isContract(address: Address, id?: string, block?: BlockTag): Promise<boolean>;
+
+    /** The block number a tag or number names right now. Callers must not pass `pending`. */
+    resolveBlock(id: string, block: BlockTag): Promise<Hex>;
 
     nonceFor(address: Address, id?: string, block?: BlockTag): Promise<bigint>;
 
@@ -372,8 +375,8 @@ export class TargetRpc implements ExternalRpc {
         return createPublicClient({ transport: http(this.url) });
     }
 
-    async isContract(address: Address, id?: string): Promise<boolean> {
-        const code = await this.getCodeFor(id ?? nanoid(), address);
+    async isContract(address: Address, id?: string, block?: BlockTag): Promise<boolean> {
+        const code = await this.getCodeFor(id ?? nanoid(), address, block);
         return code !== '0x';
     }
 
@@ -437,7 +440,7 @@ export class TargetRpc implements ExternalRpc {
         }
     }
 
-    private async resolveBlock(id: string, block: BlockTag | Hex): Promise<Hex> {
+    async resolveBlock(id: string, block: BlockTag): Promise<Hex> {
         if (block.startsWith('0x')) {
             return block as Hex;
         }

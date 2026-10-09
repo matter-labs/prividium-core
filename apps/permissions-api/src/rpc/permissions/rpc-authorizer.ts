@@ -78,6 +78,17 @@ export class RpcAuthorizer implements Authorizer {
         rpcMethod: string
     ): Promise<AuthorizationResult> {
         if (from === undefined) {
+            if (this.auth.type === 'user') {
+                return this.methodAuthService.checkMethodAuthorizationForUser({
+                    fromAddress: from,
+                    contractAddress: to,
+                    user: this.auth.currentUser(),
+                    calldata: callData,
+                    accessTypeCheck: access,
+                    rpcMethod,
+                    requestId: this.requestId
+                });
+            }
             throw new ForbiddenRpcError('eth_call always has to specify from address');
         }
 

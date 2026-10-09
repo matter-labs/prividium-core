@@ -73,10 +73,9 @@ export async function validateUserOpPermissions(
 
     // Check if user has permission for each call
     for (const call of calls) {
-        // Plain ETH transfers have no calldata — skip permission check.
-        // execute() is always invoked on the sender's own account in ERC-4337,
-        // and sender ownership is already verified above.
-        if (isEmptyHex(call.data)) {
+        // A value transfer to an address without code runs nothing, and sender ownership is verified
+        // above. A contract destination runs receive()/fallback(), gated by the 0x selector permission.
+        if (isEmptyHex(call.data) && !(await context.targetRpc.isContract(call.to))) {
             continue;
         }
 

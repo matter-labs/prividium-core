@@ -1,13 +1,18 @@
 import { type Hex, serializeTransaction } from 'viem';
 import { privateKeyToAccount, signAuthorization } from 'viem/accounts';
 import { describe, expect, it } from 'vitest';
-import { WrongArguments } from '../../errors';
-import { decodeTx } from './eth_sendRawTransaction';
+import { rpcUnitTest } from '../../../../test/rpc/rpc-unit-test-utils';
+import { ForbiddenRpcError, WrongArguments } from '../../errors';
+import { response } from '../../json-rpc';
+import type { AuthorizedRpcContext } from '../../rpc-service';
+import { decodeTx, eth_sendRawTransaction } from './eth_sendRawTransaction';
 
 // Deterministic test key (NEVER use for anything but tests).
 const PRIVATE_KEY: Hex = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 const account = privateKeyToAccount(PRIVATE_KEY);
 const RECIPIENT = '0x0000000000000000000000000000000000000001';
+const OTHER_WALLET = '0x70997970c51812dc3a010c7d01b50e0d17dc79c8';
+const EOA_RECIPIENT = '0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc';
 
 describe('decodeTx', () => {
     it.each([
@@ -95,5 +100,47 @@ describe('decodeTx', () => {
         const result = decodeTx(raw);
         await expect(result).rejects.toBeInstanceOf(WrongArguments);
         await expect(result).rejects.toThrow('Unsupported eip4844 transaction');
+    });
+});
+
+describe('eth_sendRawTransaction native transfer', () => {
+    const REQUEST_ID = 1;
+    const TX_HASH: Hex = `0x${'ab'.repeat(32)}`;
+    const UPSTREAM_RESPONSE = response({ id: REQUEST_ID, result: TX_HASH });
+
+    const sendTransfer = async (reqContext: AuthorizedRpcContext) => {
+        const raw = await account.signTransaction({
+            type: 'legacy',
+            chainId: 297,
+            nonce: 3,
+            gasPrice: 1n,
+            gas: 21000n,
+            to: EOA_RECIPIENT,
+            value: 1n
+        });
+        return eth_sendRawTransaction.handle(reqContext, 'eth_sendRawTransaction', [raw], REQUEST_ID);
+    };
+
+    rpcUnitTest(
+        'refuses a transfer signed by a wallet the caller does not own',
+        async ({ reqContext, authorizer, rpc }) => {
+            authorizer.setUserAddresses([OTHER_WALLET]);
+
+            const denial = sendTransfer(reqContext);
+
+            await expect(denial).rejects.toThrow(ForbiddenRpcError);
+            await expect(denial).rejects.toHaveProperty('ruleId', 'wallet.not_owned_by_user');
+            expect(rpc.delegateRegistry).toEqual([]);
+        }
+    );
+
+    rpcUnitTest('forwards a transfer signed by a wallet the caller owns', async ({ reqContext, authorizer, rpc }) => {
+        authorizer.setUserAddresses([account.address]);
+        // besu submits through plain eth_sendRawTransaction, so the stubbed hash comes back unchanged.
+        rpc.chainType = 'besu';
+        rpc.registerDelegate(`${REQUEST_ID}`, UPSTREAM_RESPONSE);
+
+        await expect(sendTransfer(reqContext)).resolves.toEqual(UPSTREAM_RESPONSE);
+        expect(rpc.delegateRegistry.map((entry) => entry.method)).toEqual(['eth_sendRawTransaction']);
     });
 });

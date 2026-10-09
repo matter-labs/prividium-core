@@ -1,6 +1,15 @@
 import type { OverlayRuleId } from '@repo/api-kit';
 import { and, eq, inArray } from 'drizzle-orm';
-import { type Abi, type Address, decodeFunctionData, type Hex, isAddress, isAddressEqual, size } from 'viem';
+import {
+    type Abi,
+    type Address,
+    decodeFunctionData,
+    type Hex,
+    isAddress,
+    isAddressEqual,
+    size,
+    toFunctionSelector
+} from 'viem';
 import { z } from 'zod/v4';
 import type { Repositories } from '../db';
 import {
@@ -19,12 +28,15 @@ import { resolveAbiItem } from '../utils/abi';
 import { EntityNotFound } from '../utils/error-types';
 import { extractSelector } from '../utils/extract-selector';
 import { fetchChunked } from '../utils/fetch-chunked';
+import { areHexEqual } from '../utils/hex';
 import { belongsToDeletedOrganization } from '../utils/organization-membership';
 import { fetchArgMap, fetchRoleSet } from '../utils/permission-reads';
 import { isReservedContractAddress } from '../utils/reserved-contract-address';
 import type { MethodSelector } from '../utils/schemas/hex-schema';
 import { userHasWallet } from '../utils/user-wallets';
 import { canInheritSystemContractUmbrella } from './system-contracts/umbrella-policy';
+
+const EIP712_DOMAIN_SELECTOR = toFunctionSelector('eip712Domain()');
 
 export const methodAuthorizationSchema = z.object({
     authorized: z.boolean()
@@ -322,12 +334,18 @@ export class AuthorizationService implements MethodAuthorizer, SequencerAuthoriz
         user,
         contractAddress,
         calldata,
-        accessTypeCheck
+        accessTypeCheck,
+        rpcMethod
     }: MethodAuthorizationRequest): Promise<AuthorizationResult> {
         const selector = size(calldata) === 0 ? '0x' : extractSelector(calldata);
+        const domainReadWithoutFrom =
+            fromAddress === undefined &&
+            rpcMethod === 'eth_call' &&
+            accessTypeCheck === 'read' &&
+            areHexEqual(calldata, EIP712_DOMAIN_SELECTOR);
 
         // Step 1: Verify that the wallet address is assigned to the given user
-        if (!fromAddress || !userHasWallet(user, fromAddress)) {
+        if (!domainReadWithoutFrom && (!fromAddress || !userHasWallet(user, fromAddress))) {
             return { authorized: false, ruleId: 'wallet.not_owned_by_user' };
         }
 
@@ -376,6 +394,7 @@ export class AuthorizationService implements MethodAuthorizer, SequencerAuthoriz
             accessTypeCheck,
             roleOk: (perm, isContractPermission) => this.checkRoleAuthorization(user, perm.id, isContractPermission),
             argsOk: async (perm, isContractPermission) => {
+                if (!fromAddress) return 'denied';
                 const abi = await this.abiFor(contractAddress, selector);
                 return this.restrictArgument(perm.id, fromAddress, isContractPermission, calldata, abi);
             }

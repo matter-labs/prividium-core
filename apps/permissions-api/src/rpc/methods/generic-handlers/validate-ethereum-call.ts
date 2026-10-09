@@ -1,9 +1,10 @@
-import { type Address, type Hex, toFunctionSelector, zeroAddress } from 'viem';
+import { type Address, type Hex, zeroAddress } from 'viem';
 import { z } from 'zod/v4';
 import type { MethodAccessType } from '../../../db/schema';
 import type { AuthorizationResult } from '../../../services/authorization-service';
 import { areHexEqual } from '../../../utils/hex';
 import { addressSchema } from '../../../utils/schemas/address';
+import { blockTagSchema } from '../../../utils/schemas/block-tag';
 import { hexSchema } from '../../../utils/schemas/hex-schema';
 import { bigintStringSchema } from '../../../utils/schemas/numeric';
 import { ForbiddenRpcError, WrongArguments } from '../../errors';
@@ -48,8 +49,6 @@ const callReqSchema = z
 
 const paramsSchema = z.tuple([callReqSchema], z.unknown());
 
-const whitelistedMethods: Hex[] = [toFunctionSelector('eip712Domain()')];
-
 export function validatedEthereumCall(
     name: string,
     stateOverrideArgPosition: number,
@@ -64,6 +63,9 @@ export function validatedEthereumCall(
             }
 
             const [call] = params;
+
+            // The route also admits anonymous callers; every simulation needs a principal.
+            await context.authorizer.ensureUserExists();
 
             // Resolve the calldata the node will actually execute. zksync-os
             // (alloy `TransactionInput::into_input`) uses `input.or(data)` —
@@ -90,16 +92,21 @@ export function validatedEthereumCall(
                 );
             }
 
-            const authResult =
-                data === '0x' || whitelistedMethods.includes(data)
-                    ? await checkFromOwnership(context, call.from)
-                    : await context.authorizer.checkContractAccess(
-                          call.from,
-                          call.to ?? zeroAddress,
-                          data,
-                          accessType,
-                          method
-                      );
+            const to = call.to ?? zeroAddress;
+            let forwardedParams: unknown[] = params;
+            let runsNoCode = false;
+            if (data === '0x') {
+                const block = await pinSimulationBlock(context, id, params[1]);
+                if (block !== undefined) {
+                    // Empty calldata runs no code only when the target has no bytecode at that block; a
+                    // contract target runs receive()/fallback(), gated by the 0x selector permission.
+                    runsNoCode = !(await context.targetRpc.isContract(to, String(id), block));
+                    forwardedParams = [call, block];
+                }
+            }
+            const authResult = runsNoCode
+                ? await checkFromOwnership(context, call.from)
+                : await context.authorizer.checkContractAccess(call.from, to, data, accessType, method);
             if (!authResult.authorized) {
                 throw new ForbiddenRpcError(
                     undefined,
@@ -112,9 +119,23 @@ export function validatedEthereumCall(
                     authResult.ruleId
                 );
             }
-            return context.targetRpc.delegate(id, method, params);
+            return context.targetRpc.delegate(id, method, forwardedParams);
         }
     };
+}
+
+// Pins the code check and execution to one block so a deployment between them cannot run unchecked code.
+// Pending and unmodeled block parameters take the permission check instead.
+async function pinSimulationBlock(
+    context: AuthorizedRpcContext,
+    id: string | number,
+    blockParam: unknown
+): Promise<Hex | undefined> {
+    const block = blockTagSchema.safeParse(blockParam ?? 'latest');
+    if (!block.success || block.data === 'pending') {
+        return undefined;
+    }
+    return context.targetRpc.resolveBlock(String(id), block.data);
 }
 
 // An omitted `from` simulates as the zero address, which nobody owns.

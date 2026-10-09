@@ -1,4 +1,4 @@
-import type { Address } from 'viem';
+import { type Address, toFunctionSelector } from 'viem';
 import { describe, expect, it } from 'vitest';
 import type { Repositories } from '../../db';
 import { AuthData } from '../../middleware/auth-data';
@@ -9,7 +9,7 @@ import type { UserWithRoles } from '../../repositories/users-repository';
 import type { MethodAuthorizer } from '../../services/authorization-service';
 import type { EventPermissionVerifier } from '../../services/event-permission-verifier';
 import type { PinoLogger } from '../../utils/logger';
-import { UnauthorizedRpcError } from '../errors';
+import { ForbiddenRpcError, UnauthorizedRpcError } from '../errors';
 import type { ExternalRpc } from '../target-rpc';
 import { RpcAuthorizer } from './rpc-authorizer';
 
@@ -95,6 +95,29 @@ function userAuth(u: UserWithRoles): AuthData {
 function m2mAuth(app: M2mApplication): AuthData {
     return new AuthData({ m2mApp: app, targetType: 'm2m_app', expiresAt: new Date(), authMethod: 'api_key' });
 }
+
+describe('RpcAuthorizer.checkContractAccess', () => {
+    it.each(['tenant', 'm2m_app'] as const)('requires from for a %s domain read', async (type) => {
+        const auth =
+            type === 'm2m_app'
+                ? m2mAuth(m2mApp([role('rpc', ['org_rpc_access'])]))
+                : new AuthData({
+                      tenant: { id: 'tenant-1', defaultRoles: [], roles: [] } as never,
+                      targetType: 'tenant',
+                      expiresAt: new Date(),
+                      authMethod: 'api_key'
+                  });
+        await expect(
+            authorizerFor(auth, reposWith(undefined)).checkContractAccess(
+                undefined,
+                deployerAddress,
+                toFunctionSelector('eip712Domain()'),
+                'read',
+                'eth_call'
+            )
+        ).rejects.toThrow(ForbiddenRpcError);
+    });
+});
 
 describe('RpcAuthorizer.authorizeDeployment', () => {
     describe('user session', () => {

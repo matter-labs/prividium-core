@@ -52,8 +52,12 @@ export class TestExternalRpc implements ExternalRpc {
     getProfResponses: Map<string, ZksGetProofResponse>;
     getProfRegistry: GetProfEntry[];
     resolveBlockResponses: Map<string, Hex>;
+    codeQueries: Array<{ address: Address; block: BlockTag | undefined }>;
+    headBlock: Hex;
 
     constructor() {
+        this.codeQueries = [];
+        this.headBlock = '0x10';
         this.delegateResponses = new Map();
         this.sendResponses = new Map();
         this.sendErrors = new Map();
@@ -74,6 +78,7 @@ export class TestExternalRpc implements ExternalRpc {
     }
 
     clear() {
+        this.codeQueries = [];
         this.delegateResponses = new Map();
         this.sendResponses = new Map();
         this.sendErrors = new Map();
@@ -192,11 +197,16 @@ export class TestExternalRpc implements ExternalRpc {
         this.codes.set(address, code);
     }
 
+    resolveBlock(_id: string, block: BlockTag): Promise<Hex> {
+        return Promise.resolve(block.startsWith('0x') ? (block as Hex) : this.headBlock);
+    }
+
     viemPublicClient(): PublicClient {
         return createMockRpcClient();
     }
 
-    async isContract(address: Address, _id?: string): Promise<boolean> {
+    async isContract(address: Address, _id?: string, block?: BlockTag): Promise<boolean> {
+        this.codeQueries.push({ address, block });
         const code = this.codes.get(address);
         if (code === undefined) {
             return false;
