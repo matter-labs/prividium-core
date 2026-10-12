@@ -37,6 +37,7 @@ const booleanFromString = z.enum(['true', 'false']).transform((value) => value =
 const portSchema = z.coerce.number().int().min(1).max(65535);
 const MIN_HMAC_SECRET_BYTES = 32;
 const SIWE_HMAC_SECRET_ERROR = 'Each SIWE_HMAC_SECRET entry must be hex encoded and at least 32 bytes (64 hex chars)';
+const EXAMPLE_SIWE_HMAC_SECRET = 'aaaaaaaa00000000aaaaaaaa00000000aaaaaaaa00000000aaaaaaaa00000000';
 
 const siweHmacSecretEntrySchema = z.string().refine(isValidSiweHmacSecret, {
     message: SIWE_HMAC_SECRET_ERROR
@@ -358,6 +359,19 @@ export const loadEnv = () =>
                         message:
                             'USER_IDLE_TIMEOUT_SECONDS must not exceed USER_SESSION_DURATION_SECONDS (the absolute session cap)',
                         path: ['USER_IDLE_TIMEOUT_SECONDS']
+                    });
+                    return z.NEVER;
+                }
+
+                if (
+                    env.NODE_ENV === 'production' &&
+                    env.SIWE_HMAC_SECRET.split(',').some((secret) => secret.toLowerCase() === EXAMPLE_SIWE_HMAC_SECRET)
+                ) {
+                    ctx.addIssue({
+                        code: 'custom',
+                        message:
+                            'SIWE_HMAC_SECRET must not include the .env.example placeholder when NODE_ENV is production',
+                        path: ['SIWE_HMAC_SECRET']
                     });
                     return z.NEVER;
                 }

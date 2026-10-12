@@ -90,8 +90,6 @@ function observeDbPool(dbPool: Pool): void {
     }
 }
 
-const INSECURE_HMAC_SECRET = 'aaaaaaaa00000000aaaaaaaa00000000aaaaaaaa00000000aaaaaaaa00000000';
-
 /** Passed by a composition root, so the core still names no feature and imports none. */
 export type ServiceFeatures = {
     registerFeatures?: AppConfig['registerFeatures'];
@@ -133,12 +131,6 @@ export async function start(features: ServiceFeatures = {}) {
     const authorizerConflict = findAuthorizerConflict(features, env);
     if (authorizerConflict !== undefined) {
         throw new Error(authorizerConflict);
-    }
-
-    if (env.SIWE_HMAC_SECRET === INSECURE_HMAC_SECRET) {
-        logger.warn(
-            'SIWE_HMAC_SECRET is set to the insecure all-zeros placeholder. Replace it with a strong secret before deploying to production.'
-        );
     }
 
     const deps = buildServerDeps(env);

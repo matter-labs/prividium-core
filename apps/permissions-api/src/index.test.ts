@@ -17,6 +17,7 @@ describe('start: database credentials', () => {
         process.env = {
             ...EXAMPLE_ENV,
             NODE_ENV: 'production',
+            SIWE_HMAC_SECRET: '444556204f4e4c5920686d61632073656372657420646f206e6f742075736521',
             DATABASE_AUTH: 'iam-token',
             DATABASE_URL: UNREACHABLE_URL
         };

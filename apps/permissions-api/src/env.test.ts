@@ -47,6 +47,7 @@ describe('shouldRequirePolicyAuthToken', () => {
 // The committed .env.example is a complete, valid configuration. Parsing it as the baseline
 // keeps these tests in sync with the documented env contract instead of hard-coding ~70 vars.
 const EXAMPLE_ENV = parse(readFileSync(fileURLToPath(new URL('../.env.example', import.meta.url))));
+const TEST_SIWE_HMAC_SECRET = '444556204f4e4c5920686d61632073656372657420646f206e6f742075736521';
 
 // Well-known config vars added by the unified config endpoint. All are required.
 const WELL_KNOWN_REQUIRED = [
@@ -188,6 +189,7 @@ describe('policy listener validation (via loadEnv)', () => {
 
     it('throws regardless of NODE_ENV, which the image bakes to production', () => {
         process.env.MULTI_ORG_ENABLED = 'true';
+        process.env.SIWE_HMAC_SECRET = TEST_SIWE_HMAC_SECRET;
         for (const nodeEnv of ['development', 'test', 'production']) {
             process.env.NODE_ENV = nodeEnv;
             expect(() => loadEnv()).toThrow();
@@ -223,6 +225,44 @@ describe('policy listener validation (via loadEnv)', () => {
         process.env.POLICY_PORT = '8010';
         process.env.POLICY_AUTH_TOKEN = '';
         expect(() => loadEnv()).toThrow();
+    });
+});
+
+describe('SIWE_HMAC_SECRET validation (via loadEnv)', () => {
+    const ORIGINAL_ENV = process.env;
+    const PLACEHOLDER = 'aaaaaaaa00000000aaaaaaaa00000000aaaaaaaa00000000aaaaaaaa00000000';
+
+    beforeEach(() => {
+        process.env = { ...EXAMPLE_ENV };
+    });
+
+    afterEach(() => {
+        process.env = ORIGINAL_ENV;
+    });
+
+    it.each(['development', 'test'])('accepts the .env.example placeholder when NODE_ENV is %s', (nodeEnv) => {
+        process.env.NODE_ENV = nodeEnv;
+        expect(() => loadEnv()).not.toThrow();
+    });
+
+    it('refuses the .env.example placeholder when NODE_ENV is production', () => {
+        process.env.NODE_ENV = 'production';
+        expect(() => loadEnv()).toThrow();
+    });
+
+    it.each([
+        ['in upper case', PLACEHOLDER.toUpperCase()],
+        ['as a rotation entry', `${TEST_SIWE_HMAC_SECRET}, ${PLACEHOLDER}`]
+    ])('refuses the placeholder %s when NODE_ENV is production', (_form, secret) => {
+        process.env.NODE_ENV = 'production';
+        process.env.SIWE_HMAC_SECRET = secret;
+        expect(() => loadEnv()).toThrow();
+    });
+
+    it('accepts any other secret when NODE_ENV is production', () => {
+        process.env.NODE_ENV = 'production';
+        process.env.SIWE_HMAC_SECRET = TEST_SIWE_HMAC_SECRET;
+        expect(() => loadEnv()).not.toThrow();
     });
 });
 
