@@ -157,6 +157,22 @@ describe('loadEnv', () => {
         expect(loadEnv().PASSKEY_REGISTRATION_ENABLED).toBe(false);
     });
 
+    it('parses CRYPTO_NATIVE_LOGIN_ALLOWLIST as checksummed addresses', () => {
+        process.env.CRYPTO_NATIVE_LOGIN_ALLOWLIST = '0x70997970c51812dc3a010c7d01b50e0d17dc79c8';
+        expect(loadEnv().CRYPTO_NATIVE_LOGIN_ALLOWLIST).toEqual(['0x70997970C51812dc3A010C7d01b50e0d17dc79C8']);
+    });
+
+    it('rejects a non-address in CRYPTO_NATIVE_LOGIN_ALLOWLIST', () => {
+        process.env.CRYPTO_NATIVE_LOGIN_ALLOWLIST = 'not-an-address';
+        expect(() => loadEnv()).toThrow();
+    });
+
+    it('rejects a CRYPTO_NATIVE_ADMIN_WALLETS entry in CRYPTO_NATIVE_LOGIN_ALLOWLIST, ignoring case', () => {
+        process.env.CRYPTO_NATIVE_ADMIN_WALLETS = '0x70997970c51812dc3a010c7d01b50e0d17dc79c8';
+        process.env.CRYPTO_NATIVE_LOGIN_ALLOWLIST = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8';
+        expect(() => loadEnv()).toThrow();
+    });
+
     it('requires SIWE_HMAC_SECRET for wallet association when crypto_native is off', () => {
         process.env.AUTH_METHODS = 'oidc';
         delete process.env.SIWE_HMAC_SECRET;

@@ -156,6 +156,7 @@ export function authRoutes(
                 if (!user) {
                     throw new WalletNotLinkedError();
                 }
+                siweService.assertWalletOwnerMayLogIn(user, siweMessage.address);
 
                 if (!requiresMfa(user)) {
                     const consumed = await siweService.consumeSiweNonce(siweMessage.nonce);

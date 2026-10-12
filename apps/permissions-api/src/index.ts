@@ -220,6 +220,7 @@ export async function start(features: ServiceFeatures = {}) {
         oidcOpts: deps.oidcOpts,
         adminOidcSubs: env.OIDC_ADMIN_SUBS,
         adminWallets: deps.adminWallets,
+        walletLoginAllowlist: env.CRYPTO_NATIVE_LOGIN_ALLOWLIST,
         authMethods: env.AUTH_METHODS,
         userSessionDurationSeconds: env.USER_SESSION_DURATION_SECONDS,
         userIdleTimeoutSeconds: env.USER_IDLE_TIMEOUT_SECONDS,

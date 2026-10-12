@@ -1,12 +1,17 @@
 import { createHash, createHmac, hkdfSync } from 'node:crypto';
 import type { Address } from 'viem';
-import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
+import { generatePrivateKey, type PrivateKeyAccount, privateKeyToAccount } from 'viem/accounts';
 import { createSiweMessage } from 'viem/siwe';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { it as dbIt, type Fixture } from '../../test/unit-test-context';
 import { Repositories } from '../db';
 import type { TargetType } from '../db/schema';
-import { UnauthorizedError, WalletLoginDisabledError } from '../utils/error-types';
+import {
+    ForbiddenError,
+    UnauthorizedError,
+    WalletLoginDisabledError,
+    WalletNotLinkedError
+} from '../utils/error-types';
 import type { PinoLogger } from '../utils/logger';
 import { SiweService } from './siwe-service';
 
@@ -300,17 +305,30 @@ describe('SiweService.verifySiweChallenge', () => {
     });
 });
 
-describe('SiweService.validateSiwe with wallet login disabled', () => {
-    it('refuses a validly signed login without consuming its nonce', async () => {
-        const account = privateKeyToAccount(generatePrivateKey());
-        const insertHash = vi.fn();
-        const service = new SiweService({
-            repos: { consumedNonces: { insertHash } } as unknown as Repositories,
+describe('SiweService wallet login gate', () => {
+    const listed = privateKeyToAccount(generatePrivateKey());
+    const unlisted = privateKeyToAccount(generatePrivateKey());
+
+    function buildService({
+        walletLoginEnabled = false,
+        walletLoginAllowlist = [],
+        repos = {}
+    }: {
+        walletLoginEnabled?: boolean;
+        walletLoginAllowlist?: Address[];
+        repos?: object;
+    } = {}) {
+        return new SiweService({
+            repos: repos as Repositories,
             chainId: 6565,
             hmacSecret: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
-            walletLoginEnabled: false
+            walletLoginEnabled,
+            walletLoginAllowlist
         });
-        const nonce = 'walletlogindisabled';
+    }
+
+    async function signedLogin(service: SiweService, account: PrivateKeyAccount, targetType: TargetType) {
+        const nonce = `login${targetType}nonce`;
         const now = Math.floor(Date.now() / 1000);
         const message = createSiweMessage({
             address: account.address,
@@ -324,17 +342,74 @@ describe('SiweService.validateSiwe with wallet login disabled', () => {
         const nonceToken = service.generateNonceToken({
             address: account.address,
             nonce,
-            targetType: 'user',
+            targetType,
             targetId: null,
             exp: now + 60,
             iat: now,
             message
         });
+        return { message, signature: await account.signMessage({ message }), nonceToken };
+    }
 
-        await expect(
-            service.validateSiwe({ message, signature: await account.signMessage({ message }), nonceToken })
-        ).rejects.toThrow(WalletLoginDisabledError);
+    const owner = (address: Address, systemPermissions: string[] = [], organizationId: string | null = null) => ({
+        roles: [{ id: 'role', roleName: 'role', organizationId, systemPermissions }],
+        wallets: [{ walletAddress: address }]
+    });
+
+    it('refuses a validly signed login without consuming its nonce when wallet login is disabled', async () => {
+        const insertHash = vi.fn();
+        const service = buildService({ repos: { consumedNonces: { insertHash } } });
+
+        await expect(service.validateSiwe(await signedLogin(service, unlisted, 'user'))).rejects.toThrow(
+            WalletLoginDisabledError
+        );
         expect(insertHash).not.toHaveBeenCalled();
+    });
+
+    it('lets an allowlisted wallet log in as a user, whatever its address case', async () => {
+        const service = buildService({ walletLoginAllowlist: [listed.address.toLowerCase() as Address] });
+
+        const payload = await service.validateSiweDeferred(await signedLogin(service, listed, 'user'));
+
+        expect(payload.address).toBe(listed.address);
+    });
+
+    it.each(['tenant', 'service'] as const)('refuses an allowlisted wallet logging in as a %s', async (targetType) => {
+        const service = buildService({ walletLoginAllowlist: [listed.address] });
+
+        await expect(service.validateSiwe(await signedLogin(service, listed, targetType))).rejects.toThrow(
+            WalletLoginDisabledError
+        );
+    });
+
+    it('lets the non-admin owner of the wallet log in when wallet login is disabled', () => {
+        expect(() => buildService().assertWalletOwnerMayLogIn(owner(listed.address), listed.address)).not.toThrow();
+    });
+
+    it('refuses a user who does not own the wallet when wallet login is disabled', () => {
+        expect(() => buildService().assertWalletOwnerMayLogIn(owner(unlisted.address), listed.address)).toThrow(
+            WalletNotLinkedError
+        );
+    });
+
+    it.each([
+        ['admin_read', null],
+        ['admin_write', 'org-1']
+    ])('refuses an owner holding %s (organization %s) when wallet login is disabled', (permission, organizationId) => {
+        expect(() =>
+            buildService().assertWalletOwnerMayLogIn(
+                owner(listed.address, [permission], organizationId),
+                listed.address
+            )
+        ).toThrow(ForbiddenError);
+    });
+
+    it('skips the owner checks when wallet login is enabled', () => {
+        const service = buildService({ walletLoginEnabled: true });
+
+        expect(() =>
+            service.assertWalletOwnerMayLogIn(owner(unlisted.address, ['admin_write']), listed.address)
+        ).not.toThrow();
     });
 });
 

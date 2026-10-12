@@ -138,6 +138,7 @@ export const loadEnv = () =>
 
             // Crypto Native
             CRYPTO_NATIVE_ADMIN_WALLETS: commaSeparatedString.optional().default([]),
+            CRYPTO_NATIVE_LOGIN_ALLOWLIST: commaSeparatedString.pipe(addressSchema.array()).default([]),
 
             // Embedded in SIWE challenge statements, which reject line breaks (EIP-4361).
             BRAND_NAME: z
@@ -359,6 +360,18 @@ export const loadEnv = () =>
                         message:
                             'USER_IDLE_TIMEOUT_SECONDS must not exceed USER_SESSION_DURATION_SECONDS (the absolute session cap)',
                         path: ['USER_IDLE_TIMEOUT_SECONDS']
+                    });
+                    return z.NEVER;
+                }
+
+                const allowlistedAdminWallets = env.CRYPTO_NATIVE_LOGIN_ALLOWLIST.filter((wallet) =>
+                    env.CRYPTO_NATIVE_ADMIN_WALLETS.some((admin) => admin.toLowerCase() === wallet.toLowerCase())
+                );
+                if (allowlistedAdminWallets.length > 0) {
+                    ctx.addIssue({
+                        code: 'custom',
+                        message: `CRYPTO_NATIVE_LOGIN_ALLOWLIST must not include CRYPTO_NATIVE_ADMIN_WALLETS: ${allowlistedAdminWallets.join(', ')}`,
+                        path: ['CRYPTO_NATIVE_LOGIN_ALLOWLIST']
                     });
                     return z.NEVER;
                 }

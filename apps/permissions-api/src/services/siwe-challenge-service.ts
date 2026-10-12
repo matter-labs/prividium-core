@@ -127,8 +127,8 @@ export class SiweChallengeService {
         _operationContext: AuditLogContext,
         clientIp?: string
     ): Promise<SiweChallenge> {
-        this.siweService.assertWalletLoginEnabled();
         const { address, domain, organizationId } = message;
+        this.siweService.assertWalletLoginAllowed(TargetTypes.enum.user, address);
         const resolvedDomain = domain ?? this.validDomains[0];
         if (!resolvedDomain) {
             throw new InvalidInputError('No valid SIWE domains configured. Please set SIWE_VALID_DOMAINS.');
@@ -290,7 +290,7 @@ export class SiweChallengeService {
     }
 
     async createForTenant(data: CreateTenantSiweMessage, clientIp?: string): Promise<SiweChallenge> {
-        this.siweService.assertWalletLoginEnabled();
+        this.siweService.assertWalletLoginAllowed(TargetTypes.enum.tenant, data.address);
         return this.repos.transaction(async (tx) => {
             await this.insertChallengeLog(tx, data.address, TargetTypes.enum.tenant, clientIp);
             const nonce = secureRandomString();
@@ -310,7 +310,7 @@ export class SiweChallengeService {
     }
 
     async createForService(data: CreateServiceSiweMessage, clientIp?: string): Promise<SiweChallenge> {
-        this.siweService.assertWalletLoginEnabled();
+        this.siweService.assertWalletLoginAllowed(TargetTypes.enum.service, data.address);
         return this.repos.transaction(async (tx) => {
             await this.insertChallengeLog(tx, data.address, TargetTypes.enum.service, clientIp);
             const nonce = secureRandomString();

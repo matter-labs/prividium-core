@@ -256,6 +256,7 @@ export interface AppConfig {
     siwe: SiweConfig;
     adminOidcSubs: string[];
     adminWallets: string[];
+    walletLoginAllowlist?: Address[];
     userSessionDurationSeconds: number;
     tenantSessionDurationSeconds: number;
     serviceSessionDurationSeconds: number;
@@ -437,6 +438,7 @@ export async function buildApp(db: DB, config: AppConfig) {
         chainId: config.siwe.chainId,
         hmacSecret: config.siwe.hmacSecret,
         walletLoginEnabled: config.authMethods.includes('crypto_native'),
+        walletLoginAllowlist: config.walletLoginAllowlist,
         logger: config.logger.child({ role: 'SiweService' })
     });
     const siweChallengeService = new SiweChallengeService({

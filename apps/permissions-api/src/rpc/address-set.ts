@@ -4,7 +4,7 @@ export class AddressSet {
     private addresses: Set<string>;
     private someAddress: `0x${string}` | null;
 
-    constructor(addresses: Address[]) {
+    constructor(addresses: readonly Address[]) {
         this.addresses = new Set(addresses.map((addr) => addr.toLowerCase()));
         this.someAddress = addresses[0] || null;
     }

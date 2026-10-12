@@ -1,10 +1,18 @@
 import { createHash, createHmac, hkdfSync, timingSafeEqual } from 'node:crypto';
+import { hasSystemPermission, type RoleHolder } from '@repo/access-control';
 import { fromUnixTime, isFuture } from 'date-fns';
-import { type Address, type Hex, verifyMessage } from 'viem';
+import { type Address, type Hex, isAddressEqual, verifyMessage } from 'viem';
 import { parseSiweMessage } from 'viem/siwe';
 import type { Repositories, TxType } from '../db';
 import { type TargetType, TargetTypes } from '../db/schema';
-import { InvalidInputError, UnauthorizedError, WalletLoginDisabledError } from '../utils/error-types';
+import { AddressSet } from '../rpc/address-set';
+import {
+    ForbiddenError,
+    InvalidInputError,
+    UnauthorizedError,
+    WalletLoginDisabledError,
+    WalletNotLinkedError
+} from '../utils/error-types';
 import type { PinoLogger } from '../utils/logger';
 
 const NONCE_TOKEN_VERSION = 'v1';
@@ -37,6 +45,7 @@ export class SiweService {
     private repos: Repositories;
     private logger?: PinoLogger;
     private readonly walletLoginEnabled: boolean;
+    private readonly walletLoginAllowlist: AddressSet;
     public readonly chainId: number;
 
     constructor({
@@ -44,24 +53,37 @@ export class SiweService {
         chainId,
         hmacSecret,
         walletLoginEnabled,
+        walletLoginAllowlist = [],
         logger
     }: {
         repos: Repositories;
         chainId: number;
         hmacSecret?: string;
         walletLoginEnabled: boolean;
+        walletLoginAllowlist?: readonly Address[];
         logger?: PinoLogger;
     }) {
         this.repos = repos;
         this.chainId = chainId;
         this.hmacKeys = this.parseAndDeriveHmacKeys(hmacSecret);
         this.walletLoginEnabled = walletLoginEnabled;
+        this.walletLoginAllowlist = new AddressSet(walletLoginAllowlist);
         this.logger = logger;
     }
 
-    assertWalletLoginEnabled(): void {
-        if (!this.walletLoginEnabled) {
-            throw new WalletLoginDisabledError();
+    assertWalletLoginAllowed(targetType: TargetType, address: Address): void {
+        if (this.walletLoginEnabled) return;
+        if (targetType === TargetTypes.enum.user && this.walletLoginAllowlist.has(address)) return;
+        throw new WalletLoginDisabledError();
+    }
+
+    assertWalletOwnerMayLogIn(user: RoleHolder & { wallets: readonly { walletAddress: Address }[] }, address: Address) {
+        if (this.walletLoginEnabled) return;
+        if (!user.wallets.some((wallet) => isAddressEqual(wallet.walletAddress, address))) {
+            throw new WalletNotLinkedError();
+        }
+        if (hasSystemPermission(user, 'admin_read') || hasSystemPermission(user, 'admin_write')) {
+            throw new ForbiddenError('Admins cannot log in through the wallet login allowlist.');
         }
     }
 
@@ -127,7 +149,7 @@ export class SiweService {
             address: tokenPayload.address
         }).catch(() => false);
         if (!messageVerified) throw new UnauthorizedError();
-        this.assertWalletLoginEnabled();
+        this.assertWalletLoginAllowed(tokenPayload.targetType, tokenPayload.address);
 
         if (markNonceAsUsed) {
             const consumed = await this.consumeSiweNonce(tokenPayload.nonce);
