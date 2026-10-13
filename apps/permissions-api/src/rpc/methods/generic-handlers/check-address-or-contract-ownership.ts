@@ -1,7 +1,7 @@
 import { type Address, getContractAddress, isAddressEqual } from 'viem';
 import { z } from 'zod/v4';
 import { addressSchema } from '../../../utils/schemas/address';
-import { ForbiddenRpcError } from '../../errors';
+import { ForbiddenRpcError, UnauthorizedRpcError } from '../../errors';
 import { type JSONLike, type JsonRpcResponse, response } from '../../json-rpc';
 import type { Authorizer } from '../../permissions';
 import type { AuthorizedRpcContext, MethodHandler } from '../../rpc-service';
@@ -61,6 +61,18 @@ async function isNextContractAddressForCurrentUser(
     ).then((res) => res.some((i) => i));
 }
 
+/** Callers without wallets (anonymous, service) are rejected by `checkAddressOwnership`, so they own nothing. */
+async function callerOwnsAddress(authorizer: Authorizer, address: Address): Promise<boolean> {
+    try {
+        return await authorizer.checkAddressOwnership(address);
+    } catch (error) {
+        if (error instanceof UnauthorizedRpcError) {
+            return false;
+        }
+        throw error;
+    }
+}
+
 /**
  * This method handler is custom-made to make foundry scripts works preserving Prividium's privacy.
  * It's meant to be used with eth_getCode, eth_getBalance, and eth_getTransactionCount. Users
@@ -72,6 +84,7 @@ async function isNextContractAddressForCurrentUser(
  * the option of defining constant hardcoded response values. For example, in `eth_getBalance` the real balance for those
  * addresses should not be revealed, but fail with a forbidden error breaks foundry scripts. Then, a constant
  * value can be used. But for `eth_getCode` we need to return the real code to make foundry able to execute.
+ * The address owner (e.g. a fee collector's own wallet) still gets the real value.
  *
  * @param name
  * @param extraPublicCodeAddresses
@@ -92,10 +105,10 @@ export function checkAddressOrContractOwnership(
             const isSpecialAddress = publicCodeAddresses.some((a) => isAddressEqual(a, targetAddress));
 
             if (isSpecialAddress) {
-                if (whitelistedResult !== undefined) {
-                    return response({ id, result: whitelistedResult });
+                if (whitelistedResult === undefined || (await callerOwnsAddress(context.authorizer, targetAddress))) {
+                    return context.targetRpc.delegate(id, method, params);
                 }
-                return context.targetRpc.delegate(id, method, params);
+                return response({ id, result: whitelistedResult });
             }
 
             const [addressBelongs, isContractDeployedByTheUser, orgVisible, isDeploymentForUserAddress] =
