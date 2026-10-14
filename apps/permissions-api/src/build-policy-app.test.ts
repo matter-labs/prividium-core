@@ -35,6 +35,7 @@ describe('buildPolicyApp — a supplied sequencer authorizer', () => {
     const authorizerWith = (overrides: Partial<SequencerAuthorizer<unknown>>): SequencerAuthorizer<unknown> => ({
         resolveSigner: vi.fn().mockResolvedValue(subject),
         checkSigner: vi.fn().mockResolvedValue(undefined),
+        checkTransfer: vi.fn().mockResolvedValue({ authorized: true }),
         checkCall: vi.fn().mockResolvedValue({ authorized: true }),
         checkFrames: vi.fn().mockResolvedValue([]),
         checkDeployment: vi.fn().mockResolvedValue({ authorized: true }),

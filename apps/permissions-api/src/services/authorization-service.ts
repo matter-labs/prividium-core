@@ -23,6 +23,12 @@ import {
     contractTemplatesTable,
     type MethodAccessType
 } from '../db/schema';
+import {
+    decideWatchdogCall,
+    decideWatchdogFrame,
+    decideWatchdogTransfer,
+    WATCHDOG_NOT_GRANTED
+} from '../permissions/watchdog-grant';
 import type { User, UserWithRoles } from '../repositories/users-repository';
 import { resolveAbiItem } from '../utils/abi';
 import { EntityNotFound } from '../utils/error-types';
@@ -34,6 +40,7 @@ import { fetchArgMap, fetchRoleSet } from '../utils/permission-reads';
 import { isReservedContractAddress } from '../utils/reserved-contract-address';
 import type { MethodSelector } from '../utils/schemas/hex-schema';
 import { userHasWallet } from '../utils/user-wallets';
+import { isWatchdog } from '../utils/watchdog';
 import { canInheritSystemContractUmbrella } from './system-contracts/umbrella-policy';
 
 const EIP712_DOMAIN_SELECTOR = toFunctionSelector('eip712Domain()');
@@ -64,6 +71,7 @@ export type RuleId =
     | 'permission.access_type_mismatch'
     | 'permission.org_mismatch'
     | 'user.organization_deleted'
+    | 'user.suspended'
     | 'm2m.rpc_access_missing'
     | 'm2m.user_not_found'
     | 'rule.public.allow'
@@ -86,6 +94,9 @@ export type RuleId =
     | 'protocol.version_mismatch'
     | 'judge.no_frames'
     | 'judge.allow'
+    | 'watchdog.grant'
+    | 'watchdog.not_granted'
+    | 'watchdog.foreign_recipient'
     // Contributed by a private feature's authorization overlay. The core does not
     // enumerate these: it forwards the id the overlay reported so the sequencer can
     // map a rejection back to the decision site that made it.
@@ -113,6 +124,8 @@ export type AuthorizationResult = {
      * meaningful when `authorized === true`. Ignored on deny.
      */
     isUmbrella?: boolean;
+    /** Set on the watchdog's grant: an authorization overlay must not narrow it. */
+    exemptFromOverlays?: boolean;
 };
 
 type Deps = {
@@ -205,6 +218,8 @@ export interface SequencerAuthorizer<S> {
     /** Admit only: refuses the subject itself, before the call is classified. */
     checkSigner(subject: S): Promise<AuthorizationResult | undefined>;
 
+    checkTransfer(subject: S, to: Address): Promise<AuthorizationResult>;
+
     checkCall(subject: S, call: SequencerCall, facts: SequencerFacts): Promise<AuthorizationResult>;
 
     /** Aligned to `frames` by index; a frame whose evaluation throws is captured, not thrown. */
@@ -270,10 +285,20 @@ export class AuthorizationService implements MethodAuthorizer, SequencerAuthoriz
     }
 
     checkSigner(subject: UserWithRoles): Promise<AuthorizationResult | undefined> {
+        if (belongsToDeletedOrganization(subject)) {
+            return Promise.resolve({ authorized: false, ruleId: 'user.organization_deleted' });
+        }
+        if (subject.suspendedAt !== null) {
+            return Promise.resolve({ authorized: false, ruleId: 'user.suspended' });
+        }
+        return Promise.resolve(undefined);
+    }
+
+    checkTransfer(subject: UserWithRoles, to: Address): Promise<AuthorizationResult> {
         return Promise.resolve(
-            belongsToDeletedOrganization(subject)
-                ? { authorized: false, ruleId: 'user.organization_deleted' }
-                : undefined
+            isWatchdog(subject)
+                ? decideWatchdogTransfer(subject.wallets, to)
+                : { authorized: true, ruleId: 'transfer.native.allow' }
         );
     }
 
@@ -337,6 +362,10 @@ export class AuthorizationService implements MethodAuthorizer, SequencerAuthoriz
         accessTypeCheck,
         rpcMethod
     }: MethodAuthorizationRequest): Promise<AuthorizationResult> {
+        if (isWatchdog(user)) {
+            return decideWatchdogCall(user.wallets, { from: fromAddress, contractAddress, calldata });
+        }
+
         const selector = size(calldata) === 0 ? '0x' : extractSelector(calldata);
         const domainReadWithoutFrom =
             fromAddress === undefined &&
@@ -620,6 +649,13 @@ export class AuthorizationService implements MethodAuthorizer, SequencerAuthoriz
         const { fromAddress, user, calls, accessTypeCheck } = params;
         if (calls.length === 0) return [];
 
+        if (isWatchdog(user)) {
+            return calls.map((call) => ({
+                kind: 'result',
+                result: decideWatchdogFrame(user.wallets, { from: fromAddress, ...call }, this.allowUmbrellaSystemReads)
+            }));
+        }
+
         if (!fromAddress || !userHasWallet(user, fromAddress)) {
             return calls.map(() => ({
                 kind: 'result',
@@ -826,6 +862,9 @@ export class AuthorizationService implements MethodAuthorizer, SequencerAuthoriz
         from: Address | undefined;
         user: UserWithRoles;
     }): AuthorizationResult {
+        if (isWatchdog(user)) {
+            return WATCHDOG_NOT_GRANTED;
+        }
         if (!from || !userHasWallet(user, from)) {
             return { authorized: false, ruleId: 'deploy.address_not_owned' };
         }

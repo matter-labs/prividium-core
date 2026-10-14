@@ -224,10 +224,19 @@ export class SessionsAuthValidator {
             throw new UnauthorizedError('Invalid session');
         }
 
+        if (session.scope === 'rpc' && request.routeOptions.config?.allowRpcSession !== true) {
+            this.logger.debug({ url: request.url }, 'Rejecting rpc-scoped session outside RPC');
+            throw new UnauthorizedError('Invalid session');
+        }
+
         if (session.userId) {
             const user = await this.repos.users.findByIdWithRoles(session.userId);
             if (!user) {
                 this.logger.debug('Session with invalid user id');
+                throw new UnauthorizedError('Invalid session');
+            }
+            if (user.suspendedAt !== null) {
+                this.logger.debug({ userId: user.id }, 'Session of a suspended user');
                 throw new UnauthorizedError('Invalid session');
             }
             if (belongsToDeletedOrganization(user)) {

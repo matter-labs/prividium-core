@@ -16,6 +16,7 @@ type RpcTransportOptions = {
     preHandler: preHandlerHookHandler | preHandlerHookHandler[];
     cors: FastifyCorsOptions | false;
     allowApplicationSession?: boolean;
+    allowRpcSession?: boolean;
     schema?: {
         params?: ZodType;
         body?: ZodType;
@@ -51,7 +52,11 @@ export function rpcTransport(app: FastifyServer, options: RpcTransportOptions): 
         options.path,
         {
             schema: options.schema,
-            config: { cors: options.cors, allowApplicationSession: options.allowApplicationSession },
+            config: {
+                cors: options.cors,
+                allowApplicationSession: options.allowApplicationSession,
+                allowRpcSession: options.allowRpcSession
+            },
             preHandler: options.preHandler
         },
         async (request, reply) => {

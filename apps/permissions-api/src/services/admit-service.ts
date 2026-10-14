@@ -109,7 +109,7 @@ export class AdmitService<S> {
             () => this.evaluate(input)
         );
 
-        if (!capability.authorized || this.overlays.length === 0) {
+        if (!capability.authorized || capability.exemptFromOverlays === true || this.overlays.length === 0) {
             return capability;
         }
 
@@ -200,7 +200,7 @@ export class AdmitService<S> {
             input.value
         );
         if (classification.type === 'transfer-to-eoa') {
-            return { authorized: true, ruleId: 'transfer.native.allow' };
+            return this.authorizer.checkTransfer(subject, input.to);
         }
 
         return this.authorizer.checkCall(

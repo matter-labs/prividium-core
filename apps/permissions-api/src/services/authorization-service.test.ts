@@ -38,6 +38,7 @@ function fakeUser(walletAddresses: Address[]): User {
         oidcSub: null,
         oidcIssuer: null,
         walletToken: null,
+        suspendedAt: null,
         source: 'adminPanel',
         organizationId: null,
         createdAt: new Date(),

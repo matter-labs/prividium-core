@@ -1,8 +1,10 @@
 import pino from 'pino';
+import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { TestExternalRpc } from '../../test/rpc/test-external-rpc';
 import { TestRpcAuthorizer } from '../../test/rpc/test-rpc-authorizer';
+import { WATCHDOG_GRANT } from '../permissions/watchdog-grant';
 import { jsonRpcOperationCounter } from '../utils/metrics';
 import { hexSchema } from '../utils/schemas/hex-schema';
 import {
@@ -17,6 +19,7 @@ import { eth_getBlockReceipts } from './methods/handlers/eth_getBlockReceipts';
 import { eth_getLogs } from './methods/handlers/eth_getLogs';
 import { eth_getTransactionByHash } from './methods/handlers/eth_getTransactionByHash';
 import { eth_getTransactionReceipt } from './methods/handlers/eth_getTransactionReceipt';
+import { createWatchdogRpcMethodList } from './methods/watchdog-rpc-method-list';
 import { type AnyParams, anyParams } from './params-schemas';
 import { type AuthorizedRpcContext, type MethodHandler, RpcCallHandler } from './rpc-service';
 import { TargetRpcCallError } from './target-rpc';
@@ -397,5 +400,45 @@ describe('RpcCallHandler metric label cardinality', () => {
             InvalidRpcRequest
         );
         expect(handle).not.toHaveBeenCalled();
+    });
+});
+
+describe('RpcCallHandler.forWatchdog', () => {
+    const stranger = '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+
+    it('answers exactly the methods in the watchdog grant', () => {
+        const names = createWatchdogRpcMethodList([]).map((handler) => handler.name);
+
+        expect(names.sort()).toEqual([...WATCHDOG_GRANT.rpcMethods].sort());
+    });
+
+    it('refuses any other method', async () => {
+        const rpc = RpcCallHandler.forWatchdog(makeContext(), []);
+
+        expect(await rpc.handle(jsonRpcRequest('eth_feeHistory', []))).toMatchObject({
+            error: { code: FORBIDDEN_ERROR_CODE }
+        });
+    });
+
+    it('refuses to send value to a wallet that is not its own', async () => {
+        const raw = await privateKeyToAccount(generatePrivateKey()).signTransaction({
+            to: stranger,
+            value: 1n,
+            chainId: 1,
+            nonce: 0,
+            gas: 21_000n,
+            maxFeePerGas: 1n,
+            maxPriorityFeePerGas: 1n
+        });
+        const checkAddressOwnership = vi.fn().mockResolvedValue(false);
+        const rpc = RpcCallHandler.forWatchdog(
+            { ...makeContext(), authorizer: { checkAddressOwnership } as never },
+            []
+        );
+
+        expect(await rpc.handle(jsonRpcRequest('eth_sendRawTransaction', [raw]))).toMatchObject({
+            error: { code: FORBIDDEN_ERROR_CODE }
+        });
+        expect(checkAddressOwnership).toHaveBeenCalledWith(stranger);
     });
 });

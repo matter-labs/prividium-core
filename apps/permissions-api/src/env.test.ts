@@ -173,6 +173,20 @@ describe('loadEnv', () => {
         expect(() => loadEnv()).toThrow();
     });
 
+    it('parses WATCHDOG_WALLETS as checksummed addresses', () => {
+        process.env.WATCHDOG_WALLETS = '0x70997970c51812dc3a010c7d01b50e0d17dc79c8';
+        expect(loadEnv().WATCHDOG_WALLETS).toEqual(['0x70997970C51812dc3A010C7d01b50e0d17dc79C8']);
+    });
+
+    it.each([
+        'CRYPTO_NATIVE_ADMIN_WALLETS',
+        'CRYPTO_NATIVE_LOGIN_ALLOWLIST'
+    ])('rejects a WATCHDOG_WALLETS entry that is also in %s', (other) => {
+        process.env[other] = '0x70997970c51812dc3a010c7d01b50e0d17dc79c8';
+        process.env.WATCHDOG_WALLETS = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8';
+        expect(() => loadEnv()).toThrow();
+    });
+
     it('requires SIWE_HMAC_SECRET for wallet association when crypto_native is off', () => {
         process.env.AUTH_METHODS = 'oidc';
         delete process.env.SIWE_HMAC_SECRET;

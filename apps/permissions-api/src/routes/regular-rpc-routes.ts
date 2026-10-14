@@ -3,6 +3,7 @@ import type { Address } from 'viem';
 import type { FastifyServer } from '../build-app';
 import { type AuthorizedRpcContext, RpcCallHandler } from '../rpc/rpc-service';
 import { actorLogContext } from '../utils/actor-log-context';
+import { isWatchdog } from '../utils/watchdog';
 import { rpcMetrics } from './rpc-metrics';
 import { type RpcTransportRequest, rpcTransport } from './rpc-transport';
 
@@ -23,6 +24,7 @@ export function regularRpcRoutes(app: FastifyServer, options: RegularRpcRoutesOp
         role: 'rpc',
         preHandler: options.preHandler,
         allowApplicationSession: true,
+        allowRpcSession: true,
         cors: {
             origin: '*',
             allowedHeaders: ['Content-Type', 'Authorization'],
@@ -39,14 +41,21 @@ export function regularRpcRoutes(app: FastifyServer, options: RegularRpcRoutesOp
                 policyEnabled: supplied.policyEnabled ?? false,
                 logger: request.log.child({ role: 'rpc', actor: actorLogContext(request) })
             };
-            const handler = (await context.authorizer.hasFullSequencerAccess())
-                ? RpcCallHandler.forFullAccess(context, options.disclosureMethodsEnabled)
-                : RpcCallHandler.forRegularAccess(
-                      context,
-                      options.publicCodeAddresses,
-                      options.disclosureMethodsEnabled
-                  );
-            return handler.handle(request.body);
+            return (await rpcCallHandlerFor(request, context, options)).handle(request.body);
         }
     });
+}
+
+async function rpcCallHandlerFor(
+    request: RpcTransportRequest,
+    context: AuthorizedRpcContext,
+    options: RegularRpcRoutesOptions
+): Promise<RpcCallHandler<AuthorizedRpcContext>> {
+    if (request.auth?.type === 'user' && isWatchdog(request.auth.currentUser())) {
+        return RpcCallHandler.forWatchdog(context, options.publicCodeAddresses);
+    }
+    if (await context.authorizer.hasFullSequencerAccess()) {
+        return RpcCallHandler.forFullAccess(context, options.disclosureMethodsEnabled);
+    }
+    return RpcCallHandler.forRegularAccess(context, options.publicCodeAddresses, options.disclosureMethodsEnabled);
 }

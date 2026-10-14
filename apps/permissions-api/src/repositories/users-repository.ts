@@ -1,4 +1,4 @@
-import { and, count, eq, inArray, isNull, like, or } from 'drizzle-orm';
+import { and, count, eq, inArray, isNull, like, not, or, sql } from 'drizzle-orm';
 import type { Address, Hex } from 'viem';
 import type { TxType } from '../db';
 import { extractForeignKeyConstraintProblem, isForeignKeyConstraintError, isUniqueConstraintError } from '../db/errors';
@@ -10,10 +10,14 @@ import {
     UNCHECKED_PERMISSIONS
 } from '../permissions/permission-catalog';
 import { EntityAlreadyExistsError, EntityNotFound, InvalidInputError, UnexpectedDbError } from '../utils/error-types';
+import { hexListIncludes } from '../utils/hex';
 import { belongsToDeletedOrganization } from '../utils/organization-membership';
 import type { PaginatedResult, PaginationParams } from '../utils/schemas/pagination';
+import { assertNotWatchdog } from '../utils/watchdog';
 import { BaseRepository } from './base-repository';
 import type { BareRole, Role } from './roles-repository';
+
+const WATCHDOG_SYNC_LOCK_ID = 0x3a7c4;
 
 type UserRow = typeof usersTable.$inferSelect;
 // Mirrors the wallet response shape: the soft-delete marker is never surfaced on a user's wallets.
@@ -306,6 +310,21 @@ export class UsersRepository extends BaseRepository {
                 throw new EntityNotFound('User', { id: userId });
             }
 
+            const displayNameChanged = user.displayName !== undefined && user.displayName !== existingUser.displayName;
+            const walletsChanged =
+                user.wallets !== undefined &&
+                this.walletsAreChanging(
+                    user.wallets,
+                    existingUser.wallets.map((w) => w.walletAddress)
+                );
+            const rolesChanged =
+                user.roles !== undefined &&
+                (user.roles.length !== existingUser.roles.length ||
+                    user.roles.some((roleId) => !existingUser.roles.some((role) => role.id === roleId)));
+            if (displayNameChanged || walletsChanged || rolesChanged) {
+                assertNotWatchdog(existingUser);
+            }
+
             if (user.displayName !== undefined || user.oidcSub !== undefined) {
                 const { displayName, oidcSub } = user;
                 await tx.update(usersTable).set({ displayName, oidcSub }).where(eq(usersTable.id, userId));
@@ -409,11 +428,55 @@ export class UsersRepository extends BaseRepository {
         if (!userToDelete) {
             return false;
         }
+        assertNotWatchdog(userToDelete);
 
         return await this.transaction(async (tx) => {
             const [deletedUser] = await tx.delete(usersTable).where(eq(usersTable.id, userId)).returning();
             return !!deletedUser;
         });
+    }
+
+    /** Held until the caller's transaction ends, so replicas booting together sync the watchdog one at a time. */
+    async lockWatchdogSync(): Promise<void> {
+        await this.db.execute(sql`SELECT pg_advisory_xact_lock(${WATCHDOG_SYNC_LOCK_ID})`);
+    }
+
+    async findWatchdog(): Promise<User | undefined> {
+        const row = await this.db.query.usersTable.findFirst({
+            columns: { id: true },
+            where: eq(usersTable.source, UserSources.enum.watchdog)
+        });
+        return row && this.findById(row.id);
+    }
+
+    async createWatchdog(): Promise<User> {
+        return this.create({ displayName: 'Watchdog', source: UserSources.enum.watchdog });
+    }
+
+    async setWallets(userId: User['id'], wallets: readonly Address[]): Promise<void> {
+        const listed = wallets.length > 0 ? inArray(walletsTable.walletAddress, [...wallets]) : sql`false`;
+        await this.db
+            .update(walletsTable)
+            .set({ deletedAt: new Date() })
+            .where(and(eq(walletsTable.userId, userId), isNull(walletsTable.deletedAt), not(listed)));
+
+        const held = await this.db.query.walletsTable.findMany({
+            columns: { walletAddress: true },
+            where: and(eq(walletsTable.userId, userId), isNull(walletsTable.deletedAt))
+        });
+        const heldAddresses = held.map((w) => w.walletAddress);
+        const missing = wallets.filter((wallet) => !hexListIncludes(heldAddresses, wallet));
+        if (missing.length > 0) {
+            await this.db.insert(walletsTable).values(missing.map((walletAddress) => ({ userId, walletAddress })));
+        }
+    }
+
+    async clearRoles(userId: User['id']): Promise<void> {
+        await this.db.delete(userRolesTable).where(eq(userRolesTable.userId, userId));
+    }
+
+    async setSuspendedAt(userId: User['id'], suspendedAt: Date | null): Promise<void> {
+        await this.db.update(usersTable).set({ suspendedAt }).where(eq(usersTable.id, userId));
     }
 
     /**
@@ -589,7 +652,7 @@ export class UsersRepository extends BaseRepository {
             where: eq(usersTable.walletToken, token)
         });
         // Wallet tokens are independent credentials that outlive session revocation.
-        if (findFirst === undefined || belongsToDeletedOrganization(findFirst)) {
+        if (findFirst === undefined || belongsToDeletedOrganization(findFirst) || findFirst.suspendedAt !== null) {
             return undefined;
         }
 

@@ -156,22 +156,26 @@ export function authRoutes(
                 if (!user) {
                     throw new WalletNotLinkedError();
                 }
-                siweService.assertWalletOwnerMayLogIn(user, siweMessage.address);
+                if (user.suspendedAt !== null) {
+                    throw new ForbiddenError('User is suspended');
+                }
+                const scope = siweService.sessionScopeFor(user, siweMessage.address);
 
-                if (!requiresMfa(user)) {
+                if (scope === 'rpc' || !requiresMfa(user)) {
                     const consumed = await siweService.consumeSiweNonce(siweMessage.nonce);
                     if (!consumed) {
                         throw new UnauthorizedError();
                     }
-                    const { token, expiresAt, renewableUntil } = await sessionService.createUserSession({
-                        userId: user.id,
-                        ipAddress: req.ip,
-                        userAgent: req.headers['user-agent']
-                    });
+                    const sessionData = { userId: user.id, ipAddress: req.ip, userAgent: req.headers['user-agent'] };
+                    const { token, expiresAt, renewableUntil } =
+                        scope === 'rpc'
+                            ? await sessionService.createRpcSession(sessionData)
+                            : await sessionService.createUserSession(sessionData);
 
                     context.setActiveUser(user.id, user.organizationId);
                     await context.logSecurityEvent('auth.login_succeeded', 'user', user.id, {
-                        method: 'crypto_native'
+                        method: 'crypto_native',
+                        scope
                     });
                     return {
                         token,
@@ -362,7 +366,7 @@ export function authRoutes(
     server.post(
         '/logout',
         {
-            config: { audit_action: AUDIT_ACTIONS.AUTH_LOGOUT, allowApplicationSession: true },
+            config: { audit_action: AUDIT_ACTIONS.AUTH_LOGOUT, allowApplicationSession: true, allowRpcSession: true },
             onRequest: [
                 sessionAuthValidator.buildHook({
                     targets: [
@@ -390,7 +394,7 @@ export function authRoutes(
     server.get(
         '/current-session',
         {
-            config: { allowApplicationSession: true },
+            config: { allowApplicationSession: true, allowRpcSession: true },
             onRequest: [
                 sessionAuthValidator.buildHook({
                     targets: [

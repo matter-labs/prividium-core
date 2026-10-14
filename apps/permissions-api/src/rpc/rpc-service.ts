@@ -17,7 +17,7 @@ import {
 } from './json-rpc';
 import { createBaseRpcMethodList } from './methods/base-rpc-method-list';
 import type { DispatcherConfig } from './methods/dispatchers';
-import { methodNotFound } from './methods/generic-handlers';
+import { forbiddenMethod, methodNotFound } from './methods/generic-handlers';
 import { requireFullSequencerAccess } from './methods/generic-handlers/require-full-sequencer-access';
 import { bundlerHandlers } from './methods/handlers/bundler';
 import { fullSequencerAccessBroadcastTx } from './methods/handlers/full-sequencer-access-broadcast-tx';
@@ -25,6 +25,7 @@ import { fullSequencerAccessEthCall } from './methods/handlers/full-sequencer-ac
 import { prividium_accountDataDisclosure } from './methods/handlers/prividium_accountDataDisclosure';
 import { prividium_tokenBalanceDisclosure } from './methods/handlers/prividium_tokenBalanceDisclosure';
 import { prividium_tokenSupplyDisclosure } from './methods/handlers/prividium_tokenSupplyDisclosure';
+import { createWatchdogRpcMethodList } from './methods/watchdog-rpc-method-list';
 import type { Authorizer, WalletAuthorizer } from './permissions';
 import type { ServiceAuthorizer } from './permissions/service-authorizer';
 import type { ExternalRpc } from './target-rpc';
@@ -241,6 +242,17 @@ export class RpcCallHandler<Ctx extends BaseContext> {
             [fullSequencerAccessBroadcastTx, fullSequencerAccessEthCall, ...bundlerMethods, ...disclosureMethods],
             context,
             requireFullSequencerAccess('unknown')
+        );
+    }
+
+    static forWatchdog(
+        context: AuthorizedRpcContext,
+        publicCodeAddresses: Address[]
+    ): RpcCallHandler<AuthorizedRpcContext> {
+        return new RpcCallHandler<AuthorizedRpcContext>(
+            createWatchdogRpcMethodList(publicCodeAddresses),
+            context,
+            forbiddenMethod('unknown')
         );
     }
 

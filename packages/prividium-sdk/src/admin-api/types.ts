@@ -3,7 +3,7 @@
 // src/admin-api/types-alignment.test.ts cross-checks these against the workspace
 // OpenAPI-generated types and fails typecheck on drift.
 
-export type AdminUserSource = 'oidc' | 'adminPanel' | 'tenant' | 'crypto_native' | 'm2m_app';
+export type AdminUserSource = 'oidc' | 'adminPanel' | 'tenant' | 'crypto_native' | 'm2m_app' | 'watchdog';
 
 export type AdminSystemPermission =
     | 'contract_deployment'
@@ -51,6 +51,7 @@ export interface AdminUser {
     id: string;
     displayName: string;
     source: AdminUserSource;
+    suspendedAt: string | null;
     createdAt: string;
     updatedAt: string;
     organization: AdminUserOrganization | null;

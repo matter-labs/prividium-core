@@ -76,6 +76,9 @@ export const swaggerSchemaTransform = (input: SwaggerTransformInput): ReturnType
     if (input.route?.config?.allowApplicationSession === true) {
         result.schema = Object.assign(result.schema ?? {}, { 'x-application-session': true });
     }
+    if (input.route?.config?.allowRpcSession === true) {
+        result.schema = Object.assign(result.schema ?? {}, { 'x-rpc-session': true });
+    }
     return result;
 };
 

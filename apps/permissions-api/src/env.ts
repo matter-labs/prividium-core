@@ -139,6 +139,7 @@ export const loadEnv = () =>
             // Crypto Native
             CRYPTO_NATIVE_ADMIN_WALLETS: commaSeparatedString.optional().default([]),
             CRYPTO_NATIVE_LOGIN_ALLOWLIST: commaSeparatedString.pipe(addressSchema.array()).default([]),
+            WATCHDOG_WALLETS: commaSeparatedString.pipe(addressSchema.array()).default([]),
 
             // Embedded in SIWE challenge statements, which reject line breaks (EIP-4361).
             BRAND_NAME: z
@@ -364,14 +365,12 @@ export const loadEnv = () =>
                     return z.NEVER;
                 }
 
-                const allowlistedAdminWallets = env.CRYPTO_NATIVE_LOGIN_ALLOWLIST.filter((wallet) =>
-                    env.CRYPTO_NATIVE_ADMIN_WALLETS.some((admin) => admin.toLowerCase() === wallet.toLowerCase())
-                );
-                if (allowlistedAdminWallets.length > 0) {
+                const walletListOverlap = findWalletListOverlap(env);
+                if (walletListOverlap) {
                     ctx.addIssue({
                         code: 'custom',
-                        message: `CRYPTO_NATIVE_LOGIN_ALLOWLIST must not include CRYPTO_NATIVE_ADMIN_WALLETS: ${allowlistedAdminWallets.join(', ')}`,
-                        path: ['CRYPTO_NATIVE_LOGIN_ALLOWLIST']
+                        message: walletListOverlap.message,
+                        path: [walletListOverlap.variable]
                     });
                     return z.NEVER;
                 }
@@ -611,6 +610,27 @@ function describeUrlTls(databaseUrl: string, url: ReturnType<typeof parseConnect
     return named.length === 0
         ? 'SSL parameters other than sslmode=verify-full'
         : named.map((name) => `${name}=${params.getAll(name).at(-1)}`).join(', ');
+}
+
+function findWalletListOverlap(env: {
+    CRYPTO_NATIVE_ADMIN_WALLETS: string[];
+    CRYPTO_NATIVE_LOGIN_ALLOWLIST: string[];
+    WATCHDOG_WALLETS: string[];
+}): { variable: string; message: string } | undefined {
+    const pairs = [
+        ['CRYPTO_NATIVE_LOGIN_ALLOWLIST', 'CRYPTO_NATIVE_ADMIN_WALLETS'],
+        ['WATCHDOG_WALLETS', 'CRYPTO_NATIVE_ADMIN_WALLETS'],
+        ['WATCHDOG_WALLETS', 'CRYPTO_NATIVE_LOGIN_ALLOWLIST']
+    ] as const;
+    for (const [variable, other] of pairs) {
+        const shared = env[variable].filter((wallet) =>
+            env[other].some((otherWallet) => otherWallet.toLowerCase() === wallet.toLowerCase())
+        );
+        if (shared.length > 0) {
+            return { variable, message: `${variable} must not include ${other}: ${shared.join(', ')}` };
+        }
+    }
+    return undefined;
 }
 
 /** True when the idle timeout is set and strictly exceeds the session cap (equal is allowed). */

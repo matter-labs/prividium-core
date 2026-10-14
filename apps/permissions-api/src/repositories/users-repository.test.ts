@@ -575,6 +575,44 @@ describe('UsersRepository', () => {
         });
     });
 
+    describe('watchdog', () => {
+        const first = '0x1111111111111111111111111111111111111111' as Address;
+        const second = '0x2222222222222222222222222222222222222222' as Address;
+        const MANAGED = 'The watchdog user is managed by deploy config';
+
+        it('sets exactly the listed wallets and leaves unchanged ones alone', async () => {
+            const watchdog = await repository.createWatchdog();
+
+            await repository.setWallets(watchdog.id, [first]);
+            await repository.setWallets(watchdog.id, [first, second]);
+
+            const rotated = await repository.findById(watchdog.id);
+            expectWallets(rotated, [first, second]);
+
+            await repository.setWallets(watchdog.id, [second]);
+            const kept = rotated?.wallets.find((wallet) => wallet.walletAddress === second);
+            expect((await repository.findById(watchdog.id))?.wallets).toEqual([kept]);
+
+            await repository.setWallets(watchdog.id, []);
+            expectWallets(await repository.findById(watchdog.id), []);
+        });
+
+        it('refuses to rename, rewallet, give roles to or delete the watchdog', async () => {
+            const { id } = await repository.createWatchdog();
+            await repository.setWallets(id, [first]);
+            await createRole('monitor');
+
+            await expect(repository.update(id, { displayName: 'Renamed' })).rejects.toThrow(MANAGED);
+            await expect(repository.update(id, { wallets: [second] })).rejects.toThrow(MANAGED);
+            await expect(repository.update(id, { roles: roleIds('monitor') })).rejects.toThrow(MANAGED);
+            await expect(repository.delete(id)).rejects.toThrow(MANAGED);
+
+            const unchanged = await repository.update(id, { displayName: 'Watchdog', wallets: [first], roles: [] });
+            expectRoles(unchanged, []);
+            expectWallets(unchanged, [first]);
+        });
+    });
+
     // Creates a role and records its id so tests can assign it by name.
     async function createRole(roleName: string): Promise<string> {
         const role = await rolesRepo.create({ roleName, systemPermissions: [] });

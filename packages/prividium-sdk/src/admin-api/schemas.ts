@@ -42,7 +42,7 @@ const userOrganizationSchema = z.object({
     name: z.string()
 });
 
-const userSourceSchema = z.enum(['oidc', 'adminPanel', 'tenant', 'crypto_native', 'm2m_app']);
+const userSourceSchema = z.enum(['oidc', 'adminPanel', 'tenant', 'crypto_native', 'm2m_app', 'watchdog']);
 
 // Mirrors the permissions-api user response, which omits server-owned secrets (walletToken) and
 // external IdP identity (oidcSub/oidcIssuer); organizationId is redundant with `organization`.
@@ -50,6 +50,7 @@ export const adminUserSchema = z.object({
     id: z.string(),
     displayName: z.string(),
     source: userSourceSchema,
+    suspendedAt: z.string().nullable(),
     createdAt: z.string(),
     updatedAt: z.string(),
     organization: userOrganizationSchema.nullable(),
@@ -64,15 +65,21 @@ export const adminUserSchema = z.object({
 // contract and the type-alignment baseline.
 const adminUserResponseShapes = {
     latest: adminUserSchema,
+    // <= v1.310 (pre-suspension): `suspendedAt` is absent.
+    v1_310: adminUserSchema.omit({ suspendedAt: true }),
     // <= v1.260 (pre-surrogate-id): roles are keyed by name, so `id` is absent.
-    v1_260: adminUserSchema.extend({ roles: z.array(userRoleSchema.extend({ id: z.string().optional() })) })
+    v1_260: adminUserSchema
+        .omit({ suspendedAt: true })
+        .extend({ roles: z.array(userRoleSchema.extend({ id: z.string().optional() })) })
 } as const;
 
 export const adminUserResponseSchema = z.union([
     adminUserResponseShapes.latest,
+    adminUserResponseShapes.v1_310.transform((user): AdminUser => ({ ...user, suspendedAt: null })),
     adminUserResponseShapes.v1_260.transform(
         (user): AdminUser => ({
             ...user,
+            suspendedAt: null,
             roles: user.roles.map((role) => ({ ...role, id: role.id ?? role.roleName }))
         })
     )

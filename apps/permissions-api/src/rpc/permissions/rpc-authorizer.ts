@@ -9,14 +9,17 @@ import type { Repositories } from '../../db';
 import type { MethodAccessType } from '../../db/schema';
 import type { AuthData } from '../../middleware/auth-data';
 import type { SystemPermission } from '../../permissions/system-permissions';
+import { couldMatchWatchdogLogs, isWatchdogLog } from '../../permissions/watchdog-grant';
 import type { ContractDeployment } from '../../repositories/contract-deployments-repository';
 import type { Contract } from '../../repositories/contracts-repository';
+import type { UserWithRoles } from '../../repositories/users-repository';
 import type { AuthorizationResult, MethodAuthorizer } from '../../services/authorization-service';
 import type { EventPermissionVerifier } from '../../services/event-permission-verifier';
 import { EntityNotFound } from '../../utils/error-types';
 import { areHexEqual } from '../../utils/hex';
 import type { PinoLogger } from '../../utils/logger';
 import { isReservedContractAddress } from '../../utils/reserved-contract-address';
+import { isWatchdog } from '../../utils/watchdog';
 import { AddressSet } from '../address-set';
 import { ForbiddenRpcError, UnauthorizedRpcError } from '../errors';
 import type { GetLogsFilter } from '../methods/handlers';
@@ -378,6 +381,11 @@ export class RpcAuthorizer implements Authorizer {
     }
 
     private async visibleLogs<T extends LogData>(logData: T[], orgGrantPermissions: SystemPermission[]): Promise<T[]> {
+        const watchdog = this.watchdog();
+        if (watchdog !== undefined) {
+            return logData.filter((log) => isWatchdogLog(watchdog.wallets, log));
+        }
+
         const events = logData.map((l) => ({
             contractAddress: l.address,
             topic0: l.topics[0],
@@ -443,6 +451,12 @@ export class RpcAuthorizer implements Authorizer {
         );
 
         return logData.filter((_, i) => response[i]);
+    }
+
+    private watchdog(): UserWithRoles | undefined {
+        if (this.auth.type !== 'user') return undefined;
+        const user = this.auth.currentUser();
+        return isWatchdog(user) ? user : undefined;
     }
 
     async checkContractAuthorship(address: Hex): Promise<boolean> {
@@ -524,6 +538,10 @@ export class RpcAuthorizer implements Authorizer {
     }
 
     async couldQueryMatchPermissions(filter: GetLogsFilter): Promise<boolean> {
+        if (this.watchdog() !== undefined) {
+            return couldMatchWatchdogLogs(filter);
+        }
+
         return this.auth.dispatch(
             {
                 user: async () => {

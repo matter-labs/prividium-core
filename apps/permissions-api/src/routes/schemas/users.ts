@@ -13,7 +13,7 @@ const WalletSchema = createSelectSchema(walletsTable, { walletAddress: hexSchema
 export const CreateUserBodySchema = createInsertSchema(usersTable, {
     displayName: displayNameField
 })
-    .omit({ ...MANAGED_COLUMNS, walletToken: true })
+    .omit({ ...MANAGED_COLUMNS, walletToken: true, suspendedAt: true })
     .extend({
         // role ids to assign
         roles: z.array(z.string()).optional(),
@@ -41,6 +41,12 @@ export const UserWithRolesSchema = userResponseColumns.extend({
     organization: OrganizationSummarySchema.nullable(),
     roles: RoleSchema.array(),
     wallets: WalletSchema.array()
+});
+
+export const WatchdogGrantSchema = z.object({
+    rpcMethods: z.array(z.string()),
+    calls: z.array(z.object({ contract: hexSchema, function: z.string(), ownRecipientOnly: z.boolean() })),
+    events: z.array(z.object({ contract: hexSchema, event: z.string(), ownSenderOnly: z.boolean() }))
 });
 
 export const UpdateUserBodySchema = CreateUserBodySchema.pick({

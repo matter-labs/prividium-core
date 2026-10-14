@@ -3,11 +3,13 @@ import type { FastifyRequest } from 'fastify';
 import { z } from 'zod/v4';
 import type { FastifyServer } from '../build-app';
 import type { PermissionCatalog } from '../permissions/permission-catalog';
+import { WATCHDOG_GRANT } from '../permissions/watchdog-grant';
 import type { WalletAssociationGuard } from '../services/wallet-association-guard';
+import { resumeWatchdog, suspendWatchdog } from '../services/watchdog-service';
 import { EntityNotFound, InvalidInputError, WalletLimitExceededError } from '../utils/error-types';
 import { ErrorResponseSchema, PaginationQuerySchema } from '../utils/schemas/fastify-common';
 import { paginatedResult } from '../utils/schemas/pagination';
-import { CreateUserBodySchema, UpdateUserBodySchema, UserSchema } from './schemas/users';
+import { CreateUserBodySchema, UpdateUserBodySchema, UserSchema, WatchdogGrantSchema } from './schemas/users';
 
 const userIdParamSchema = z.object({
     id: z.string().min(1, 'User ID is required')
@@ -109,6 +111,22 @@ export function usersRoutes(
         }
     );
 
+    server.get(
+        '/watchdog-grant',
+        {
+            schema: {
+                description: "The watchdog's code-defined grant on /rpc, /admit and /judge",
+                tags: ['users'],
+                response: {
+                    200: WatchdogGrantSchema,
+                    401: ErrorResponseSchema,
+                    403: ErrorResponseSchema
+                }
+            }
+        },
+        async () => WATCHDOG_GRANT
+    );
+
     // Get single user
     server.get(
         '/:id',
@@ -164,6 +182,51 @@ export function usersRoutes(
                 throw new EntityNotFound('User', { id });
             }
             return user;
+        }
+    );
+
+    server.post(
+        '/:id/suspend',
+        {
+            config: { audit_action: AUDIT_ACTIONS.USER_SUSPEND },
+            schema: {
+                description:
+                    'Suspend the watchdog user: revokes its sessions and refuses its logins and transactions until resumed',
+                tags: ['users'],
+                params: userIdParamSchema,
+                response: {
+                    200: UserSchema,
+                    400: ErrorResponseSchema,
+                    404: ErrorResponseSchema
+                }
+            }
+        },
+        async (request) => {
+            const { id } = request.params;
+            request.auditEventDetails = { resourceType: 'user', resourceId: id };
+            return suspendWatchdog(request.repos, id, request.auth.currentUser().id);
+        }
+    );
+
+    server.post(
+        '/:id/resume',
+        {
+            config: { audit_action: AUDIT_ACTIONS.USER_RESUME },
+            schema: {
+                description: 'Resume the suspended watchdog user',
+                tags: ['users'],
+                params: userIdParamSchema,
+                response: {
+                    200: UserSchema,
+                    400: ErrorResponseSchema,
+                    404: ErrorResponseSchema
+                }
+            }
+        },
+        async (request) => {
+            const { id } = request.params;
+            request.auditEventDetails = { resourceType: 'user', resourceId: id };
+            return resumeWatchdog(request.repos, id);
         }
     );
 

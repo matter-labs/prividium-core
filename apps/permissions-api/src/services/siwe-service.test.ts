@@ -5,7 +5,7 @@ import { createSiweMessage } from 'viem/siwe';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { it as dbIt, type Fixture } from '../../test/unit-test-context';
 import { Repositories } from '../db';
-import type { TargetType } from '../db/schema';
+import type { TargetType, UserSource } from '../db/schema';
 import {
     ForbiddenError,
     UnauthorizedError,
@@ -312,10 +312,12 @@ describe('SiweService wallet login gate', () => {
     function buildService({
         walletLoginEnabled = false,
         walletLoginAllowlist = [],
+        watchdogWallets = [],
         repos = {}
     }: {
         walletLoginEnabled?: boolean;
         walletLoginAllowlist?: Address[];
+        watchdogWallets?: Address[];
         repos?: object;
     } = {}) {
         return new SiweService({
@@ -323,7 +325,8 @@ describe('SiweService wallet login gate', () => {
             chainId: 6565,
             hmacSecret: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
             walletLoginEnabled,
-            walletLoginAllowlist
+            walletLoginAllowlist,
+            watchdogWallets
         });
     }
 
@@ -351,8 +354,9 @@ describe('SiweService wallet login gate', () => {
         return { message, signature: await account.signMessage({ message }), nonceToken };
     }
 
-    const owner = (address: Address, systemPermissions: string[] = [], organizationId: string | null = null) => ({
-        roles: [{ id: 'role', roleName: 'role', organizationId, systemPermissions }],
+    const owner = (address: Address, source: UserSource = 'crypto_native', systemPermissions: string[] = []) => ({
+        source,
+        roles: [{ id: 'role', roleName: 'role', organizationId: null, systemPermissions }],
         wallets: [{ walletAddress: address }]
     });
 
@@ -382,34 +386,49 @@ describe('SiweService wallet login gate', () => {
         );
     });
 
-    it('lets the non-admin owner of the wallet log in when wallet login is disabled', () => {
-        expect(() => buildService().assertWalletOwnerMayLogIn(owner(listed.address), listed.address)).not.toThrow();
+    it('lets a watchdog wallet log in as a user when wallet login is disabled', async () => {
+        const service = buildService({ watchdogWallets: [listed.address] });
+
+        const payload = await service.validateSiweDeferred(await signedLogin(service, listed, 'user'));
+
+        expect(payload.address).toBe(listed.address);
+    });
+
+    it('gives the owner of the wallet an RPC-only session when wallet login is disabled', () => {
+        expect(buildService().sessionScopeFor(owner(listed.address), listed.address)).toBe('rpc');
     });
 
     it('refuses a user who does not own the wallet when wallet login is disabled', () => {
-        expect(() => buildService().assertWalletOwnerMayLogIn(owner(unlisted.address), listed.address)).toThrow(
+        expect(() => buildService().sessionScopeFor(owner(unlisted.address), listed.address)).toThrow(
             WalletNotLinkedError
         );
     });
 
-    it.each([
-        ['admin_read', null],
-        ['admin_write', 'org-1']
-    ])('refuses an owner holding %s (organization %s) when wallet login is disabled', (permission, organizationId) => {
+    it('gives the watchdog an RPC-only session when wallet login is enabled', () => {
+        const service = buildService({ walletLoginEnabled: true });
+
+        expect(service.sessionScopeFor(owner(listed.address, 'watchdog'), listed.address)).toBe('rpc');
+        expect(() => service.sessionScopeFor(owner(unlisted.address, 'watchdog'), listed.address)).toThrow(
+            WalletNotLinkedError
+        );
+    });
+
+    it.each(['admin_read', 'admin_write'])('refuses an RPC-only login to a holder of %s', (permission) => {
         expect(() =>
-            buildService().assertWalletOwnerMayLogIn(
-                owner(listed.address, [permission], organizationId),
+            buildService().sessionScopeFor(owner(listed.address, 'crypto_native', [permission]), listed.address)
+        ).toThrow(ForbiddenError);
+        expect(() =>
+            buildService({ walletLoginEnabled: true }).sessionScopeFor(
+                owner(listed.address, 'watchdog', [permission]),
                 listed.address
             )
         ).toThrow(ForbiddenError);
     });
 
-    it('skips the owner checks when wallet login is enabled', () => {
+    it('gives anyone else an account session when wallet login is enabled', () => {
         const service = buildService({ walletLoginEnabled: true });
 
-        expect(() =>
-            service.assertWalletOwnerMayLogIn(owner(unlisted.address, ['admin_write']), listed.address)
-        ).not.toThrow();
+        expect(service.sessionScopeFor(owner(unlisted.address), listed.address)).toBeUndefined();
     });
 });
 

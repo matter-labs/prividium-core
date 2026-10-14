@@ -193,7 +193,12 @@ export class JudgeService<S> {
 
         // Same as admit: a simulated read moves nothing, so putting it to limits and
         // approvals would refuse `eth_call` and gas estimation for a routed operation.
-        if (!capability.authorized || this.overlays.length === 0 || input.accessType === 'read') {
+        if (
+            !capability.authorized ||
+            capability.exemptFromOverlays === true ||
+            this.overlays.length === 0 ||
+            input.accessType === 'read'
+        ) {
             return capability;
         }
 
@@ -287,6 +292,7 @@ export class JudgeService<S> {
         // whether the root permission exists — a real side channel in a
         // permissioned proxy where the permission set itself can be
         // confidential.
+        let exemptFromOverlays = false;
         if (rootFrame.callKind !== 'constructor') {
             const calldata: Hex = size(rootFrame.calldata) === 0 ? '0x' : rootFrame.calldata;
             const contractAddress = rootFrame.callKind === 'delegateCall' ? rootFrame.caller : rootFrame.callee;
@@ -301,9 +307,11 @@ export class JudgeService<S> {
                 }
                 return this.checkSubtree(signer, subject, rootFrame.children, true);
             }
+            exemptFromOverlays = rootDecision.authorized && rootDecision.exemptFromOverlays === true;
         }
 
-        return this.checkSubtree(signer, subject, rootFrame.children);
+        const decision = await this.checkSubtree(signer, subject, rootFrame.children);
+        return exemptFromOverlays && decision.authorized ? { ...decision, exemptFromOverlays } : decision;
     }
 
     private async checkSubtree(

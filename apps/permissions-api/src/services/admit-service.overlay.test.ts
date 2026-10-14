@@ -30,7 +30,9 @@ describe('AdmitService — the overlay seam', () => {
     function serviceWithAll(overlays: AuthorizationOverlay[], protocolVersions = [PROTOCOL_VERSION]) {
         const repos = {
             users: {
-                findByAddressWithRoles: vi.fn().mockResolvedValue({ organizationId: null, organization: null })
+                findByAddressWithRoles: vi
+                    .fn()
+                    .mockResolvedValue({ organizationId: null, organization: null, suspendedAt: null })
             }
         } as unknown as Repositories;
 
@@ -146,5 +148,53 @@ describe('AdmitService — the overlay seam', () => {
 
         expect(result).toMatchObject({ authorized: true });
         expect(overlay.check).not.toHaveBeenCalled();
+    });
+});
+
+describe('AdmitService — the watchdog', () => {
+    const own = pad('0x01', { size: 20 });
+    const foreign = pad('0x02', { size: 20 });
+    const watchdog = {
+        source: 'watchdog',
+        organizationId: null,
+        organization: null,
+        suspendedAt: null,
+        roles: [],
+        wallets: [{ walletAddress: own }]
+    };
+    const blockEverything = {
+        check: vi.fn().mockResolvedValue({ authorized: false, ruleId: 'policy.rule.block' }),
+        checkTrace: vi.fn()
+    };
+
+    const admitTransfer = (to: typeof own) =>
+        new AdmitService({
+            authorizer: new AuthorizationService({
+                repos: {
+                    users: { findByAddressWithRoles: vi.fn().mockResolvedValue(watchdog) }
+                } as unknown as Repositories
+            }),
+            transactionClassifier: {
+                classifyTransaction: vi.fn().mockResolvedValue({ type: 'transfer-to-eoa' })
+            } as unknown as TransactionClassifier,
+            protocolVersions: ['1'],
+            overlays: [blockEverything]
+        }).admit({
+            protocolVersion: '1',
+            from: own,
+            to,
+            value: 1n,
+            calldata: '0x',
+            gasLimit: 21_000,
+            accessType: 'write'
+        });
+
+    it('admits a transfer to its own wallet without consulting an overlay', async () => {
+        expect(await admitTransfer(own)).toMatchObject({ authorized: true, ruleId: 'watchdog.grant' });
+        expect(blockEverything.check).not.toHaveBeenCalled();
+    });
+
+    it('refuses a transfer to any other wallet', async () => {
+        expect(await admitTransfer(foreign)).toEqual({ authorized: false, ruleId: 'watchdog.foreign_recipient' });
     });
 });

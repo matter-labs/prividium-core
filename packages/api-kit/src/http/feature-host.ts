@@ -91,5 +91,7 @@ declare module 'fastify' {
         /** Accept application-scoped sessions (tokens issued to an OAuth client) on this route.
          * Default deny: the session validator rejects them everywhere else. */
         allowApplicationSession?: boolean;
+        /** Accept RPC-only sessions, issued to wallet logins that skip SSO. Default deny. */
+        allowRpcSession?: boolean;
     }
 }

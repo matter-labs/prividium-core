@@ -35,5 +35,5 @@ export type RoleHolder = {
 // User type based on the API response shape
 // Defined locally to avoid circular dependency with @repo/api-types
 export type User = Pick<RoleHolder, 'roles'> & {
-    source: 'oidc' | 'adminPanel' | 'tenant' | 'crypto_native' | 'm2m_app';
+    source: 'oidc' | 'adminPanel' | 'tenant' | 'crypto_native' | 'm2m_app' | 'watchdog';
 };

@@ -12,6 +12,8 @@ export const AUDIT_ACTIONS = {
     USER_CREATE_BY_ADMIN: 'user.create-by-admin',
     USER_UPDATE: 'user.update',
     USER_DELETE: 'user.delete',
+    USER_SUSPEND: 'user.suspend',
+    USER_RESUME: 'user.resume',
     ROLE_CREATE: 'role.create',
     ROLE_UPDATE: 'role.update',
     ROLE_DELETE: 'role.delete',

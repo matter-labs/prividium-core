@@ -189,6 +189,15 @@ describe('OrganizationsRepository', () => {
         expect(reloadedUser?.organizationId).toBeNull();
     });
 
+    it('refuses to move the watchdog into an organization', async () => {
+        const organization = await repository.create({ name: 'Org One', defaultRoles: [] });
+        const watchdog = await usersRepo.createWatchdog();
+
+        await expect(repository.addUser(organization.id, watchdog.id)).rejects.toThrow(
+            'The watchdog user is managed by deploy config'
+        );
+    });
+
     it('member views report every role the member holds, including zone-level ones', async ({ db }) => {
         const organization = await repository.create({ name: 'Org Scoped Roles', defaultRoles: [] });
         const orgRole = await rolesRepo.create(

@@ -9,9 +9,12 @@ import type { Permix } from 'permix';
 import type { M2mApplication } from '../repositories/m2m-applications-repository';
 import type { Tenant } from '../repositories/tenants-repository';
 import type { UserWithRoles } from '../repositories/users-repository';
+import { isWatchdog } from '../utils/watchdog';
 
 export function prividiumPermix(user: UserWithRoles): Permix<UserAccessControlDefinition> {
-    return createPermix<UserAccessControlDefinition>(userAccessControl(user));
+    return createPermix<UserAccessControlDefinition>(
+        userAccessControl(isWatchdog(user) ? { ...user, roles: [] } : user)
+    );
 }
 
 export function permixForM2mApp(m2mApp: M2mApplication) {

@@ -50,8 +50,9 @@ export const roleRelations = relations(rolesTable, ({ many }) => ({
     m2mAppRoles: many(m2mAppRolesTable)
 }));
 
-const userSources = ['oidc', 'adminPanel', 'tenant', 'crypto_native', 'm2m_app'] as const;
+const userSources = ['oidc', 'adminPanel', 'tenant', 'crypto_native', 'm2m_app', 'watchdog'] as const;
 export const UserSources = z.enum(userSources);
+export type UserSource = z.infer<typeof UserSources>;
 
 export const usersTable = pgTable(
     'users',
@@ -64,11 +65,13 @@ export const usersTable = pgTable(
         source: text({ enum: userSources }).notNull(),
         organizationId: text().references(() => organizationsTable.id, { onDelete: 'set null' }),
         walletToken: text(),
+        suspendedAt: timestampTz(),
         createdAt,
         updatedAt
     },
     (t) => [
         unique('uq_users_oidc_issuer_sub').on(t.oidcIssuer, t.oidcSub),
+        uniqueIndex('uq_users_watchdog').on(t.source).where(sql`${t.source} = 'watchdog'`),
         // (issuer, sub) treats null issuers as distinct, so it can't keep two pre-login users (admin- or
         // M2M-created, null issuer) from sharing a sub. This guard makes a sub unique among null-issuer users
         // so first-login claiming by sub is unambiguous.
@@ -108,8 +111,9 @@ export const sessionsTable = pgTable(
         revokedBy: text().references(() => usersTable.id, { onDelete: 'set null' }),
         revokedAt: timestampTz(),
         // 'docs': Swagger UI reads under /docs. 'application': issued to an OAuth client on authorize,
-        // accepted only on routes that set `allowApplicationSession`.
-        scope: text().$type<'docs' | 'application'>(),
+        // accepted only on routes that set `allowApplicationSession`. 'rpc': a wallet login that skipped
+        // SSO, accepted only on routes that set `allowRpcSession`.
+        scope: text().$type<'docs' | 'application' | 'rpc'>(),
         // The OAuth client an application-scoped session is bound to. Perpetual apps are not rows, so no FK.
         oauthClientId: text(),
         // The latest expiresAt can ever slide to — the absolute session cap. Idle extension can move

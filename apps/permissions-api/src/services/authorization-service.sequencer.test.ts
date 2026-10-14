@@ -1,4 +1,4 @@
-import { pad } from 'viem';
+import { encodeFunctionData, pad, parseAbiItem } from 'viem';
 import { describe, expect, it, vi } from 'vitest';
 import type { Repositories } from '../db';
 import type { UserWithRoles } from '../repositories/users-repository';
@@ -20,6 +20,7 @@ describe('SequencerAuthorizer — the native service', () => {
         id: 'u1',
         organizationId: null,
         organization: null,
+        suspendedAt: null,
         roles: [],
         wallets: []
     } as unknown as UserWithRoles;
@@ -96,6 +97,18 @@ describe('SequencerAuthorizer — the native service', () => {
         expect(transactionClassifier.classifyTransaction).not.toHaveBeenCalled();
     });
 
+    it('admit refuses a suspended signer before it classifies the call', async () => {
+        const transactionClassifier = classifying('transfer-to-eoa');
+        const admit = new AdmitService({
+            authorizer: nativeResolving({ ...user, suspendedAt: new Date() }),
+            transactionClassifier,
+            protocolVersions: [PROTOCOL_VERSION]
+        });
+
+        expect(await admit.admit(admitInput(target))).toEqual({ authorized: false, ruleId: 'user.suspended' });
+        expect(transactionClassifier.classifyTransaction).not.toHaveBeenCalled();
+    });
+
     it('judge puts the root to the method check and each generation to the batched check', async () => {
         const root: TraceFrame = {
             caller: signer,
@@ -144,5 +157,58 @@ describe('SequencerAuthorizer — the native service', () => {
             calls: [{ contractAddress: inner, calldata: '0xabcdef01', umbrellaCovered: false }],
             accessTypeCheck: 'unenforced'
         });
+    });
+});
+
+describe('SequencerAuthorizer — the watchdog', () => {
+    const signer = pad('0x01', { size: 20 });
+    const watchdog = {
+        id: 'watchdog',
+        source: 'watchdog',
+        organizationId: null,
+        organization: null,
+        suspendedAt: null,
+        roles: [],
+        wallets: [{ walletAddress: signer }]
+    } as unknown as UserWithRoles;
+    // Anything the grant asks of the database fails the test.
+    const authorizer = new AuthorizationService({ repos: {} as Repositories });
+    const facts = { from: signer, accessType: 'write' } as const;
+    const withdraw = encodeFunctionData({
+        abi: [parseAbiItem('function withdraw(address _l1Receiver) payable')],
+        args: [signer]
+    });
+
+    const notGranted = { authorized: false, ruleId: 'watchdog.not_granted' };
+
+    it('decides its calls and frames from the grant, without reading permission rows', async () => {
+        const granted = { contractAddress: '0x000000000000000000000000000000000000800A', calldata: withdraw } as const;
+        const other = { contractAddress: pad('0x02', { size: 20 }), calldata: '0x12345678' } as const;
+        const messenger = { contractAddress: '0x0000000000000000000000000000000000008008', calldata: '0x' } as const;
+
+        expect(await authorizer.checkCall(watchdog, granted, facts)).toMatchObject({
+            authorized: true,
+            ruleId: 'watchdog.grant'
+        });
+        expect(await authorizer.checkCall(watchdog, other, facts)).toEqual(notGranted);
+        expect(
+            await authorizer.checkFrames(
+                watchdog,
+                [
+                    { ...messenger, umbrellaCovered: false },
+                    { ...other, umbrellaCovered: true }
+                ],
+                facts
+            )
+        ).toEqual([
+            { kind: 'result', result: expect.objectContaining({ authorized: true, ruleId: 'watchdog.grant' }) },
+            { kind: 'result', result: notGranted }
+        ]);
+    });
+
+    it('refuses its deployments, whatever its roles', async () => {
+        const deployer = { ...watchdog, roles: [{ systemPermissions: ['contract_deployment'] }] } as UserWithRoles;
+
+        expect(await authorizer.checkDeployment(deployer, signer)).toEqual(notGranted);
     });
 });

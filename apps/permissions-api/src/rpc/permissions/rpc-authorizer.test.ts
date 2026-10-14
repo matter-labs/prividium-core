@@ -1,4 +1,4 @@
-import { type Address, toFunctionSelector } from 'viem';
+import { type Address, type Hex, pad, toEventSelector, toFunctionSelector } from 'viem';
 import { describe, expect, it } from 'vitest';
 import type { Repositories } from '../../db';
 import { AuthData } from '../../middleware/auth-data';
@@ -253,5 +253,36 @@ describe('RpcAuthorizer.authorizeDeployment', () => {
                 authorizerFor(auth, reposWith(undefined)).authorizeDeployment(deployerAddress)
             ).rejects.toBeInstanceOf(UnauthorizedRpcError);
         });
+    });
+});
+
+describe('RpcAuthorizer for the watchdog', () => {
+    const watchdog = { ...user('watchdog-1', []), source: 'watchdog', organizationId: null } as UserWithRoles;
+    const withdrawal = toEventSelector('event Withdrawal(address indexed, address indexed, uint256)');
+    const L2_BASE_TOKEN: Hex = '0x000000000000000000000000000000000000800A';
+
+    it('reads only the withdrawals it sent, whatever the event permissions say', async () => {
+        const authorizer = authorizerFor(userAuth(watchdog), reposWith(undefined));
+        const own = { address: L2_BASE_TOKEN, topics: [withdrawal, pad(deployerAddress), pad(deployerAddress)] };
+        const foreign = { address: L2_BASE_TOKEN, topics: [withdrawal, pad(strangerAddress), pad(deployerAddress)] };
+
+        await expect(authorizer.checkBatchEventRead([own, foreign])).resolves.toEqual([own]);
+        await expect(authorizer.checkReceiptLogsRead([own, foreign])).resolves.toEqual([own]);
+        await expect(authorizer.couldQueryMatchPermissions({ address: strangerAddress })).resolves.toBe(false);
+    });
+
+    it('takes nothing from a role it was given', async () => {
+        const admin = role('admin', [
+            'full_sequencer_rpc_access',
+            'full_read_access',
+            'contract_deployment',
+            'rpc_read_eth_getLogs'
+        ]);
+        const authorizer = authorizerFor(userAuth({ ...watchdog, roles: [admin] }), reposWith(undefined));
+
+        await expect(authorizer.hasFullSequencerAccess()).resolves.toBe(false);
+        await expect(authorizer.hasFullReadAccess()).resolves.toBe(false);
+        await expect(authorizer.hasDeploymentPermission()).resolves.toBe(false);
+        await expect(authorizer.hasRpcMethodPermission('eth_getLogs')).resolves.toBe(false);
     });
 });

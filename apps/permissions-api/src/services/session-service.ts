@@ -27,6 +27,8 @@ export interface ExtendedSession {
     extended: boolean;
 }
 
+const RPC_SESSION_DURATION_SECONDS = 20 * 60;
+
 type UserSessionInput = Omit<
     InsertSession,
     'tokenHash' | 'expiresAt' | 'tenantId' | 'serviceId' | 'scope' | 'oauthClientId'
@@ -68,6 +70,14 @@ export class SessionService {
         return this.createSession(
             { ...data, scope: 'application' },
             { ...this.userSessionPolicy(), renewableUntilCap }
+        );
+    }
+
+    /** For a wallet login that skipped SSO: accepted only where `allowRpcSession` is set, and never extended. */
+    async createRpcSession(data: UserSessionInput): Promise<CreatedSession> {
+        return this.createSession(
+            { ...data, scope: 'rpc' },
+            { durationSeconds: Math.min(RPC_SESSION_DURATION_SECONDS, this.opts.userSessionDurationSeconds) }
         );
     }
 

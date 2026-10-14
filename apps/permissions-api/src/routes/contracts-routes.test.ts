@@ -10,6 +10,7 @@ function caller(organizationId: string | null, roleNames: string[]): UserWithRol
         oidcSub: null,
         oidcIssuer: null,
         walletToken: null,
+        suspendedAt: null,
         source: 'adminPanel',
         organizationId,
         createdAt: new Date(),

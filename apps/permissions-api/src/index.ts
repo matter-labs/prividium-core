@@ -21,6 +21,8 @@ import { findAuthorizerConflict } from './feature-host/feature-conflicts';
 import { PermissionCatalog } from './permissions/permission-catalog';
 import type { AuthorizerFactory } from './rpc/permissions/authorizer';
 import { syncSystemContracts } from './services/system-contracts/sync';
+import { createWalletAssociationGuard } from './services/wallet-association-guard';
+import { syncWatchdog } from './services/watchdog-service';
 import { buildServerDeps } from './utils/build-server-deps';
 import { createLogger } from './utils/logger';
 import {
@@ -176,6 +178,9 @@ export async function start(features: ServiceFeatures = {}) {
         // Seed the admin role once at startup so per-request auth flows can assume it exists.
         await scopedDb.repositories().roles.createOrUpdateAdminRole(permissionCatalog);
 
+        createWalletAssociationGuard(env.KNOWN_DEV_WALLETS_ALLOWLIST)(env.WATCHDOG_WALLETS);
+        await syncWatchdog(scopedDb.repositories(), env.WATCHDOG_WALLETS);
+
         // OIDC identity is keyed by (issuer, sub); ensure pre-existing OIDC users carry an issuer so login still matches them.
         if (env.OIDC_JWT_ISSUER) {
             await scopedDb.repositories().users.backfillMissingOidcIssuer(env.OIDC_JWT_ISSUER);
@@ -221,6 +226,7 @@ export async function start(features: ServiceFeatures = {}) {
         adminOidcSubs: env.OIDC_ADMIN_SUBS,
         adminWallets: deps.adminWallets,
         walletLoginAllowlist: env.CRYPTO_NATIVE_LOGIN_ALLOWLIST,
+        watchdogWallets: env.WATCHDOG_WALLETS,
         authMethods: env.AUTH_METHODS,
         userSessionDurationSeconds: env.USER_SESSION_DURATION_SECONDS,
         userIdleTimeoutSeconds: env.USER_IDLE_TIMEOUT_SECONDS,

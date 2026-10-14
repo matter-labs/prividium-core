@@ -631,6 +631,13 @@
             "when": 1790766508033,
             "tag": "0089_add_sessions_oauth_client_id",
             "breakpoints": true
+        },
+        {
+            "idx": 90,
+            "version": "7",
+            "when": 1791815769831,
+            "tag": "0090_add_watchdog_user_and_suspension",
+            "breakpoints": true
         }
     ]
 }

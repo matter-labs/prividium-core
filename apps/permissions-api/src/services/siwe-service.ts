@@ -4,7 +4,7 @@ import { fromUnixTime, isFuture } from 'date-fns';
 import { type Address, type Hex, isAddressEqual, verifyMessage } from 'viem';
 import { parseSiweMessage } from 'viem/siwe';
 import type { Repositories, TxType } from '../db';
-import { type TargetType, TargetTypes } from '../db/schema';
+import { type TargetType, TargetTypes, type UserSource, UserSources } from '../db/schema';
 import { AddressSet } from '../rpc/address-set';
 import {
     ForbiddenError,
@@ -54,6 +54,7 @@ export class SiweService {
         hmacSecret,
         walletLoginEnabled,
         walletLoginAllowlist = [],
+        watchdogWallets = [],
         logger
     }: {
         repos: Repositories;
@@ -61,13 +62,14 @@ export class SiweService {
         hmacSecret?: string;
         walletLoginEnabled: boolean;
         walletLoginAllowlist?: readonly Address[];
+        watchdogWallets?: readonly Address[];
         logger?: PinoLogger;
     }) {
         this.repos = repos;
         this.chainId = chainId;
         this.hmacKeys = this.parseAndDeriveHmacKeys(hmacSecret);
         this.walletLoginEnabled = walletLoginEnabled;
-        this.walletLoginAllowlist = new AddressSet(walletLoginAllowlist);
+        this.walletLoginAllowlist = new AddressSet([...walletLoginAllowlist, ...watchdogWallets]);
         this.logger = logger;
     }
 
@@ -77,14 +79,19 @@ export class SiweService {
         throw new WalletLoginDisabledError();
     }
 
-    assertWalletOwnerMayLogIn(user: RoleHolder & { wallets: readonly { walletAddress: Address }[] }, address: Address) {
-        if (this.walletLoginEnabled) return;
+    /** `rpc` when the login skips SSO: always for the watchdog, and for an allowlisted wallet while wallet login is off. */
+    sessionScopeFor(
+        user: RoleHolder & { source: UserSource; wallets: readonly { walletAddress: Address }[] },
+        address: Address
+    ): 'rpc' | undefined {
+        if (this.walletLoginEnabled && user.source !== UserSources.enum.watchdog) return undefined;
         if (!user.wallets.some((wallet) => isAddressEqual(wallet.walletAddress, address))) {
             throw new WalletNotLinkedError();
         }
         if (hasSystemPermission(user, 'admin_read') || hasSystemPermission(user, 'admin_write')) {
-            throw new ForbiddenError('Admins cannot log in through the wallet login allowlist.');
+            throw new ForbiddenError('Admins cannot log in without SSO.');
         }
+        return 'rpc';
     }
 
     async validateSiwe({ message, signature, nonceToken }: { message: string; signature: Hex; nonceToken: string }) {

@@ -1022,6 +1022,66 @@ describe('SessionsAuthValidator', () => {
             expect(response.json().message).toContain('Invalid session');
         });
     });
+    describe('buildHook - RPC-scoped sessions and suspended users', () => {
+        async function session(scope: 'rpc' | null) {
+            const tok = createTestToken(`${scope}-session-token`);
+            await sessionsRepo.create({
+                tokenHash: tok.hash,
+                userId: user.id,
+                scope,
+                expiresAt: new Date(Date.now() + 10000)
+            });
+            return tok;
+        }
+
+        function appWith(config: { allowRpcSession?: boolean }) {
+            const app = Fastify();
+            app.addHook('preHandler', validator.buildHook({ targets: [{ type: TargetTypes.enum.user }] }));
+            app.get('/test', { config }, async (req, reply) => reply.send({ userId: req.auth.currentUser().id }));
+            return app;
+        }
+
+        it('rejects an RPC session on a route that does not opt in', async () => {
+            const tok = await session('rpc');
+
+            const response = await appWith({}).inject({
+                method: 'GET',
+                url: '/test',
+                headers: { authorization: `Bearer ${tok.plaintext}` }
+            });
+
+            expect(response.statusCode).toEqual(401);
+            expect(response.json().message).toContain('Invalid session');
+        });
+
+        it('accepts an RPC session on a route that opts in', async () => {
+            const tok = await session('rpc');
+
+            const response = await appWith({ allowRpcSession: true }).inject({
+                method: 'GET',
+                url: '/test',
+                headers: { authorization: `Bearer ${tok.plaintext}` }
+            });
+
+            expect(response.statusCode).toEqual(200);
+            expect(response.json()).toEqual({ userId: user.id });
+        });
+
+        it.for(['rpc', null] as const)('rejects a %s session of a suspended user', async (scope) => {
+            const tok = await session(scope);
+            await usersRepo.setSuspendedAt(user.id, new Date());
+
+            const response = await appWith({ allowRpcSession: true }).inject({
+                method: 'GET',
+                url: '/test',
+                headers: { authorization: `Bearer ${tok.plaintext}` }
+            });
+
+            expect(response.statusCode).toEqual(401);
+            expect(response.json().message).toContain('Invalid session');
+        });
+    });
+
     describe('buildHook - application-scoped sessions', () => {
         async function applicationSession() {
             const tok = createTestToken('application-session-token');

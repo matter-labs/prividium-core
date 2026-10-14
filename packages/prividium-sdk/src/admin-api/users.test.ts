@@ -18,6 +18,7 @@ const sampleUser = {
     id: 'user-1',
     displayName: 'Alice',
     source: 'crypto_native' as const,
+    suspendedAt: null,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
     organization: null,
@@ -343,6 +344,22 @@ describe('chain.admin.users', () => {
 
             const user = await sdk.admin.users.getById('user-1');
             expect(user.roles).toEqual([{ id: 'admin', roleName: 'admin' }]);
+        });
+
+        it('reads a user from a server that predates suspension as not suspended', async () => {
+            const { suspendedAt: _, ...preSuspensionUser } = sampleUser;
+            const fetchMock = mockApiFetch((url) =>
+                url.includes('/api/users/user-1')
+                    ? { ok: true, status: 200, statusText: 'OK', json: async () => preSuspensionUser }
+                    : { ok: true, status: 200, statusText: 'OK', json: async () => ({}) }
+            );
+            Object.defineProperty(globalThis, 'fetch', { value: fetchMock, writable: true });
+
+            const sdk = createPrividiumSiweChain(defaultConfig());
+            await sdk.authorize();
+
+            const user = await sdk.admin.users.getById('user-1');
+            expect(user.suspendedAt).toBeNull();
         });
 
         it('writes role names back to a legacy server', async () => {

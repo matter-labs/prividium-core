@@ -20,6 +20,7 @@ import {
 import { EntityAlreadyExistsError, EntityNotFound, InvalidInputError } from '../utils/error-types';
 import { fetchChunked } from '../utils/fetch-chunked';
 import type { PaginatedResult, PaginationParams } from '../utils/schemas/pagination';
+import { assertNotWatchdog } from '../utils/watchdog';
 import { BaseRepository } from './base-repository';
 import type { BareRole, Role } from './roles-repository';
 import { type RoleScopeOptions, USER_ORGANIZATION_COLUMNS, type User } from './users-repository';
@@ -336,6 +337,8 @@ export class OrganizationsRepository extends BaseRepository {
             if (!user) {
                 throw new EntityNotFound('User', { id: userId });
             }
+
+            assertNotWatchdog(user);
 
             if (user.organizationId === organizationId) {
                 return user;

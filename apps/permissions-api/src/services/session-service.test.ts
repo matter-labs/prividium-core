@@ -170,6 +170,27 @@ describe('SessionService', () => {
         expect(created.expiresAt).toEqual(created.renewableUntil);
     });
 
+    it('gives an RPC session a fixed 20 minute lifetime whatever the user session policy', async () => {
+        const service = new SessionService({
+            repos,
+            opts: {
+                userSessionDurationSeconds: 86400,
+                tenantSessionDurationSeconds: 3600,
+                serviceSessionDurationSeconds: 3600,
+                userIdleTimeoutSeconds: 600
+            }
+        });
+
+        const before = Date.now();
+        const created = await service.createRpcSession({ userId });
+
+        expect(created.expiresAt).toEqual(created.renewableUntil);
+        expect(created.expiresAt.getTime() - before).toBeGreaterThanOrEqual(20 * 60 * 1000);
+        expect(created.expiresAt.getTime() - before).toBeLessThan(21 * 60 * 1000);
+        const [session] = await repos.sessions.findActiveByUserId(userId);
+        expect(session?.scope).toBe('rpc');
+    });
+
     it('binds an application session to its OAuth client with the user session lifetime policy', async () => {
         const service = new SessionService({
             repos,
