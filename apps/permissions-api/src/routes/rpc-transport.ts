@@ -4,7 +4,7 @@ import type { ZodType } from 'zod/v4';
 import type { FastifyServer } from '../build-app';
 import { rpcErrorHandler } from '../rpc/error-handler';
 import { InvalidRpcRequest } from '../rpc/errors';
-import { assertBatchWithinLimit, type JsonRpcResponse, requestOrBatch } from '../rpc/json-rpc';
+import { assertBatchWithinLimit, type JsonRpcResponse, requestOrBatch, responseOrBatch } from '../rpc/json-rpc';
 import { rpcReqSchema } from '../rpc/rpc-service';
 import type { PinoLogger } from '../utils/logger';
 
@@ -51,7 +51,7 @@ export function rpcTransport(app: FastifyServer, options: RpcTransportOptions): 
     app.post(
         options.path,
         {
-            schema: options.schema,
+            schema: { ...options.schema, response: { 200: responseOrBatch } },
             config: {
                 cors: options.cors,
                 allowApplicationSession: options.allowApplicationSession,

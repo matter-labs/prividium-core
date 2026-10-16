@@ -114,6 +114,17 @@ export const rpcRequestSchema = z.object({
 
 export const requestOrBatch = z.union([rpcRequestSchema, rpcRequestSchema.array()]);
 
+// Lets only JSON-RPC response fields reach the client. Keep members `unknown`: a stricter shape
+// fails serialization on an odd node reply and turns the whole batch into an internal error.
+const rpcResponseSchema = z.object({
+    jsonrpc: z.unknown(),
+    id: z.unknown(),
+    result: z.unknown().optional(),
+    error: z.unknown().optional()
+});
+
+export const responseOrBatch = z.union([rpcResponseSchema, rpcResponseSchema.array()]);
+
 // Rate limiting is per request, so batch items are otherwise unmetered. 1000 matches geth's default.
 export const MAX_RPC_BATCH_SIZE = 1000;
 

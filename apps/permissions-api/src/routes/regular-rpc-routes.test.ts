@@ -3,7 +3,13 @@ import { serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fas
 import pino from 'pino';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { FastifyServer } from '../build-app';
-import { INVALID_REQUEST_ERROR_CODE, METHOD_NOT_FOUND_ERROR_CODE, UNAUTHORIZED_ERROR_CODE } from '../rpc/constants';
+import {
+    FORBIDDEN_ERROR_CODE,
+    INVALID_REQUEST_ERROR_CODE,
+    METHOD_NOT_FOUND_ERROR_CODE,
+    UNAUTHORIZED_ERROR_CODE
+} from '../rpc/constants';
+import { ForbiddenRpcError } from '../rpc/errors';
 import { MAX_RPC_BATCH_SIZE } from '../rpc/json-rpc';
 import type { Authorizer } from '../rpc/permissions';
 import type { ExternalRpc } from '../rpc/target-rpc';
@@ -154,6 +160,114 @@ describe('regularRpcRoutes optional capabilities', () => {
 
         expect(response.statusCode).toBe(200);
         expect(response.json()).toMatchObject({ id: 1, error: bundlerDisabled });
+    });
+});
+
+describe('regularRpcRoutes response serialization', () => {
+    function registerRoutes(delegate: ExternalRpc['delegate'], preHandler = async () => {}): FastifyServer {
+        const app = buildTestApp();
+        app.register(regularRpcRoutes, {
+            prefix: '/rpc',
+            preHandler,
+            buildContext: () => ({
+                targetRpc: { chainType: 'besu', delegate } as unknown as ExternalRpc,
+                authorizer: { hasFullSequencerAccess: async () => false } as unknown as Authorizer
+            }),
+            publicCodeAddresses: [],
+            disclosureMethodsEnabled: false
+        });
+        return app;
+    }
+
+    function chainIdCall(id: number) {
+        return { jsonrpc: '2.0', id, method: 'eth_chainId', params: [] };
+    }
+
+    it('serializes a node result byte for byte', async () => {
+        const upstream = {
+            jsonrpc: '2.0',
+            id: 1,
+            result: { big: `0x${'f'.repeat(512)}`, nested: [{ topics: ['0x01'], removed: false }], none: null }
+        };
+        const app = registerRoutes(vi.fn().mockResolvedValue(upstream));
+
+        const response = await app.inject({ method: 'POST', url: '/rpc', payload: chainIdCall(1) });
+
+        expect(response.body).toBe(JSON.stringify(upstream));
+    });
+
+    it('serializes a null result', async () => {
+        const upstream = { jsonrpc: '2.0', id: 1, result: null };
+        const app = registerRoutes(vi.fn().mockResolvedValue(upstream));
+
+        const response = await app.inject({ method: 'POST', url: '/rpc', payload: chainIdCall(1) });
+
+        expect(response.body).toBe(JSON.stringify(upstream));
+    });
+
+    it('serializes a handler error with its data and key order', async () => {
+        const app = registerRoutes(
+            vi.fn().mockRejectedValue(new ForbiddenRpcError('Forbidden', 'rule', { reason: 'contract not allowed' }))
+        );
+
+        const response = await app.inject({ method: 'POST', url: '/rpc', payload: chainIdCall(2) });
+
+        expect(response.body).toBe(
+            JSON.stringify({
+                jsonrpc: '2.0',
+                id: 2,
+                error: { message: 'Forbidden', code: FORBIDDEN_ERROR_CODE, data: { reason: 'contract not allowed' } }
+            })
+        );
+    });
+
+    it('serializes an error raised before the handler', async () => {
+        const app = registerRoutes(vi.fn(), async () => {
+            throw new UnauthorizedError();
+        });
+
+        const response = await app.inject({ method: 'POST', url: '/rpc', payload: chainIdCall(3) });
+
+        expect(response.body).toBe(
+            JSON.stringify({ jsonrpc: '2.0', id: 3, error: { code: UNAUTHORIZED_ERROR_CODE, message: 'Unauthorized' } })
+        );
+    });
+
+    it('serializes a batch', async () => {
+        const upstream = [
+            { jsonrpc: '2.0', id: 4, result: '0x1092' },
+            { jsonrpc: '2.0', id: 5, error: { code: -32000, message: 'execution reverted', data: '0x08c379a0' } }
+        ];
+        const app = registerRoutes(
+            vi.fn().mockImplementation(async (id: number) => upstream.find((reply) => reply.id === id))
+        );
+
+        const response = await app.inject({ method: 'POST', url: '/rpc', payload: [chainIdCall(4), chainIdCall(5)] });
+
+        expect(response.body).toBe(JSON.stringify(upstream));
+    });
+
+    it('forwards a node reply that does not follow the JSON-RPC shape', async () => {
+        const upstream = { id: 6, result: '0x1' };
+        const app = registerRoutes(vi.fn().mockResolvedValue(upstream));
+
+        const response = await app.inject({ method: 'POST', url: '/rpc', payload: chainIdCall(6) });
+
+        expect(response.body).toBe(JSON.stringify(upstream));
+    });
+
+    it('drops top-level keys that are not JSON-RPC response fields', async () => {
+        const app = registerRoutes(
+            vi.fn().mockResolvedValue({ jsonrpc: '2.0', id: 7, result: '0x1', repos: { users: 'internal' } })
+        );
+
+        const [single, batch] = await Promise.all([
+            app.inject({ method: 'POST', url: '/rpc', payload: chainIdCall(7) }),
+            app.inject({ method: 'POST', url: '/rpc', payload: [chainIdCall(7)] })
+        ]);
+
+        expect(single.body).toBe('{"jsonrpc":"2.0","id":7,"result":"0x1"}');
+        expect(batch.body).toBe('[{"jsonrpc":"2.0","id":7,"result":"0x1"}]');
     });
 });
 
