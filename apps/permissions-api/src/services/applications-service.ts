@@ -76,11 +76,7 @@ export class ApplicationsService {
     }
 
     async getById(id: string, selfOrigin?: string): Promise<Application> {
-        const perpetual = this.perpetualApps(selfOrigin);
-        if (perpetual[id] !== undefined) {
-            return perpetual[id];
-        }
-        return this.repos.applications.getById(id);
+        return this.perpetualApp(id, selfOrigin) ?? this.repos.applications.getById(id);
     }
 
     async getByOauthClientId(clientId: string, selfOrigin?: string): Promise<OauthClient> {
@@ -105,9 +101,9 @@ export class ApplicationsService {
 
     private async findPublicApplication(clientId: string, selfOrigin?: string): Promise<PublicApplication> {
         // Perpetual apps use id === oauthClientId, return the full object (typed as PublicApplication)
-        const perpetual = this.perpetualApps(selfOrigin);
-        if (perpetual[clientId] !== undefined) {
-            return perpetual[clientId] as PublicApplication;
+        const perpetual = this.perpetualApp(clientId, selfOrigin);
+        if (perpetual !== undefined) {
+            return perpetual as PublicApplication;
         }
 
         const inCache = this.byClientIdCache.get(clientId);
@@ -209,7 +205,7 @@ export class ApplicationsService {
 
     /** Deleting a client also revokes every session it was issued, so its tokens stop working with it. */
     async delete(appId: string, deletedByUserId: string): Promise<void> {
-        if (this.perpetualApps()[appId] !== undefined) {
+        if (this.perpetualApp(appId) !== undefined) {
             throw new InvalidEntity('Perpetual apps cannot be removed');
         }
 
