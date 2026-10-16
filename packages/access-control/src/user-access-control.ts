@@ -2,12 +2,12 @@ import { createPermix, type PermixDefinition } from 'permix';
 import { hasSystemPermission, hasZoneSystemPermission } from './helpers';
 import type { Permission, RoleHolder, User } from './types';
 
-const RPC_PERMISSION_BY_METHOD = {
-    eth_getBlockByNumber: 'rpc_read_eth_getBlockByNumber',
-    eth_getLogs: 'rpc_read_eth_getLogs',
-    eth_getTransactionByHash: 'rpc_read_eth_getTransactionByHash',
-    eth_getTransactionReceipt: 'rpc_read_eth_getTransactionReceipt'
-} as Record<string, Permission>;
+const RPC_PERMISSION_BY_METHOD: ReadonlyMap<string, Permission> = new Map([
+    ['eth_getBlockByNumber', 'rpc_read_eth_getBlockByNumber'],
+    ['eth_getLogs', 'rpc_read_eth_getLogs'],
+    ['eth_getTransactionByHash', 'rpc_read_eth_getTransactionByHash'],
+    ['eth_getTransactionReceipt', 'rpc_read_eth_getTransactionReceipt']
+]);
 
 export type UserAccessControlDefinition = PermixDefinition<{
     wallets: {
@@ -51,7 +51,7 @@ export function sequencerAccessControl(roleHolder: RoleHolder) {
 export function rpcMethodsAccessControl(roleHolder: RoleHolder) {
     return {
         unrestrictedRead: (methodName: string) => {
-            const permission = RPC_PERMISSION_BY_METHOD[methodName];
+            const permission = RPC_PERMISSION_BY_METHOD.get(methodName);
             return !!permission && hasZoneSystemPermission(roleHolder, permission);
         }
     };

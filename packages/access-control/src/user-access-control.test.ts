@@ -183,6 +183,29 @@ describe('rpcMethodsAccessControl', () => {
 
         expect(rpcMethodsAccessControl(roleHolder).unrestrictedRead('eth_getTransactionByHash')).toBe(false);
     });
+
+    it.each(
+        Object.getOwnPropertyNames(Object.prototype)
+    )('denies unrestrictedRead for the inherited name %s', (name) => {
+        const roleHolder: RoleHolder = {
+            roles: [
+                {
+                    id: 'role-1',
+                    roleName: 'reader',
+                    systemPermissions: [
+                        'full_read_access',
+                        'rpc_read_eth_getBlockByNumber',
+                        'rpc_read_eth_getLogs',
+                        'rpc_read_eth_getTransactionByHash',
+                        'rpc_read_eth_getTransactionReceipt'
+                    ],
+                    organizationId: null
+                }
+            ]
+        };
+
+        expect(rpcMethodsAccessControl(roleHolder).unrestrictedRead(name)).toBe(false);
+    });
 });
 
 describe('userAccessControl', () => {
