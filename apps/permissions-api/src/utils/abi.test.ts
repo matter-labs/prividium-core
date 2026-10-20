@@ -1,7 +1,7 @@
 import { type Abi, erc20Abi } from 'viem';
 import { describe, expect, it } from 'vitest';
-import { abiFromString, calculateFunctionSelector, findAbiFnBySelector } from './abi';
-import { InvalidEntity } from './error-types';
+import { abiFromString, calculateFunctionSelector, findAbiFnBySelector, normalizeFunctionSignature } from './abi';
+import { InvalidEntity, InvalidInputError } from './error-types';
 
 describe('findAbiFnBySelector', () => {
     const mockAbi: Abi = [
@@ -143,6 +143,29 @@ describe('calculateFunctionSelector', () => {
         // Selector should be calculated correctly for tuple
         expect(selector).toMatch(/^0x[a-f0-9]{8}$/);
         expect(selector.length).toBe(10);
+    });
+
+    it('should accept a signature without the function keyword', () => {
+        expect(calculateFunctionSelector('transfer(address to, uint256 amount)')).toBe('0xa9059cbb');
+        expect(calculateFunctionSelector('totalSupply()')).toBe('0x18160ddd');
+    });
+
+    it('throws InvalidInputError for a malformed signature', () => {
+        expect(() => calculateFunctionSelector('transfer(address')).toThrow(InvalidInputError);
+        expect(() => calculateFunctionSelector('garbage')).toThrow(InvalidInputError);
+    });
+});
+
+describe('normalizeFunctionSignature', () => {
+    it('prepends the function keyword when missing', () => {
+        expect(normalizeFunctionSignature('transfer(address to, uint256 amount)')).toBe(
+            'function transfer(address to, uint256 amount)'
+        );
+    });
+
+    it('keeps a signature that already has a keyword', () => {
+        expect(normalizeFunctionSignature('  function totalSupply()  ')).toBe('function totalSupply()');
+        expect(normalizeFunctionSignature('receive() external payable')).toBe('receive() external payable');
     });
 });
 

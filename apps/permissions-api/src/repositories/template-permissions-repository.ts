@@ -12,7 +12,7 @@ import {
     methodRuleSchema,
     rolesTable
 } from '../db/schema';
-import { calculateFunctionSelector, findAbiFnBySelector } from '../utils/abi';
+import { calculateFunctionSelector, findAbiFnBySelector, normalizeFunctionSignature } from '../utils/abi';
 import {
     EntityAlreadyExistsError,
     EntityNotFound,
@@ -266,7 +266,11 @@ export class TemplatePermissionsRepository extends BaseRepository {
 
             const [inserted] = await tx
                 .insert(contractTemplatePermissionsTable)
-                .values({ ...permission, methodSelector })
+                .values({
+                    ...permission,
+                    functionSignature: normalizeFunctionSignature(permission.functionSignature),
+                    methodSelector
+                })
                 .returning();
 
             if (inserted === undefined) {
@@ -328,7 +332,7 @@ export class TemplatePermissionsRepository extends BaseRepository {
 
             const [updated] = await tx
                 .update(contractTemplatePermissionsTable)
-                .set(fields)
+                .set({ ...fields, functionSignature: normalizeFunctionSignature(fields.functionSignature) })
                 .where(
                     and(
                         eq(contractTemplatePermissionsTable.id, id),

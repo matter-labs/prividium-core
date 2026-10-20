@@ -2,13 +2,14 @@ import { Abi as AbiSchema } from 'abitype/zod';
 import {
     type Abi,
     type AbiFunction,
+    type AbiItem,
     getFunctionSelector,
     type Hex,
     parseAbiItem,
     toEventSelector,
     toFunctionSelector
 } from 'viem';
-import { EntityNotFound, InvalidEntity } from './error-types';
+import { EntityNotFound, InvalidEntity, InvalidInputError } from './error-types';
 
 export function findAbiFnBySelector(abi: Abi, selector: Hex): AbiFunction | undefined {
     // Filter out non-function types (like events or errors)
@@ -18,14 +19,25 @@ export function findAbiFnBySelector(abi: Abi, selector: Hex): AbiFunction | unde
     return abiFunctions.find((item) => getFunctionSelector(item).toLowerCase() === selector.toLowerCase());
 }
 
+export function normalizeFunctionSignature(functionSignature: string): string {
+    const trimmed = functionSignature.trim();
+    return /^(function|receive)\b/.test(trimmed) ? trimmed : `function ${trimmed}`;
+}
+
 export function calculateFunctionSelector(functionSignature: string): Hex {
-    const abiItem = parseAbiItem(functionSignature);
+    const signature = normalizeFunctionSignature(functionSignature);
+    let abiItem: AbiItem;
+    try {
+        abiItem = parseAbiItem(signature);
+    } catch {
+        throw new InvalidInputError(`Invalid functionSignature "${functionSignature}".`);
+    }
 
     if (abiItem.type === 'receive') {
         return '0x';
     }
 
-    return toFunctionSelector(functionSignature);
+    return toFunctionSelector(signature);
 }
 
 export function abiFromString(abiStr: string): Abi {

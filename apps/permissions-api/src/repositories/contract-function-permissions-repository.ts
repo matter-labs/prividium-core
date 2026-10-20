@@ -12,7 +12,12 @@ import {
     methodRuleSchema,
     rolesTable
 } from '../db/schema';
-import { abiFromString, calculateFunctionSelector, findAbiFnBySelector } from '../utils/abi';
+import {
+    abiFromString,
+    calculateFunctionSelector,
+    findAbiFnBySelector,
+    normalizeFunctionSignature
+} from '../utils/abi';
 import { EntityAlreadyExistsError, EntityNotFound, InvalidInputError, UnexpectedDbError } from '../utils/error-types';
 import { hexSchema } from '../utils/schemas/hex-schema';
 import type { PaginatedResult, PaginationParams } from '../utils/schemas/pagination';
@@ -329,7 +334,11 @@ export class ContractFunctionPermissionsRepository extends BaseRepository {
 
             const [inserted] = await tx
                 .insert(contractFunctionPermissionsTable)
-                .values({ ...permission, methodSelector })
+                .values({
+                    ...permission,
+                    functionSignature: normalizeFunctionSignature(permission.functionSignature),
+                    methodSelector
+                })
                 .returning();
 
             if (inserted === undefined) {
@@ -380,7 +389,7 @@ export class ContractFunctionPermissionsRepository extends BaseRepository {
         return await this.transaction(async (tx) => {
             const [updated] = await tx
                 .update(contractFunctionPermissionsTable)
-                .set(fields)
+                .set({ ...fields, functionSignature: normalizeFunctionSignature(fields.functionSignature) })
                 .where(
                     and(
                         eq(contractFunctionPermissionsTable.id, id),
