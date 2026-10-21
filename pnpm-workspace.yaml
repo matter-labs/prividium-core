@@ -73,6 +73,7 @@ overrides:
   "nanoid@>=5 <5.1.16": ^5.1.16
   "tinypool@<2.1.2": ^2.1.2
   "source-map-js@<1.2.2": ^1.2.2
+  "vite@>=7 <7.3.7": ^7.3.7
 
 auditConfig:
   ignoreCves:
