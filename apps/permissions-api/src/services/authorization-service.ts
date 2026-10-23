@@ -1,15 +1,6 @@
 import type { OverlayRuleId } from '@repo/api-kit';
 import { and, eq, inArray } from 'drizzle-orm';
-import {
-    type Abi,
-    type Address,
-    decodeFunctionData,
-    type Hex,
-    isAddress,
-    isAddressEqual,
-    size,
-    toFunctionSelector
-} from 'viem';
+import { type Abi, type Address, type Hex, isAddress, isAddressEqual, size, toFunctionSelector } from 'viem';
 import { z } from 'zod/v4';
 import type { Repositories } from '../db';
 import {
@@ -30,7 +21,8 @@ import {
     WATCHDOG_NOT_GRANTED
 } from '../permissions/watchdog-grant';
 import type { User, UserWithRoles } from '../repositories/users-repository';
-import { resolveAbiItem } from '../utils/abi';
+import { findAbiFnBySelector, resolveAbiItem } from '../utils/abi';
+import { decodeArgumentsWithinBudget } from '../utils/argument-decoding';
 import { EntityNotFound } from '../utils/error-types';
 import { extractSelector } from '../utils/extract-selector';
 import { fetchChunked } from '../utils/fetch-chunked';
@@ -250,16 +242,16 @@ function checkArgumentRestrictions(
     calldata: Hex,
     abi: Abi
 ): ArgumentCheckOutcome {
-    let args: readonly unknown[] | undefined;
+    let args: readonly unknown[] | null;
     try {
-        ({ args } = decodeFunctionData({ abi, data: calldata }));
+        const fn = findAbiFnBySelector(abi, extractSelector(calldata));
+        if (!fn) return 'decode_failed';
+        args = decodeArgumentsWithinBudget(fn.inputs, calldata);
     } catch {
         return 'decode_failed';
     }
 
-    if (args === undefined) {
-        return restrictions.length === 0 ? 'allowed' : 'denied';
-    }
+    if (args === null) return 'decode_failed';
 
     const allMatch = restrictions.every(({ argumentIndex }) => {
         const value = args[argumentIndex];
@@ -636,7 +628,7 @@ export class AuthorizationService implements MethodAuthorizer, SequencerAuthoriz
      * judge cost scales with call-tree depth rather than call count. Results align
      * to `calls` by index.
      *
-     * Per-call evaluation throws (undecodable args, unknown selector) are captured
+     * Per-call evaluation throws (ABI lookup failures, unknown selector) are captured
      * per item rather than propagated, so judge can re-throw them in pre-order
      * instead of failing the whole batch.
      */
