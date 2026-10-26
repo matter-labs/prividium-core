@@ -1,4 +1,5 @@
 import { AUDIT_ACTIONS, hasSystemPermission, hasZoneSystemPermission } from '@repo/access-control';
+import { isoDatetimeInputSchema } from '@repo/api-kit';
 import type { FastifyRequest } from 'fastify';
 import type { Hex } from 'viem';
 import { z } from 'zod/v4';
@@ -194,8 +195,8 @@ export function organizationsRoutes(
         userId: z.string().optional(),
         actionType: auditActionTypeSchema.optional(),
         traceId: z.string().min(1).max(128).optional(),
-        startDate: z.iso.datetime().optional(),
-        endDate: z.iso.datetime().optional()
+        startDate: isoDatetimeInputSchema().optional(),
+        endDate: isoDatetimeInputSchema().optional()
     });
 
     // Admin-only routes

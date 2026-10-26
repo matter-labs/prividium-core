@@ -24,13 +24,13 @@ const withUpstreamAgent = { dispatcher: upstreamAgent } as unknown as RequestIni
 
 const SUCCESS_RESPONSE_SCHEMA = z.object({
     jsonrpc: z.literal('2.0'),
-    id: z.any(),
-    result: z.any()
+    id: z.any().optional(),
+    result: z.any().optional()
 });
 
 const ERROR_RESPONSE_SCHEMA = z.object({
     jsonrpc: z.literal('2.0'),
-    id: z.any(),
+    id: z.any().optional(),
     error: z.object({
         code: z.number(),
         message: z.string(),

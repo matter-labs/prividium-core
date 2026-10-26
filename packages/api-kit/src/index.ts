@@ -114,6 +114,7 @@ export {
     rpcActorTypeSchema
 } from './rpc-observer';
 export { addressSchema } from './schemas/address';
+export { isoDatetimeInputSchema } from './schemas/datetime';
 export {
     type ErrorResponse,
     ErrorResponseSchema,

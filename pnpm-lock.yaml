@@ -5,7 +5,6 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  zod@^4.3.5: 4.3.5
   '@opentelemetry/api': 1.9.1
   pg: 8.23.0
   semver@<7: ^7.7.3
@@ -111,10 +110,10 @@ importers:
         version: 13.3.2
       '@t3-oss/env-core':
         specifier: ^0.13.11
-        version: 0.13.11(typescript@5.9.3)(zod@4.3.5)
+        version: 0.13.11(typescript@5.9.3)(zod@4.6.7)
       abitype:
         specifier: ^1.2.3
-        version: 1.3.0(typescript@5.9.3)(zod@4.3.5)
+        version: 1.3.0(typescript@5.9.3)(zod@4.6.7)
       close-with-grace:
         specifier: ^2.1.0
         version: 2.5.0
@@ -129,13 +128,13 @@ importers:
         version: 0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.0)
       drizzle-zod:
         specifier: ^0.8.3
-        version: 0.8.3(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.0))(zod@4.3.5)
+        version: 0.8.3(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.0))(zod@4.6.7)
       fastify:
         specifier: ^5.12.5
         version: 5.12.5
       fastify-type-provider-zod:
         specifier: ^6.1.0
-        version: 6.1.0(@fastify/swagger@9.8.1)(fastify@5.12.5)(openapi-types@12.1.3)(zod@4.3.5)
+        version: 6.1.0(@fastify/swagger@9.8.1)(fastify@5.12.5)(openapi-types@12.1.3)(zod@4.6.7)
       ipaddr.js:
         specifier: ^2.3.0
         version: 2.5.0
@@ -171,10 +170,10 @@ importers:
         version: 7.30.0
       viem:
         specifier: ^2.30.4
-        version: 2.55.10(typescript@5.9.3)(zod@4.3.5)
+        version: 2.55.10(typescript@5.9.3)(zod@4.6.7)
       zod:
-        specifier: 4.3.5
-        version: 4.3.5
+        specifier: ^4.6.7
+        version: 4.6.7
     devDependencies:
       '@repo/test-deps':
         specifier: workspace:*
@@ -254,13 +253,13 @@ importers:
         version: 0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.0)
       drizzle-zod:
         specifier: ^0.8.3
-        version: 0.8.3(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.0))(zod@4.3.5)
+        version: 0.8.3(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.0))(zod@4.6.7)
       fastify:
         specifier: ^5.12.5
         version: 5.12.5
       fastify-type-provider-zod:
         specifier: ^6.1.0
-        version: 6.1.0(@fastify/swagger@9.8.1)(fastify@5.12.5)(openapi-types@12.1.3)(zod@4.3.5)
+        version: 6.1.0(@fastify/swagger@9.8.1)(fastify@5.12.5)(openapi-types@12.1.3)(zod@4.6.7)
       nanoid:
         specifier: ^5.1.16
         version: 5.1.16
@@ -272,10 +271,10 @@ importers:
         version: 2.14.0
       viem:
         specifier: ^2.30.4
-        version: 2.55.10(typescript@5.9.3)(zod@4.3.5)
+        version: 2.55.10(typescript@5.9.3)(zod@4.6.7)
       zod:
-        specifier: 4.3.5
-        version: 4.3.5
+        specifier: ^4.6.7
+        version: 4.6.7
     devDependencies:
       '@types/node':
         specifier: ^25.6.0
@@ -349,7 +348,7 @@ importers:
         version: 5.12.5
       fastify-type-provider-zod:
         specifier: ^6.1.0
-        version: 6.1.0(@fastify/swagger@9.8.1)(fastify@5.12.5)(openapi-types@12.1.3)(zod@4.3.5)
+        version: 6.1.0(@fastify/swagger@9.8.1)(fastify@5.12.5)(openapi-types@12.1.3)(zod@4.6.7)
       kleur:
         specifier: ^4.1.5
         version: 4.1.5
@@ -358,13 +357,13 @@ importers:
         version: 10.2.0
       viem:
         specifier: '>=2.0.0'
-        version: 2.55.10(typescript@5.9.3)(zod@4.3.5)
+        version: 2.55.10(typescript@5.9.3)(zod@4.6.7)
       yargs:
         specifier: ^18.0.0
         version: 18.1.0
       zod:
-        specifier: 4.3.5
-        version: 4.3.5
+        specifier: ^4.6.7
+        version: 4.6.7
     devDependencies:
       '@repo/api-types':
         specifier: workspace:*
@@ -1486,7 +1485,7 @@ packages:
       arktype: ^2.1.0
       typescript: '>=5.0.0'
       valibot: ^1.0.0-beta.7 || ^1.0.0
-      zod: 4.3.5
+      zod: ^3.24.0 || ^4.0.0
     peerDependenciesMeta:
       arktype:
         optional: true
@@ -1634,7 +1633,7 @@ packages:
     resolution: {integrity: sha512-Ofer5QUnuUdTFsBRwARMoWKOH1ND5ehwYhJ3OJ/BQO+StkwQjHw0XyVh4vDttzHB7QOFhPHa/o413PJ82gU/Tg==}
     peerDependencies:
       typescript: '>=5.0.4'
-      zod: 4.3.5
+      zod: ^3.22.0 || ^4.0.0
     peerDependenciesMeta:
       typescript:
         optional: true
@@ -1645,7 +1644,7 @@ packages:
     resolution: {integrity: sha512-fk6Te+bojIFrMvMZrnOO+SxCB+RUksTGOzq/60ZRvs1L+BVzvi2bqt9L3W/17ZLdZsyM1FuYf65P5nlmoiH1Bg==}
     peerDependencies:
       typescript: '>=5.0.4'
-      zod: 4.3.5
+      zod: ^3.22.0 || ^4.0.0
     peerDependenciesMeta:
       typescript:
         optional: true
@@ -2038,7 +2037,7 @@ packages:
     resolution: {integrity: sha512-66yVOuvGhKJnTdiqj1/Xaaz9/qzOdRJADpDa68enqS6g3t0kpNkwNYjUuaeXgZfO/UWuIM9HIhSlJ6C5ZraMww==}
     peerDependencies:
       drizzle-orm: '>=0.36.0'
-      zod: 4.3.5
+      zod: ^3.25.0 || ^4.0.0
 
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
@@ -2161,7 +2160,7 @@ packages:
       '@fastify/swagger': '>=9.5.1'
       fastify: ^5.5.0
       openapi-types: ^12.1.3
-      zod: 4.3.5
+      zod: '>=4.1.5'
 
   fastify@5.12.5:
     resolution: {integrity: sha512-OB2k1dlxs5/NAABqeKV2FUHkSD2BbENsCak8yULVcymn3fHIPDVa9TI3SDnJSWYSllZmSYuZXy2gTnsT+Sut1A==}
@@ -3289,8 +3288,8 @@ packages:
     resolution: {integrity: sha512-2rAgRKu54VsHkqI0/tYkmluGXHD4KW7yZoycuqDQ15QOTnc2VVfy0nN/1eMhnQLO00A+dwtK20xuCnc1YGeUyg==}
     engines: {node: ^20.19.0 || ^22.12.0 || >=23}
 
-  zod@4.3.5:
-    resolution: {integrity: sha512-k7Nwx6vuWx1IJ9Bjuf4Zt1PEllcwe7cls3VNzm4CQ1/hgtFUK2bRNG3rvnpPUhFjmqJKAKtjV576KnUkHocg/g==}
+  zod@4.6.7:
+    resolution: {integrity: sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==}
 
 snapshots:
 
@@ -4333,10 +4332,10 @@ snapshots:
       '@peculiar/asn1-x509': 2.8.0
       '@peculiar/x509': 1.14.3
 
-  '@t3-oss/env-core@0.13.11(typescript@5.9.3)(zod@4.3.5)':
+  '@t3-oss/env-core@0.13.11(typescript@5.9.3)(zod@4.6.7)':
     optionalDependencies:
       typescript: 5.9.3
-      zod: 4.3.5
+      zod: 4.6.7
 
   '@turbo/darwin-64@2.10.8':
     optional: true
@@ -4503,15 +4502,15 @@ snapshots:
       loupe: 3.2.1
       tinyrainbow: 2.0.0
 
-  abitype@1.2.3(typescript@5.9.3)(zod@4.3.5):
+  abitype@1.2.3(typescript@5.9.3)(zod@4.6.7):
     optionalDependencies:
       typescript: 5.9.3
-      zod: 4.3.5
+      zod: 4.6.7
 
-  abitype@1.3.0(typescript@5.9.3)(zod@4.3.5):
+  abitype@1.3.0(typescript@5.9.3)(zod@4.6.7):
     optionalDependencies:
       typescript: 5.9.3
-      zod: 4.3.5
+      zod: 4.6.7
 
   abstract-logging@2.0.1: {}
 
@@ -4761,10 +4760,10 @@ snapshots:
       '@types/pg': 8.23.1
       pg: 8.23.0
 
-  drizzle-zod@0.8.3(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.0))(zod@4.3.5):
+  drizzle-zod@0.8.3(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.0))(zod@4.6.7):
     dependencies:
       drizzle-orm: 0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(pg@8.23.0)
-      zod: 4.3.5
+      zod: 4.6.7
 
   dunder-proto@1.0.1:
     dependencies:
@@ -4921,13 +4920,13 @@ snapshots:
 
   fastify-plugin@6.0.0: {}
 
-  fastify-type-provider-zod@6.1.0(@fastify/swagger@9.8.1)(fastify@5.12.5)(openapi-types@12.1.3)(zod@4.3.5):
+  fastify-type-provider-zod@6.1.0(@fastify/swagger@9.8.1)(fastify@5.12.5)(openapi-types@12.1.3)(zod@4.6.7):
     dependencies:
       '@fastify/error': 4.2.0
       '@fastify/swagger': 9.8.1
       fastify: 5.12.5
       openapi-types: 12.1.3
-      zod: 4.3.5
+      zod: 4.6.7
 
   fastify@5.12.5:
     dependencies:
@@ -5360,7 +5359,7 @@ snapshots:
 
   openapi-types@12.1.3: {}
 
-  ox@0.14.33(typescript@5.9.3)(zod@4.3.5):
+  ox@0.14.33(typescript@5.9.3)(zod@4.6.7):
     dependencies:
       '@adraffy/ens-normalize': 1.11.1
       '@noble/ciphers': 1.3.0
@@ -5368,7 +5367,7 @@ snapshots:
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.3.0(typescript@5.9.3)(zod@4.3.5)
+      abitype: 1.3.0(typescript@5.9.3)(zod@4.6.7)
       eventemitter3: 5.0.1
     optionalDependencies:
       typescript: 5.9.3
@@ -5890,15 +5889,15 @@ snapshots:
 
   undici@7.30.0: {}
 
-  viem@2.55.10(typescript@5.9.3)(zod@4.3.5):
+  viem@2.55.10(typescript@5.9.3)(zod@4.6.7):
     dependencies:
       '@noble/curves': 1.9.1
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.9.3)(zod@4.3.5)
+      abitype: 1.2.3(typescript@5.9.3)(zod@4.6.7)
       isows: 1.0.7(ws@8.21.0)
-      ox: 0.14.33(typescript@5.9.3)(zod@4.3.5)
+      ox: 0.14.33(typescript@5.9.3)(zod@4.6.7)
       ws: 8.21.0
     optionalDependencies:
       typescript: 5.9.3
@@ -6144,4 +6143,4 @@ snapshots:
       y18n: 5.0.8
       yargs-parser: 22.0.0
 
-  zod@4.3.5: {}
+  zod@4.6.7: {}

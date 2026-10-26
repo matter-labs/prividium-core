@@ -29,8 +29,6 @@ verifyStoreIntegrity: true
 ignoreDepScripts: true
 
 overrides:
-  # zod 4.4 makes bare z.unknown() object keys required — hold 4.3.5 until callers are audited.
-  "zod@^4.3.5": 4.3.5
   # Type identity, not a security pin. `@repo/api-kit` belongs to two workspaces, so
   # only one owns its node_modules, and a type crossing that boundary unifies only
   # when both resolve the same version. Drizzle's peer set is part of its identity: a

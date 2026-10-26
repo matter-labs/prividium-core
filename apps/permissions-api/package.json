@@ -91,7 +91,7 @@
         "toad-scheduler": "^3.1.0",
         "undici": "^7.29.1",
         "viem": "^2.30.4",
-        "zod": "^4.3.5"
+        "zod": "^4.6.7"
     },
     "devDependencies": {
         "@repo/test-deps": "workspace:*",

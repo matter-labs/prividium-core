@@ -1,3 +1,4 @@
+import { isoDatetimeInputSchema } from '@repo/api-kit';
 import type { SQL } from 'drizzle-orm';
 import { and, arrayContains, count, desc, eq, gte, isNull, lte, or, sql } from 'drizzle-orm';
 import { unionAll } from 'drizzle-orm/pg-core';
@@ -60,8 +61,8 @@ export const AuditLogsSearchCriteriaSchema = z.object({
     resourceId: z.string().optional(),
     requestId: z.string().optional(),
     traceId: z.string().optional(),
-    startDate: z.iso.datetime().optional(),
-    endDate: z.iso.datetime().optional()
+    startDate: isoDatetimeInputSchema().optional(),
+    endDate: isoDatetimeInputSchema().optional()
 });
 
 export type AuditLogsSearchCriteria = z.infer<typeof AuditLogsSearchCriteriaSchema>;
@@ -107,8 +108,8 @@ export type DbMutationSearchCriteria = z.infer<typeof DbMutationSearchCriteriaSc
 export const CombinedAuditLogsSearchCriteriaSchema = z.object({
     userId: z.string().optional(),
     actionType: auditActionTypeSchema.optional(),
-    startDate: z.iso.datetime().optional(),
-    endDate: z.iso.datetime().optional()
+    startDate: isoDatetimeInputSchema().optional(),
+    endDate: isoDatetimeInputSchema().optional()
 });
 
 export type CombinedAuditLogsSearchCriteria = z.infer<typeof CombinedAuditLogsSearchCriteriaSchema>;

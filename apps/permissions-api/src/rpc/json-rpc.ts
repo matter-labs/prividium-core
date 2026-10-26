@@ -117,8 +117,8 @@ export const requestOrBatch = z.union([rpcRequestSchema, rpcRequestSchema.array(
 // Lets only JSON-RPC response fields reach the client. Keep members `unknown`: a stricter shape
 // fails serialization on an odd node reply and turns the whole batch into an internal error.
 const rpcResponseSchema = z.object({
-    jsonrpc: z.unknown(),
-    id: z.unknown(),
+    jsonrpc: z.unknown().optional(),
+    id: z.unknown().optional(),
     result: z.unknown().optional(),
     error: z.unknown().optional()
 });

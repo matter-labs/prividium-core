@@ -39,7 +39,7 @@ describe('swaggerSchemaTransform', () => {
         expect(token).toEqual({
             type: 'string',
             format: 'base64url',
-            pattern: '^[A-Za-z0-9_-]*$'
+            pattern: '^(?:[A-Za-z0-9_-]{4})*(?:[A-Za-z0-9_-]{2,3})?$'
         });
         // biome-ignore lint/suspicious/noExplicitAny: navigating generated JSON Schema output
         expect((schema as any).response['200'].required).toContain('token');

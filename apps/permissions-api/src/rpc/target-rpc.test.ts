@@ -235,10 +235,15 @@ describe('TargetRpc.chainId', () => {
     });
 });
 
-describe('TargetRpc.send error mapping', () => {
+describe('TargetRpc.send', () => {
     afterEach(() => {
         vi.restoreAllMocks();
     });
+
+    function upstreamReplies(body: unknown) {
+        vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(body)));
+        return new TargetRpc('http://unused', 'zksync-os');
+    }
 
     it('keeps the node envelope on a non-RpcException error', async () => {
         const nodeError = { code: BAD_RPC_PARAMS_ERROR_CODE, message: 'invalid argument', data: { field: 'hash' } };
@@ -267,6 +272,27 @@ describe('TargetRpc.send error mapping', () => {
 
         expect(err).toBeInstanceOf(Error);
         expect(err).not.toBeInstanceOf(RpcException);
+    });
+
+    it('accepts a success envelope without an id', async () => {
+        const rpc = upstreamReplies({ jsonrpc: '2.0', result: '0x1' });
+
+        await expect(rpc.send(1, 'eth_chainId', [], z.string())).resolves.toBe('0x1');
+    });
+
+    it('accepts a success envelope without a result', async () => {
+        const rpc = upstreamReplies({ jsonrpc: '2.0', id: 1 });
+
+        await expect(rpc.send(1, 'eth_getTransactionByHash', [TX_HASH], z.unknown())).resolves.toBeUndefined();
+    });
+
+    it('maps an error envelope without an id to TargetRpcCallError', async () => {
+        const rpc = upstreamReplies({ jsonrpc: '2.0', error: { code: -32000, message: 'rejected' } });
+
+        await expect(rpc.send(1, 'eth_getBalance', [TX_HASH], z.unknown())).rejects.toMatchObject({
+            code: -32000,
+            responseMessage: 'rejected'
+        });
     });
 });
 
