@@ -51,6 +51,12 @@ afterAll(() => {
 });
 
 describe('bounded argument decoding', () => {
+    it('accepts zero-input calls without slicing beyond the selector, while still bounding calldata', () => {
+        expect(decodeArgumentsWithinBudget([], calldata(''))).toEqual([]);
+        expect(decodeArgumentsWithinBudget([], calldata('ab'))).toEqual([]);
+        rejectsBeforeDecode([], calldata('ab'.repeat(MAX_ARGUMENT_CALLDATA_BYTES)));
+    });
+
     it('survives compact and nested aliases in a separate process with a 96 MiB old-space limit', () => {
         const moduleUrl = new URL('./argument-decoding.ts', import.meta.url).href;
         const output = execFileSync(
@@ -83,7 +89,7 @@ describe('bounded argument decoding', () => {
             { encoding: 'utf8', timeout: 15_000 }
         );
         expect(output).toBe('ok');
-    });
+    }, 20_000);
 
     const canonical: Array<{ name: string; inputs: Inputs; values: readonly unknown[] }> = [
         {

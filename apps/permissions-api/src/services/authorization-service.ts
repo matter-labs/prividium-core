@@ -1,4 +1,5 @@
 import type { OverlayRuleId } from '@repo/api-kit';
+import { decodeArgumentsWithinBudget } from '@repo/api-kit/argument-decoding';
 import { and, eq, inArray } from 'drizzle-orm';
 import { type Abi, type Address, type Hex, isAddress, isAddressEqual, size, toFunctionSelector } from 'viem';
 import { z } from 'zod/v4';
@@ -22,7 +23,6 @@ import {
 } from '../permissions/watchdog-grant';
 import type { User, UserWithRoles } from '../repositories/users-repository';
 import { findAbiFnBySelector, resolveAbiItem } from '../utils/abi';
-import { decodeArgumentsWithinBudget } from '../utils/argument-decoding';
 import { EntityNotFound } from '../utils/error-types';
 import { extractSelector } from '../utils/extract-selector';
 import { fetchChunked } from '../utils/fetch-chunked';

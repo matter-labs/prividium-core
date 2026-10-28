@@ -6,6 +6,7 @@
     "exports": {
         ".": "./src/index.ts",
         "./db/credentials": "./src/db/credentials.ts",
+        "./argument-decoding": "./src/utils/argument-decoding.ts",
         "./stable-stringify": "./src/stable-stringify.ts",
         "./schemas/hex-schema": "./src/schemas/hex-schema.ts"
     },

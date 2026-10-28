@@ -19,7 +19,7 @@ type Layout = { dynamic: boolean; headSize: number } & (
 export function decodeArgumentsWithinBudget(inputs: AbiFunction['inputs'], calldata: Hex): readonly unknown[] | null {
     try {
         checkDecodingBudget(inputs, calldata);
-        return decodeAbiParameters(inputs, slice(calldata, 4));
+        return inputs.length === 0 ? [] : decodeAbiParameters(inputs, slice(calldata, 4));
     } catch {
         return null;
     }
