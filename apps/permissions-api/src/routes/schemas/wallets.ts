@@ -1,5 +1,5 @@
 import { z } from 'zod/v4';
-import { addressSchema } from '../../utils/schemas/address';
+import { addressSchema, storedChainAddressSchema } from '../../utils/schemas/address';
 import { hexSchema } from '../../utils/schemas/hex-schema';
 
 export const InitiateWalletAssociationSchema = z.object({
@@ -15,7 +15,7 @@ export const AssociateWalletSchema = z.object({
 });
 
 export const WalletListResponseSchema = z.object({
-    wallets: z.array(addressSchema)
+    wallets: z.array(storedChainAddressSchema)
 });
 
 export const SiweMessageResponseSchema = z.object({

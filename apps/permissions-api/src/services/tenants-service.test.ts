@@ -3,6 +3,7 @@ import { generatePrivateKey, privateKeyToAddress } from 'viem/accounts';
 import { beforeEach, describe, expect } from 'vitest';
 import { TestExternalRpc } from '../../test/rpc/test-external-rpc';
 import { type Fixture, it } from '../../test/unit-test-context';
+import { evmChain } from '../chains/evm';
 import { Repositories } from '../db';
 import { type Tenant, TenantsRepository } from '../repositories/tenants-repository';
 import { UsersRepository } from '../repositories/users-repository';
@@ -29,7 +30,12 @@ describe('TenantsService', () => {
         repository = new TenantsRepository(db);
         userRepo = new UsersRepository(db);
         externalRpc = new TestExternalRpc();
-        service = new TenantsService(new Repositories(db), externalRpc, strictWalletGuard, MAX_WALLETS_PER_USER);
+        service = new TenantsService(
+            new Repositories(db),
+            evmChain(externalRpc),
+            strictWalletGuard,
+            MAX_WALLETS_PER_USER
+        );
     });
 
     describe('createUser', () => {
@@ -96,7 +102,7 @@ describe('TenantsService', () => {
         it<Fixture>('accepts a well-known dev wallet when listed on the allowlist', async ({ db }) => {
             const allowingService = new TenantsService(
                 new Repositories(db),
-                externalRpc,
+                evmChain(externalRpc),
                 createWalletAssociationGuard([ANVIL_ACCOUNT_0]),
                 MAX_WALLETS_PER_USER
             );

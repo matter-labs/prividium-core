@@ -1,5 +1,6 @@
+import type { ChainAddress } from '@repo/api-kit';
 import { and, asc, count, eq, getTableColumns, inArray } from 'drizzle-orm';
-import { type Hex, size } from 'viem';
+import { size } from 'viem';
 import { extractForeignKeyConstraintProblem, isForeignKeyConstraintError } from '../db/errors';
 import { contractEventPermissionsRoles, contractEventPermissionsTable, topicConditionEnum } from '../db/schema';
 import { getFirstOrThrow } from '../db/utils';
@@ -70,7 +71,7 @@ export class ContractEventsPermissionsRepository extends ContractEventsPermissio
         offset,
         contractAddress
     }: PaginationParams & {
-        contractAddress?: Hex;
+        contractAddress?: ChainAddress;
     }): Promise<PaginatedResult<EventPermission>> {
         const where = contractAddress ? eq(contractEventPermissionsTable.contractAddress, contractAddress) : undefined;
         const [items, totalCount] = await Promise.all([
@@ -233,7 +234,7 @@ export class ContractEventsPermissionsRepository extends ContractEventsPermissio
         }
     }
 
-    async searchForContractAndRoles(contractAddresses: Hex[], roleIds: string[]): Promise<BarePermission[]> {
+    async searchForContractAndRoles(contractAddresses: ChainAddress[], roleIds: string[]): Promise<BarePermission[]> {
         return this.db
             .select(getTableColumns(contractEventPermissionsTable))
             .from(contractEventPermissionsTable)

@@ -1,4 +1,23 @@
 export type { FeaturePermissionName, SystemPermissionName } from '@repo/access-control';
+export type {
+    AddressCodec,
+    Chain,
+    ChainAddress,
+    ChainCapabilities,
+    ChainDefinition,
+    ChainEnv,
+    ChainModule,
+    ChainModuleRef,
+    ChainNode,
+    ChainType,
+    SystemContract
+} from './chain/chain';
+export {
+    areChainAddressesEqual,
+    chainAddressListIncludes,
+    selectChain,
+    selectedChain
+} from './chain/selected-chain';
 export type { AddressClass, CoreFacts, CoreReferences, SigningIdentity } from './core-facts';
 export { AUDIT_SESSION_VARS, clearAuditSessionVars, setAuditSessionVarsSql } from './db/audit-session';
 export {
@@ -23,6 +42,8 @@ export {
 } from './db/credentials';
 export {
     addressColumn,
+    chainAddress,
+    chainAddressColumn,
     hexBigInt,
     hexBigIntColumn,
     hexBytes,
@@ -114,6 +135,7 @@ export {
     rpcActorTypeSchema
 } from './rpc-observer';
 export { addressSchema } from './schemas/address';
+export { chainAddressSchema, storedChainAddressSchema } from './schemas/chain-address';
 export { isoDatetimeInputSchema } from './schemas/datetime';
 export {
     type ErrorResponse,

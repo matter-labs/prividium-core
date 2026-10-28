@@ -1,4 +1,4 @@
-import type { OverlayRuleId } from '@repo/api-kit';
+import type { ChainAddress, OverlayRuleId } from '@repo/api-kit';
 import { decodeArgumentsWithinBudget } from '@repo/api-kit/argument-decoding';
 import { and, eq, inArray } from 'drizzle-orm';
 import { type Abi, type Address, type Hex, isAddress, isAddressEqual, size, toFunctionSelector } from 'viem';
@@ -143,7 +143,7 @@ type DecidablePermission = {
  * The contract row a decision reads. `undefined` means the address is not registered at all,
  * which is a different thing from a registered zone-level contract (`organizationId: null`).
  */
-type RegisteredContract = { contractAddress: Address; organizationId: string | null };
+type RegisteredContract = { contractAddress: ChainAddress; organizationId: string | null };
 
 /**
  * Outcome of evaluating one call in {@link AuthorizationService.checkUserAuthorizationForCalls}.

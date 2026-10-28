@@ -1,68 +1,59 @@
 import { isDeepStrictEqual } from 'node:util';
+import { type SystemContract, selectedChain } from '@repo/api-kit';
 import { and, eq, inArray, notInArray } from 'drizzle-orm';
 import type { DbOrTx } from '../../db';
 import { contractsTable } from '../../db/schema';
 import type { PinoLogger } from '../../utils/logger';
-import { SYSTEM_CONTRACTS_REGISTRY, type SystemContractDefinition } from './registry';
 
-/**
- * Strict-syncs the hardcoded system contracts registry into the database.
- *
- * Algorithm (runs inside a single transaction):
- *   1. For each registry entry → insert or update the contract row only if sync-owned fields changed.
- *   2. Delete any DB rows where `isSystemContract=true` but address is absent from the registry.
- *
- * DB mutations are captured automatically by Postgres audit triggers.
- *
- * Any error causes the transaction to roll back, and the thrown error is
- * expected to be caught by the bootstrap code which will `process.exit(1)`.
- */
-export async function syncSystemContracts(db: DbOrTx, logger: PinoLogger): Promise<void> {
+type SystemContractRow = Omit<typeof contractsTable.$inferSelect, 'createdAt' | 'updatedAt'>;
+
+/** Strict-syncs the chain's system contracts: rows are inserted, updated or, once dropped from the list, deleted. */
+export async function syncSystemContracts(
+    db: DbOrTx,
+    logger: PinoLogger,
+    systemContracts: readonly SystemContract[]
+): Promise<void> {
     const log = logger.child({ role: 'system-contracts-sync' });
-    const registryAddresses = SYSTEM_CONTRACTS_REGISTRY.map((c) => c.contractAddress);
+    if (systemContracts.length === 0) {
+        // A stamped database never holds another chain's system contracts, so none is stale; skipping keeps a
+        // misconfigured first boot, before the stamp, from deleting them.
+        log.info('System contracts sync skipped: the chain declares none');
+        return;
+    }
+    const rows = systemContracts.map(toRow);
+    const addresses = rows.map((row) => row.contractAddress);
 
     await db.repositories().transaction(async (tx) => {
-        // Fetch all existing contracts that overlap with the registry in one query
-        const existingContracts =
-            registryAddresses.length > 0
-                ? await tx.query.contractsTable.findMany({
-                      where: inArray(contractsTable.contractAddress, registryAddresses)
-                  })
-                : [];
+        const existingContracts = await tx.query.contractsTable.findMany({
+            where: inArray(contractsTable.contractAddress, addresses)
+        });
         const existingByAddress = new Map(existingContracts.map((c) => [c.contractAddress, c]));
 
-        // Sync each registry contract
-        for (const def of SYSTEM_CONTRACTS_REGISTRY) {
-            const existing = existingByAddress.get(def.contractAddress);
-            const current = existing ? dbRowToSystemContractDef(existing) : null;
-            const diff = diffSystemContract(current, def);
+        for (const row of rows) {
+            const existing = existingByAddress.get(row.contractAddress);
+            const current = existing ? withoutTimestamps(existing) : null;
+            const diff = diffSystemContract(current, row);
 
             if (diff === 'noop') {
                 continue;
             }
 
             if (diff === 'create') {
-                await tx.insert(contractsTable).values(def);
+                await tx.insert(contractsTable).values(row);
                 continue;
             }
 
             if (diff === 'update') {
-                await tx.update(contractsTable).set(def).where(eq(contractsTable.contractAddress, def.contractAddress));
+                await tx.update(contractsTable).set(row).where(eq(contractsTable.contractAddress, row.contractAddress));
                 continue;
             }
 
             diff satisfies never;
         }
 
-        // Delete stale system contracts (marked as system but no longer in registry)
-        const staleWhere =
-            registryAddresses.length > 0
-                ? and(
-                      eq(contractsTable.isSystemContract, true),
-                      notInArray(contractsTable.contractAddress, registryAddresses)
-                  )
-                : eq(contractsTable.isSystemContract, true);
-        const staleContracts = await tx.query.contractsTable.findMany({ where: staleWhere });
+        const staleContracts = await tx.query.contractsTable.findMany({
+            where: and(eq(contractsTable.isSystemContract, true), notInArray(contractsTable.contractAddress, addresses))
+        });
 
         for (const stale of staleContracts) {
             await tx.delete(contractsTable).where(eq(contractsTable.contractAddress, stale.contractAddress));
@@ -70,18 +61,28 @@ export async function syncSystemContracts(db: DbOrTx, logger: PinoLogger): Promi
         }
     });
 
-    log.info(`System contracts sync complete (${SYSTEM_CONTRACTS_REGISTRY.length} registry entries)`);
+    log.info(`System contracts sync complete (${rows.length} registry entries)`);
 }
 
-function dbRowToSystemContractDef(row: typeof contractsTable.$inferSelect): SystemContractDefinition {
+function toRow(contract: SystemContract): SystemContractRow {
+    const { address, ...rest } = contract;
+    return {
+        ...rest,
+        // Canonical, as rows read back, so a module's own spelling still matches them.
+        contractAddress: selectedChain().addresses.schema.parse(address),
+        isSystemContract: true,
+        organizationId: null,
+        templateId: null,
+        disclosureStartBlock: '0x0'
+    };
+}
+
+function withoutTimestamps(row: typeof contractsTable.$inferSelect): SystemContractRow {
     const { createdAt, updatedAt, ...rest } = row;
     return rest;
 }
 
-function diffSystemContract(
-    existing: SystemContractDefinition | null,
-    next: SystemContractDefinition
-): 'create' | 'noop' | 'update' {
+function diffSystemContract(existing: SystemContractRow | null, next: SystemContractRow): 'create' | 'noop' | 'update' {
     if (existing === null) {
         return 'create';
     }

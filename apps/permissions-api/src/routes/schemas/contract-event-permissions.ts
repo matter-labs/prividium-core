@@ -1,12 +1,13 @@
 import { contractEventPermissionsTable } from '../../db/schema';
 import { createInsertSchema, createSelectSchema, MANAGED_COLUMNS } from '../../utils/drizzle-zod-schema-factory';
+import { chainAddressSchema, storedChainAddressSchema } from '../../utils/schemas/address';
 import { hexSizedSchema } from '../../utils/schemas/hex-schema';
 import { paginatedResult } from '../../utils/schemas/pagination';
 import { BareRoleSchema, RoleRefSchema } from './roles';
 
 // function form so drizzle keeps the columns' nullability
 export const EventPermissionSchema = createSelectSchema(contractEventPermissionsTable, {
-    contractAddress: () => hexSizedSchema(20),
+    contractAddress: () => storedChainAddressSchema,
     topic0Constant: () => hexSizedSchema(32),
     topic1Constant: () => hexSizedSchema(32),
     topic2Constant: () => hexSizedSchema(32),
@@ -16,7 +17,7 @@ export const EventPermissionSchema = createSelectSchema(contractEventPermissions
 });
 
 export const CreateEventPermissionBodySchema = createInsertSchema(contractEventPermissionsTable, {
-    contractAddress: () => hexSizedSchema(20),
+    contractAddress: () => chainAddressSchema,
     topic0Constant: () => hexSizedSchema(32),
     topic1Constant: () => hexSizedSchema(32),
     topic2Constant: () => hexSizedSchema(32),

@@ -1,1 +1,8 @@
-export { addressColumn, hexBigIntColumn, hexBytesColumn, methodSelectorColumn, uint256Column } from '@repo/api-kit';
+export {
+    addressColumn,
+    chainAddressColumn,
+    hexBigIntColumn,
+    hexBytesColumn,
+    methodSelectorColumn,
+    uint256Column
+} from '@repo/api-kit';

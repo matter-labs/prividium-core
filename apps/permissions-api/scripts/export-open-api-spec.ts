@@ -3,6 +3,8 @@ import path from 'node:path';
 import { pino } from 'pino';
 import { numberToHex } from 'viem';
 import { type AppConfig, buildApp } from '../src/build-app';
+import { evmChain } from '../src/chains/evm';
+import { TargetRpc } from '../src/rpc/target-rpc';
 
 const MOCK_CHAIN_ID = 506;
 
@@ -25,6 +27,7 @@ const mockDeps = {
     authMethods: ['crypto_native', 'oidc'],
     targetRpcUrl: '',
     targetChainType: 'zksync-os',
+    chain: evmChain(new TargetRpc('fix-openapi-generation', 'zksync-os')),
     oauthRedirectUrls: {
         adminPanel: [''],
         blockExplorer: ['']

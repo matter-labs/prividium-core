@@ -5,6 +5,7 @@ export default defineProject({
     test: {
         environment: 'node',
         globalSetup: './test/global-setup.ts',
+        setupFiles: ['./test/select-chain.ts'],
         hookTimeout: 30_000,
         testTimeout: 20_000,
         isolate: false

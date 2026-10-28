@@ -1,6 +1,7 @@
 import { ADMIN_ROLE_ID } from '@repo/access-control';
+import { type ChainAddress, chainAddressListIncludes } from '@repo/api-kit';
 import { and, asc, count, eq, inArray, isNull } from 'drizzle-orm';
-import type { Address, Hex } from 'viem';
+import type { Address } from 'viem';
 import type { TxType } from '../db';
 import {
     rolesTable,
@@ -19,7 +20,6 @@ import {
 } from '../permissions/permission-catalog';
 import { EntityNotFound, InvalidInputError } from '../utils/error-types';
 import { fetchChunked } from '../utils/fetch-chunked';
-import { hexListIncludes } from '../utils/hex';
 import type { PaginatedResult, PaginationParams } from '../utils/schemas/pagination';
 import { BaseRepository } from './base-repository';
 import type { BareRole, Role } from './roles-repository';
@@ -33,7 +33,7 @@ export type InsertTenant = typeof tenantsTable.$inferInsert & {
 
 export type TenantUser = {
     id: string;
-    walletAddresses: { walletAddress: Address }[];
+    walletAddresses: { walletAddress: ChainAddress }[];
     displayName: string;
 };
 
@@ -251,7 +251,7 @@ export class TenantsRepository extends BaseRepository {
         });
     }
 
-    async allAssociatedWallets(tenantId: string): Promise<Hex[]> {
+    async allAssociatedWallets(tenantId: string): Promise<ChainAddress[]> {
         const rows = await this.db
             .select({ address: walletsTable.walletAddress })
             .from(walletsTable)
@@ -262,7 +262,7 @@ export class TenantsRepository extends BaseRepository {
         return rows.map(({ address }) => address);
     }
 
-    async associatedWalletsAmong(tenantId: string, candidates: Hex[]): Promise<Hex[]> {
+    async associatedWalletsAmong(tenantId: string, candidates: ChainAddress[]): Promise<ChainAddress[]> {
         const rows = await fetchChunked(candidates, (chunk) =>
             this.db
                 .select({ address: walletsTable.walletAddress })
@@ -281,7 +281,7 @@ export class TenantsRepository extends BaseRepository {
         return rows.map(({ address }) => address);
     }
 
-    async isAddressAssociatedToTenant(tenantId: string, address: Hex): Promise<boolean> {
+    async isAddressAssociatedToTenant(tenantId: string, address: ChainAddress): Promise<boolean> {
         const { res } = await this.db
             .select({ res: count() })
             .from(tenantsUsers)
@@ -346,7 +346,7 @@ export class TenantsRepository extends BaseRepository {
     async addWalletsToUser(
         tenantId: string,
         userId: string,
-        walletsToAdd: { walletAddress: `0x${string}` }[]
+        walletsToAdd: { walletAddress: ChainAddress }[]
     ): Promise<TenantUser> {
         return this.transaction(async (tx) => {
             const existingTenant = await tx.repositories().tenants.getById(tenantId);
@@ -366,7 +366,7 @@ export class TenantsRepository extends BaseRepository {
 
             const existingWallets = existingUser.wallets.map((w) => w.walletAddress);
             const rawWallets = walletsToAdd.map((w) => w.walletAddress);
-            const newWallets = rawWallets.filter((w) => !hexListIncludes(existingWallets, w));
+            const newWallets = rawWallets.filter((w) => !chainAddressListIncludes(existingWallets, w));
 
             if (newWallets.length > 0) {
                 await tx.insert(walletsTable).values(

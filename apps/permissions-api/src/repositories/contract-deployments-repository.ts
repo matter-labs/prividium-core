@@ -1,5 +1,5 @@
+import { type ChainAddress, chainAddressSchema, storedChainAddressSchema } from '@repo/api-kit';
 import { and, count, eq, isNotNull, isNull, lt } from 'drizzle-orm';
-import type { Address } from 'viem';
 import { z } from 'zod/v4';
 import { contractDeploymentsTable } from '../db/schema';
 import { getFirstOrThrow } from '../db/utils';
@@ -10,16 +10,16 @@ import type { PaginationParams } from '../utils/schemas/pagination';
 import { BaseRepository } from './base-repository';
 
 const createContractDeploymentSchema = createInsertSchema(contractDeploymentsTable).extend({
-    address: hexSchema,
-    deployerAddress: hexSchema,
+    address: chainAddressSchema,
+    deployerAddress: chainAddressSchema,
     deployTxHash: hexSchema,
     deployedBy: z.string().optional()
 });
 export type CreateContractDeployment = z.infer<typeof createContractDeploymentSchema>;
 
 export const contractDeploymentSchema = createSelectSchema(contractDeploymentsTable).extend({
-    address: hexSchema,
-    deployerAddress: hexSchema,
+    address: storedChainAddressSchema,
+    deployerAddress: storedChainAddressSchema,
     deployTxHash: hexSchema
 });
 export type ContractDeployment = z.infer<typeof contractDeploymentSchema>;
@@ -157,7 +157,7 @@ export class ContractDeploymentsRepository extends BaseRepository {
         };
     }
 
-    async findByAddress(address: Address): Promise<ContractDeployment | undefined> {
+    async findByAddress(address: ChainAddress): Promise<ContractDeployment | undefined> {
         return this.db.query.contractDeploymentsTable.findFirst({
             where: (t, { eq, and }) => and(eq(t.address, address), isNotNull(t.successAt))
         });
@@ -174,7 +174,7 @@ export class ContractDeploymentsRepository extends BaseRepository {
      * attempt creates its own row); the caller iterates until it finds the
      * one whose tx mined. Ordering puts the most likely candidate first.
      */
-    async findAllPendingByAddress(address: Address): Promise<ContractDeployment[]> {
+    async findAllPendingByAddress(address: ChainAddress): Promise<ContractDeployment[]> {
         return this.db.query.contractDeploymentsTable.findMany({
             where: (t, { eq, and, isNull }) => and(eq(t.address, address), isNull(t.successAt), isNull(t.erroredAt)),
             orderBy: (t, { desc }) => [desc(t.startedAt)]

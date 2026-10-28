@@ -1,5 +1,5 @@
+import { type ChainAddress, chainAddressListIncludes } from '@repo/api-kit';
 import { and, count, eq, inArray, isNull, like, not, or, sql } from 'drizzle-orm';
-import type { Address, Hex } from 'viem';
 import type { TxType } from '../db';
 import { extractForeignKeyConstraintProblem, isForeignKeyConstraintError, isUniqueConstraintError } from '../db/errors';
 import { organizationsTable, rolesTable, UserSources, userRolesTable, usersTable, walletsTable } from '../db/schema';
@@ -10,7 +10,6 @@ import {
     UNCHECKED_PERMISSIONS
 } from '../permissions/permission-catalog';
 import { EntityAlreadyExistsError, EntityNotFound, InvalidInputError, UnexpectedDbError } from '../utils/error-types';
-import { hexListIncludes } from '../utils/hex';
 import { belongsToDeletedOrganization } from '../utils/organization-membership';
 import type { PaginatedResult, PaginationParams } from '../utils/schemas/pagination';
 import { assertNotWatchdog } from '../utils/watchdog';
@@ -45,14 +44,14 @@ export type InsertUser = Omit<typeof usersTable.$inferInsert, 'organizationId'> 
     displayName: string;
     /** Role ids to assign. */
     roles?: string[];
-    wallets?: Address[];
+    wallets?: ChainAddress[];
     organizationId?: string | null;
 };
 export type UpdateUser = Partial<Omit<typeof usersTable.$inferInsert, 'organizationId'>> & {
     displayName?: string;
     /** Role ids replacing the user's current assignments. */
     roles?: string[];
-    wallets?: Address[];
+    wallets?: ChainAddress[];
 };
 
 /** Zone-only deployments pass `allowZoneRoles`, where no org-scoped role exists for a member to hold. */
@@ -229,7 +228,7 @@ export class UsersRepository extends BaseRepository {
         return { ...rawUser, roles: rawUser.roles.map((r) => r.role) };
     }
 
-    async findByAddress(address: Address): Promise<User | undefined> {
+    async findByAddress(address: ChainAddress): Promise<User | undefined> {
         const user = await this.db.query.walletsTable.findFirst({
             where: (t, { eq, and, isNull }) => and(eq(t.walletAddress, address), isNull(t.deletedAt)),
             columns: { userId: true }
@@ -242,7 +241,7 @@ export class UsersRepository extends BaseRepository {
         return this.findById(user.userId);
     }
 
-    async findByAddressWithRoles(address: Address): Promise<UserWithRoles | undefined> {
+    async findByAddressWithRoles(address: ChainAddress): Promise<UserWithRoles | undefined> {
         const wallet = await this.db.query.walletsTable.findFirst({
             where: (t, { eq, and, isNull }) => and(eq(t.walletAddress, address), isNull(t.deletedAt)),
             columns: { userId: true }
@@ -408,7 +407,7 @@ export class UsersRepository extends BaseRepository {
         });
     }
 
-    private walletsAreChanging(list1: Hex[], list2: Hex[]) {
+    private walletsAreChanging(list1: ChainAddress[], list2: ChainAddress[]) {
         let areEqual = list1.length === list2.length;
 
         if (!areEqual) return true;
@@ -453,7 +452,7 @@ export class UsersRepository extends BaseRepository {
         return this.create({ displayName: 'Watchdog', source: UserSources.enum.watchdog });
     }
 
-    async setWallets(userId: User['id'], wallets: readonly Address[]): Promise<void> {
+    async setWallets(userId: User['id'], wallets: readonly ChainAddress[]): Promise<void> {
         const listed = wallets.length > 0 ? inArray(walletsTable.walletAddress, [...wallets]) : sql`false`;
         await this.db
             .update(walletsTable)
@@ -465,7 +464,7 @@ export class UsersRepository extends BaseRepository {
             where: and(eq(walletsTable.userId, userId), isNull(walletsTable.deletedAt))
         });
         const heldAddresses = held.map((w) => w.walletAddress);
-        const missing = wallets.filter((wallet) => !hexListIncludes(heldAddresses, wallet));
+        const missing = wallets.filter((wallet) => !chainAddressListIncludes(heldAddresses, wallet));
         if (missing.length > 0) {
             await this.db.insert(walletsTable).values(missing.map((walletAddress) => ({ userId, walletAddress })));
         }
@@ -581,7 +580,7 @@ export class UsersRepository extends BaseRepository {
         return new Map(rows.map((row) => [row.id, row.organizationId]));
     }
 
-    async checkUserAddress(userId: string, address: Address) {
+    async checkUserAddress(userId: string, address: ChainAddress) {
         const result = await this.db.query.walletsTable.findFirst({
             where: and(
                 eq(walletsTable.userId, userId),
@@ -662,7 +661,7 @@ export class UsersRepository extends BaseRepository {
         };
     }
 
-    async walletExistInSystem(address: Address): Promise<boolean> {
+    async walletExistInSystem(address: ChainAddress): Promise<boolean> {
         return this.db.query.walletsTable
             .findFirst({
                 columns: { id: true },

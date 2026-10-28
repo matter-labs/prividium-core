@@ -3,7 +3,7 @@ import type { FastifyServer } from '../build-app';
 import { prividiumPermix } from '../permissions/prividium-permix';
 import { fullContractSchema } from '../repositories/contracts-repository';
 import { EntityNotFound } from '../utils/error-types';
-import { addressSchema } from '../utils/schemas/address';
+import { chainAddressSchema } from '../utils/schemas/address';
 import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
 import { ServiceActionBodySchema, ServiceActionResponseSchema } from './schemas/service-action';
 
@@ -41,7 +41,7 @@ export function serviceActionRoutes(app: FastifyServer) {
                 description: 'Get a contract by address for service integrations',
                 tags: ['services', 'contracts'],
                 params: z.object({
-                    contractAddress: addressSchema
+                    contractAddress: chainAddressSchema
                 }),
                 response: {
                     200: fullContractSchema,

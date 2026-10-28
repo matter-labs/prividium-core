@@ -2,12 +2,14 @@ import fastifyCookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import fastifySchedule from '@fastify/schedule';
 import {
+    type Chain,
     type CoreFacts,
     createApiServer,
     type FeatureAuditContext,
     type RequestAuthGuards,
     type RpcObserverFactory,
-    registerNotFoundHandler
+    registerNotFoundHandler,
+    selectChain
 } from '@repo/api-kit';
 import type { MetricsServer } from '@repo/api-metrics';
 import type { FastifyRequest } from 'fastify';
@@ -247,6 +249,7 @@ export interface AppConfig {
     rpcAuthorizerFor?: AuthorizerFactory;
     targetRpcUrl: string;
     targetChainType: TargetChainType;
+    chain: Chain;
     logger: PinoLogger;
     corsOrigins?: string[];
     authMethods: Env['AUTH_METHODS'];
@@ -329,6 +332,8 @@ export interface AppConfig {
 }
 
 export async function buildApp(db: DB, config: AppConfig) {
+    const { chain } = config;
+    selectChain(chain);
     const app = buildFastify({ logger: config.logger, trustXForwardedFor: config.trustXForwardedFor });
 
     const healthCheckService = new HealthCheckService({
@@ -498,10 +503,10 @@ export async function buildApp(db: DB, config: AppConfig) {
             'KNOWN_DEV_WALLETS_ALLOWLIST is non-empty — well-known dev wallet block is partially bypassed. This MUST be empty in production.'
         );
     }
-    const tenantsService = new TenantsService(repos, chainRpc, walletAssociationGuard, config.maxWalletsPerUser);
+    const tenantsService = new TenantsService(repos, chain, walletAssociationGuard, config.maxWalletsPerUser);
     const m2mAppActionsService = new M2mAppActionsService({
         repos,
-        rpc: chainRpc,
+        chain,
         walletAssociationGuard,
         maxWalletsPerUser: config.maxWalletsPerUser,
         multiOrgEnabled: config.multiOrgEnabled
@@ -572,7 +577,7 @@ export async function buildApp(db: DB, config: AppConfig) {
                     multiOrgEnabled: config.multiOrgEnabled,
                     permissionCatalog
                 });
-                app.register(contractsRoutes, { prefix: '/contracts', chainRpc });
+                app.register(contractsRoutes, { prefix: '/contracts', chain });
                 app.register(contractPermissionsRoutes, {
                     prefix: '/contract-permissions',
                     multiOrgEnabled: config.multiOrgEnabled
@@ -702,7 +707,7 @@ export async function buildApp(db: DB, config: AppConfig) {
                     prefix: '/organizations',
                     sessionAuthValidator,
                     m2mAppActionsService,
-                    chainRpc,
+                    chain,
                     apiKeyService,
                     apiKeyMaxExpirationSeconds: config.apiKeyMaxExpirationSeconds,
                     insecureM2mAllowAnyIp: config.insecureM2mAllowAnyIp,

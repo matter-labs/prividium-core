@@ -1,5 +1,6 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import {
+    type ChainModuleRef,
     type DatabaseCredentials,
     type FeaturePermission,
     type PoolState,
@@ -11,8 +12,9 @@ import closeWithGrace from 'close-with-grace';
 import type { Pool } from 'pg';
 import { type AppConfig, buildApp, type FeatureRuntime } from './build-app';
 import { buildPolicyApp, type PolicyAppConfig } from './build-policy-app';
+import { chainRegistry } from './chains';
 import { RepositoriesCoreFacts } from './core-facts/repositories-core-facts';
-import { createDb, runWithJobContext } from './db';
+import { createDb } from './db';
 import { auditAudienceIndexIsValid } from './db/audit-audience-index';
 import { resolveDatabaseConnection } from './db/credentials';
 import { runMigrations } from './db/migrate';
@@ -20,6 +22,7 @@ import { loadEnv } from './env';
 import { findAuthorizerConflict } from './feature-host/feature-conflicts';
 import { PermissionCatalog } from './permissions/permission-catalog';
 import type { AuthorizerFactory } from './rpc/permissions/authorizer';
+import { prepareDatabase } from './services/prepare-database';
 import { syncSystemContracts } from './services/system-contracts/sync';
 import { createWalletAssociationGuard } from './services/wallet-association-guard';
 import { syncWatchdog } from './services/watchdog-service';
@@ -34,7 +37,7 @@ import {
     orgQuotaLimitGauge,
     policyListenerEnabledGauge
 } from './utils/metrics';
-import { HAS_ZKSYNC_SYSTEM_CONTRACTS } from './utils/target-chain';
+import { evmVariant } from './utils/target-chain';
 
 const env = loadEnv();
 
@@ -109,6 +112,8 @@ export type ServiceFeatures = {
     runFeatureMigrations?: (pool: Pool) => Promise<void>;
     /** Connects the pool when DATABASE_AUTH names its mode. */
     databaseCredentials?: DatabaseCredentials;
+    /** Chain modules this build can front besides the core's own; `TARGET_CHAIN_TYPE` picks one, and only that one loads. */
+    chains?: readonly ChainModuleRef[];
 };
 
 const MIGRATION_ADVISORY_LOCK_ID = 0x91620;
@@ -138,6 +143,9 @@ export async function start(features: ServiceFeatures = {}) {
     const deps = buildServerDeps(env);
     // Before migrations, so a bad declaration fails the boot before it touches the database.
     const permissionCatalog = new PermissionCatalog(features.featurePermissions);
+    const chains = chainRegistry(features.chains);
+    const chainType = chains.parse(env.TARGET_CHAIN_TYPE);
+    const chain = await chains.connect(chainType, { nodeUrl: env.SEQUENCER_RPC_URL, env: process.env, settings: env });
 
     // Before migrations, so a credential that cannot authenticate fails the boot naming its own cause.
     const connection = await resolveDatabaseConnection(
@@ -158,47 +166,39 @@ export async function start(features: ServiceFeatures = {}) {
         env.DATABASE_MAX_CONNECTION_LIFETIME_SECONDS
     );
 
-    if (env.NODE_ENV === 'production') {
-        await withMigrationLock(db.$client, async () => {
-            await runMigrations(db, logger, env.MIGRATIONS_DIR);
-            await features.runFeatureMigrations?.(db.$client);
-        });
-    }
+    await prepareDatabase(db, chainType, {
+        migrate:
+            env.NODE_ENV === 'production'
+                ? () =>
+                      withMigrationLock(db.$client, async () => {
+                          await runMigrations(db, logger, env.MIGRATIONS_DIR);
+                          await features.runFeatureMigrations?.(db.$client);
+                      })
+                : undefined,
+        startup: async (scopedDb) => {
+            // Seed the admin role once at startup so per-request auth flows can assume it exists.
+            await scopedDb.repositories().roles.createOrUpdateAdminRole(permissionCatalog);
+
+            createWalletAssociationGuard(env.KNOWN_DEV_WALLETS_ALLOWLIST)(env.WATCHDOG_WALLETS);
+            await syncWatchdog(scopedDb.repositories(), env.WATCHDOG_WALLETS);
+
+            // OIDC identity is keyed by (issuer, sub); ensure pre-existing OIDC users carry an issuer so login still matches them.
+            if (env.OIDC_JWT_ISSUER) {
+                await scopedDb.repositories().users.backfillMissingOidcIssuer(env.OIDC_JWT_ISSUER);
+            }
+
+            await syncSystemContracts(scopedDb, logger, chain.systemContracts);
+
+            orgQuotaLimitGauge.set(env.MAX_ORGANIZATIONS);
+            orgCountGauge.set(await scopedDb.repositories().organizations.countNonDeleted());
+        }
+    });
 
     if (!(await auditAudienceIndexIsValid(db.$client))) {
         logger.warn(
             'Audit audience index is missing or invalid; organization audit queries may be slow. Follow the Migrate section in the Core README to run scripts/create-audit-audience-index.sql and verify the index.'
         );
     }
-
-    // Run startup mutations on a dedicated connection stamped with job_id='system:startup'
-    // so every db_mutation_audit_logs row carries job context instead of landing with
-    // both request_id and job_id null.
-    await runWithJobContext(db, 'system:startup', async (scopedDb) => {
-        // Seed the admin role once at startup so per-request auth flows can assume it exists.
-        await scopedDb.repositories().roles.createOrUpdateAdminRole(permissionCatalog);
-
-        createWalletAssociationGuard(env.KNOWN_DEV_WALLETS_ALLOWLIST)(env.WATCHDOG_WALLETS);
-        await syncWatchdog(scopedDb.repositories(), env.WATCHDOG_WALLETS);
-
-        // OIDC identity is keyed by (issuer, sub); ensure pre-existing OIDC users carry an issuer so login still matches them.
-        if (env.OIDC_JWT_ISSUER) {
-            await scopedDb.repositories().users.backfillMissingOidcIssuer(env.OIDC_JWT_ISSUER);
-        }
-
-        // Strict-sync system contracts before serving traffic.
-        // Any sync error will propagate to the top-level catch which calls process.exit(1).
-        if (HAS_ZKSYNC_SYSTEM_CONTRACTS[env.TARGET_CHAIN_TYPE]) {
-            await syncSystemContracts(scopedDb, logger);
-        } else {
-            logger.info(
-                `Skipping system contracts sync: TARGET_CHAIN_TYPE '${env.TARGET_CHAIN_TYPE}' has no zksync system contracts`
-            );
-        }
-
-        orgQuotaLimitGauge.set(env.MAX_ORGANIZATIONS);
-        orgCountGauge.set(await scopedDb.repositories().organizations.countNonDeleted());
-    });
 
     multiOrgEnabledGauge.set(env.MULTI_ORG_ENABLED ? 1 : 0);
     policyListenerEnabledGauge.set(env.POLICY_PORT !== undefined ? 1 : 0);
@@ -216,11 +216,13 @@ export async function start(features: ServiceFeatures = {}) {
         ...(features.registerFeatures === undefined ? {} : { registerFeatures: features.registerFeatures }),
         ...(features.rpcObserverFor === undefined ? {} : { rpcObserverFor: features.rpcObserverFor(runtime) }),
         ...(features.rpcAuthorizerFor === undefined ? {} : { rpcAuthorizerFor: features.rpcAuthorizerFor(runtime) }),
+        chain,
         featureNames: features.featureNames ?? [],
         permissionCatalog,
         logger: logger.child({}, { level: env.LOG_LEVEL }),
         targetRpcUrl: env.SEQUENCER_RPC_URL,
-        targetChainType: env.TARGET_CHAIN_TYPE,
+        // TODO(PRIV-595): the RPC pipeline is EVM code; another chain runs it as zksync-os, as before chain modules.
+        targetChainType: evmVariant(env.TARGET_CHAIN_TYPE) ?? 'zksync-os',
         corsOrigins: env.CORS_ORIGIN,
         oidcOpts: deps.oidcOpts,
         adminOidcSubs: env.OIDC_ADMIN_SUBS,

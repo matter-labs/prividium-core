@@ -3,6 +3,7 @@ import type { AddressClass, CoreFacts, CoreReferences, MethodSelector, SigningId
 import { and, arrayContains, eq, inArray, isNull, or } from 'drizzle-orm';
 import type { PgColumn } from 'drizzle-orm/pg-core';
 import type { AbiFunction, Address } from 'viem';
+import { isEvmAddress } from '../chains/evm/addresses';
 import type { Repositories } from '../db';
 import {
     contractsTable,
@@ -162,7 +163,7 @@ export class RepositoriesCoreFacts implements CoreFacts {
             roleIds: new Set(roleIds),
             userIds: new Set(users.map((user) => user.id)),
             m2mAppIds: new Set([...ownedApps, ...sharedApps].map((app) => app.id)),
-            contractAddresses: contracts.map((contract) => contract.address),
+            contractAddresses: contracts.map((contract) => contract.address).filter(isEvmAddress),
             roleMemberCounts: await this.countRoleMembers(roleIds)
         };
     }

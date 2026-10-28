@@ -6,6 +6,7 @@ import {
     newContractPermissionSchema,
     updateContractPermissionSchema
 } from '../repositories/contract-function-permissions-repository';
+import { chainAddressSchema } from '../utils/schemas/address';
 import { ErrorResponseSchema, PaginationQuerySchema } from '../utils/schemas/fastify-common';
 import { hexSchema } from '../utils/schemas/hex-schema';
 import { paginatedResult } from '../utils/schemas/pagination';
@@ -14,7 +15,7 @@ const withIdSchema = z.object({ id: z.coerce.number() });
 
 const paginationSchema = z.object({
     ...PaginationQuerySchema({ limit: { max: 1000 } }).shape,
-    contractAddress: hexSchema.optional(),
+    contractAddress: chainAddressSchema.optional(),
     methodSelector: hexSchema.optional(),
     roleId: z.string().optional()
 });
@@ -44,6 +45,7 @@ export function contractPermissionsRoutes(server: FastifyServer, { multiOrgEnabl
                 querystring: paginationSchema,
                 response: {
                     200: paginatedResult(fullPermissionSchema),
+                    400: ErrorResponseSchema,
                     401: ErrorResponseSchema,
                     403: ErrorResponseSchema
                 }

@@ -1,3 +1,4 @@
+import { areChainAddressesEqual, type ChainAddress } from '@repo/api-kit';
 import {
     type Address,
     concat,
@@ -12,15 +13,16 @@ import {
     toFunctionSelector,
     zeroAddress
 } from 'viem';
+import { isEvmAddress } from '../chains/evm/addresses';
+import { ZKSYNC_SYSTEM_CONTRACTS } from '../chains/evm/system-contracts';
 import { AddressSet } from '../rpc/address-set';
 import type { GetLogsFilter } from '../rpc/methods/handlers';
 import type { LogData } from '../rpc/permissions/authorizer';
 import type { AuthorizationResult } from '../services/authorization-service';
-import { SYSTEM_CONTRACTS_REGISTRY } from '../services/system-contracts/registry';
 import { canInheritSystemContractUmbrella } from '../services/system-contracts/umbrella-policy';
 import { areHexEqual } from '../utils/hex';
 
-type Wallets = readonly { walletAddress: Address }[];
+type Wallets = readonly { walletAddress: ChainAddress }[];
 
 const L2_BASE_TOKEN: Address = '0x000000000000000000000000000000000000800A';
 const L2_ASSET_ROUTER: Address = '0x0000000000000000000000000000000000010003';
@@ -36,7 +38,9 @@ const BASE_TOKEN_BURN_DATA = parseAbiParameters('uint256 amount, address receive
 // The AssetRouter's ERC-7930 interoperable address.
 const ASSET_ROUTER_TARGET = concat(['0x000100000014', L2_ASSET_ROUTER]);
 
-const SYSTEM_CONTRACTS = new AddressSet(SYSTEM_CONTRACTS_REGISTRY.map((contract) => contract.contractAddress));
+const SYSTEM_CONTRACTS = new AddressSet(
+    ZKSYNC_SYSTEM_CONTRACTS.map((contract) => contract.address).filter(isEvmAddress)
+);
 
 const GRANTED_EVENT = {
     contract: L2_BASE_TOKEN,
@@ -167,7 +171,7 @@ export function couldMatchWatchdogLogs(filter: GetLogsFilter): boolean {
 }
 
 function isOwnWallet(wallets: Wallets, address: Hex): boolean {
-    return wallets.some((wallet) => areHexEqual(wallet.walletAddress, address));
+    return wallets.some((wallet) => areChainAddressesEqual(wallet.walletAddress, address));
 }
 
 function withdrawRecipient(calldata: Hex): Address | undefined {

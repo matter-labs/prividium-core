@@ -1,5 +1,5 @@
+import type { ChainAddress } from '@repo/api-kit';
 import { and, count, eq, inArray, isNull, like } from 'drizzle-orm';
-import type { Address } from 'viem';
 import type { TxType } from '../db';
 import { isNoValuesToSetError } from '../db/errors';
 import {
@@ -395,7 +395,7 @@ export class OrganizationsRepository extends BaseRepository {
         });
     }
 
-    async walletBelongsToOrgList(wallet: Address, orgIds: string[]): Promise<boolean> {
+    async walletBelongsToOrgList(wallet: ChainAddress, orgIds: string[]): Promise<boolean> {
         if (orgIds.length === 0) {
             return false;
         }
@@ -420,7 +420,7 @@ export class OrganizationsRepository extends BaseRepository {
     }
 
     /** Bounded by `candidates` so a block filter's cost tracks the block, not the organization's size. */
-    async userWalletsForOrgListAmong(orgIds: string[], candidates: Address[]): Promise<Address[]> {
+    async userWalletsForOrgListAmong(orgIds: string[], candidates: ChainAddress[]): Promise<ChainAddress[]> {
         if (orgIds.length === 0) {
             return [];
         }

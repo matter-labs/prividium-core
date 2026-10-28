@@ -3,8 +3,9 @@ import pino from 'pino';
 import { type Abi, decodeFunctionData, encodeFunctionData, parseAbi, toFunctionSelector } from 'viem';
 import { describe, expect } from 'vitest';
 import { it } from '../../../test/unit-test-context';
+import { ZKSYNC_SYSTEM_CONTRACTS } from '../../chains/evm/system-contracts';
 import { contractsTable } from '../../db/schema';
-import { isSystemContractAddress, SYSTEM_CONTRACTS_REGISTRY } from './registry';
+import { isSystemContractAddress } from './registry';
 import { syncSystemContracts } from './sync';
 
 const logger = pino({ level: 'silent' });
@@ -14,13 +15,13 @@ const SEND_BUNDLE = 'function sendBundle(bytes,(bytes,bytes,bytes[])[],bytes[]) 
 
 describe('InteropCenter system contract', () => {
     it('is registered at the v33 predeploy address', () => {
-        const entry = SYSTEM_CONTRACTS_REGISTRY.find((c) => c.name === 'InteropCenter');
-        expect(entry?.contractAddress).toBe(INTEROP_CENTER);
+        const entry = ZKSYNC_SYSTEM_CONTRACTS.find((c) => c.name === 'InteropCenter');
+        expect(entry?.address).toBe(INTEROP_CENTER);
         expect(isSystemContractAddress(INTEROP_CENTER)).toBe(true);
     });
 
     it('carries an ABI that decodes the SDK withdrawal calldata', async ({ db }) => {
-        await syncSystemContracts(db, logger);
+        await syncSystemContracts(db, logger, ZKSYNC_SYSTEM_CONTRACTS);
         const row = await db.query.contractsTable.findFirst({
             where: eq(contractsTable.contractAddress, INTEROP_CENTER)
         });
@@ -44,7 +45,7 @@ describe('InteropCenter system contract', () => {
     });
 
     it('keeps the v31 withdrawal entrypoints for chains that have not upgraded', () => {
-        const byName = new Map(SYSTEM_CONTRACTS_REGISTRY.map((c) => [c.name, JSON.parse(c.abi) as Abi]));
+        const byName = new Map(ZKSYNC_SYSTEM_CONTRACTS.map((c) => [c.name, JSON.parse(c.abi) as Abi]));
         const functionNames = (abi: Abi) => abi.filter((i) => i.type === 'function').map((i) => i.name);
         expect(functionNames(byName.get('L2BaseToken')!)).toContain('withdraw');
         expect(functionNames(byName.get('L2AssetRouter')!)).toContain('withdraw');

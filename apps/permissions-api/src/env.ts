@@ -7,7 +7,7 @@ import { z } from 'zod/v4';
 import { addressSchema } from './utils/schemas/address';
 import { hexSchema } from './utils/schemas/hex-schema';
 import { readSecretFiles } from './utils/secret-files';
-import { SETTLES_TO_L1, TARGET_CHAIN_TYPES, type TargetChainType } from './utils/target-chain';
+import { evmVariant, SEQUENCER_CALLS_BACK, SERVES_DISCLOSURE_METHODS, SETTLES_TO_L1 } from './utils/target-chain';
 
 let ROOT_PATH: string;
 
@@ -92,7 +92,8 @@ export const loadEnv = () =>
             SENTRY_ENVIRONMENT: z.string().optional(),
             CORS_ORIGIN: commaSeparatedString,
             SEQUENCER_RPC_URL: z.string(),
-            TARGET_CHAIN_TYPE: z.enum(TARGET_CHAIN_TYPES).default('zksync-os'),
+            // Checked against the chain modules at boot: the core knows only the EVM variants here.
+            TARGET_CHAIN_TYPE: z.string().default('zksync-os'),
             AUTH_METHODS: commaSeparatedString.pipe(z.enum(['oidc', 'crypto_native']).array()),
             USER_SESSION_DURATION_SECONDS: z.coerce.number().default(3600), // 1 hour
             USER_IDLE_TIMEOUT_SECONDS: z.coerce.number().int().positive().optional(), // unset = idle timeout feature OFF
@@ -398,7 +399,8 @@ export const loadEnv = () =>
                     return z.NEVER;
                 }
 
-                if (SETTLES_TO_L1[env.TARGET_CHAIN_TYPE]) {
+                const variant = evmVariant(env.TARGET_CHAIN_TYPE);
+                if (variant !== undefined && SETTLES_TO_L1[variant]) {
                     const missingL1Vars: (keyof typeof env)[] = [];
                     if (env.L1_CHAIN_ID === undefined) missingL1Vars.push('L1_CHAIN_ID');
                     if (env.L1_CHAIN_NAME === undefined) missingL1Vars.push('L1_CHAIN_NAME');
@@ -497,28 +499,29 @@ export function shouldRequirePolicyAuthToken(env: { POLICY_PORT?: number }): boo
 }
 
 export function findTargetChainTypeConflict(env: {
-    TARGET_CHAIN_TYPE: TargetChainType;
+    TARGET_CHAIN_TYPE: string;
     POLICY_PORT?: number;
     MULTI_ORG_ENABLED: boolean;
     DISCLOSURE_METHODS_ENABLED: boolean;
 }): { variable: string; message: string } | undefined {
-    if (env.TARGET_CHAIN_TYPE === 'zksync-os') {
+    // Another chain's refusals come from its capabilities at boot, by name.
+    const chain = evmVariant(env.TARGET_CHAIN_TYPE);
+    if (chain === undefined) {
         return undefined;
     }
-    const chain = env.TARGET_CHAIN_TYPE;
-    if (env.POLICY_PORT !== undefined) {
+    if (!SEQUENCER_CALLS_BACK[chain] && env.POLICY_PORT !== undefined) {
         return {
             variable: 'POLICY_PORT',
             message: `POLICY_PORT must be unset when TARGET_CHAIN_TYPE is '${chain}': the /admit + /judge TxValidator protocol is only spoken by zksync-os sequencers`
         };
     }
-    if (env.MULTI_ORG_ENABLED) {
+    if (!SEQUENCER_CALLS_BACK[chain] && env.MULTI_ORG_ENABLED) {
         return {
             variable: 'MULTI_ORG_ENABLED',
             message: `MULTI_ORG_ENABLED is not supported when TARGET_CHAIN_TYPE is '${chain}': organization isolation on inner call frames is enforced by the chain's /judge pass, which only zksync-os provides`
         };
     }
-    if (env.DISCLOSURE_METHODS_ENABLED) {
+    if (!SERVES_DISCLOSURE_METHODS[chain] && env.DISCLOSURE_METHODS_ENABLED) {
         return {
             variable: 'DISCLOSURE_METHODS_ENABLED',
             message: `DISCLOSURE_METHODS_ENABLED is not supported when TARGET_CHAIN_TYPE is '${chain}': disclosure methods depend on zks_getProof, zks_L1BatchNumber and custom JS tracers, which '${chain}' does not serve`

@@ -5,6 +5,7 @@ import {
     sequencerAccessControl
 } from '@repo/access-control';
 import type { Address, Hex } from 'viem';
+import { isEvmAddress } from '../../chains/evm/addresses';
 import type { Repositories } from '../../db';
 import type { MethodAccessType } from '../../db/schema';
 import type { AuthData } from '../../middleware/auth-data';
@@ -165,7 +166,7 @@ export class RpcAuthorizer implements Authorizer {
                     `Invalid authentication type. Expected user, tenant or m2m_app, found ${this.auth.type}`
                 )
             );
-            this._associatedAddresses = new AddressSet(addresses);
+            this._associatedAddresses = new AddressSet(addresses.filter(isEvmAddress));
         }
 
         return this._associatedAddresses;
@@ -223,7 +224,7 @@ export class RpcAuthorizer implements Authorizer {
             )
         );
 
-        return new AddressSet(addresses);
+        return new AddressSet(addresses.filter(isEvmAddress));
     }
 
     async checkAddressOwnership(address: Address): Promise<boolean> {
@@ -476,7 +477,7 @@ export class RpcAuthorizer implements Authorizer {
             return false;
         }
 
-        return addresses.has(deployment.deployerAddress);
+        return isEvmAddress(deployment.deployerAddress) && addresses.has(deployment.deployerAddress);
     }
 
     /**
@@ -534,7 +535,12 @@ export class RpcAuthorizer implements Authorizer {
     ): Promise<Address[]> {
         const orgIds = allOrgsWithFullVisibility(roleHolder, extraGrantPermissions);
         const queries = orgIds.map((orgId) => this.repos.contracts.allContractAddressesForOrg(orgId));
-        return Promise.all(queries).then((queries) => queries.flat().filter((a) => !isReservedContractAddress(a)));
+        return Promise.all(queries).then((queries) =>
+            queries
+                .flat()
+                .filter(isEvmAddress)
+                .filter((a) => !isReservedContractAddress(a))
+        );
     }
 
     async couldQueryMatchPermissions(filter: GetLogsFilter): Promise<boolean> {
@@ -655,7 +661,7 @@ export class RpcAuthorizer implements Authorizer {
             (key) => !this._contractOrgs.has(key)
         );
         if (missing.length > 0) {
-            const fetched = await this.repos.contracts.organizationIdsByAddresses(missing as Address[]);
+            const fetched = await this.repos.contracts.organizationIdsByAddresses(missing);
             for (const key of missing) {
                 this._contractOrgs.set(key, fetched.get(key) ?? null);
             }

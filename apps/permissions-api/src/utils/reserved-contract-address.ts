@@ -1,7 +1,7 @@
-import type { Address } from 'viem';
+import type { ChainAddress } from '@repo/api-kit';
 
 // Covers kernel contracts and the adjacent protocol predeploy range, including interop built-ins.
-export function isReservedContractAddress(address: Address): boolean {
+export function isReservedContractAddress(address: ChainAddress): boolean {
     if (!/^0x[0-9a-f]{40}$/i.test(address)) {
         return false;
     }

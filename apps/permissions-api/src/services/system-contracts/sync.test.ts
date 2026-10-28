@@ -2,25 +2,30 @@ import { and, eq, sql } from 'drizzle-orm';
 import pino from 'pino';
 import { beforeEach, describe, expect } from 'vitest';
 import { type Fixture, it } from '../../../test/unit-test-context';
+import { ZKSYNC_SYSTEM_CONTRACTS } from '../../chains/evm/system-contracts';
 import type { DB } from '../../db';
 import { Repositories } from '../../db';
-
-import { contractFunctionPermissionsTable, contractsTable, dbMutationAuditLogsTable } from '../../db/schema';
-import { SYSTEM_CONTRACTS_REGISTRY } from './registry';
+import {
+    contractFunctionPermissionRolesTable,
+    contractFunctionPermissionsTable,
+    contractsTable,
+    dbMutationAuditLogsTable,
+    rolesTable
+} from '../../db/schema';
 import { syncSystemContracts } from './sync';
 
 const logger = pino({ level: 'silent' });
 
 describe('syncSystemContracts', () => {
-    const registryEntry = SYSTEM_CONTRACTS_REGISTRY[0]!;
-    const registryAddress = registryEntry.contractAddress;
+    const registryEntry = ZKSYNC_SYSTEM_CONTRACTS[0]!;
+    const registryAddress = registryEntry.address;
 
     beforeEach<Fixture>(async ({ db }) => {
         new Repositories(db);
     });
 
     it('inserts missing system contracts', async ({ db }) => {
-        await syncSystemContracts(db, logger);
+        await syncSystemContracts(db, logger, ZKSYNC_SYSTEM_CONTRACTS);
 
         const row = await db.query.contractsTable.findFirst({
             where: eq(contractsTable.contractAddress, registryAddress)
@@ -42,9 +47,9 @@ describe('syncSystemContracts', () => {
     });
 
     it('registers shared contracts without granting method access or data disclosure', async ({ db }) => {
-        await syncSystemContracts(db, logger);
+        await syncSystemContracts(db, logger, ZKSYNC_SYSTEM_CONTRACTS);
         const contracts = await db.query.contractsTable.findMany();
-        expect(contracts).toHaveLength(SYSTEM_CONTRACTS_REGISTRY.length);
+        expect(contracts).toHaveLength(ZKSYNC_SYSTEM_CONTRACTS.length);
         for (const contract of contracts) {
             expect(contract).toMatchObject({
                 isSystemContract: true,
@@ -71,7 +76,7 @@ describe('syncSystemContracts', () => {
             disclosureStartBlock: '0x0'
         });
 
-        await syncSystemContracts(db, logger);
+        await syncSystemContracts(db, logger, ZKSYNC_SYSTEM_CONTRACTS);
 
         const row = await db.query.contractsTable.findFirst({
             where: eq(contractsTable.contractAddress, registryAddress)
@@ -131,7 +136,7 @@ describe('syncSystemContracts', () => {
             ruleType: 'public'
         });
 
-        await syncSystemContracts(db, logger);
+        await syncSystemContracts(db, logger, ZKSYNC_SYSTEM_CONTRACTS);
 
         // Permission should still exist
         const permissions = await db.query.contractFunctionPermissionsTable.findMany({
@@ -151,7 +156,7 @@ describe('syncSystemContracts', () => {
         // Even if someone set a templateId, sync should reset it to null
         // (We can't set a foreign key here without a real template, but we can verify
         // the sync output always has templateId=null)
-        await syncSystemContracts(db, logger);
+        await syncSystemContracts(db, logger, ZKSYNC_SYSTEM_CONTRACTS);
 
         const row = await db.query.contractsTable.findFirst({
             where: eq(contractsTable.contractAddress, registryAddress)
@@ -172,7 +177,7 @@ describe('syncSystemContracts', () => {
             disclosureStartBlock: '0x0'
         });
 
-        await syncSystemContracts(db, logger);
+        await syncSystemContracts(db, logger, ZKSYNC_SYSTEM_CONTRACTS);
 
         // Stale system contract should be deleted
         const staleRow = await db.query.contractsTable.findFirst({
@@ -214,7 +219,7 @@ describe('syncSystemContracts', () => {
             disclosureStartBlock: '0x0'
         });
 
-        await syncSystemContracts(db, logger);
+        await syncSystemContracts(db, logger, ZKSYNC_SYSTEM_CONTRACTS);
 
         // Regular contract should still exist
         const regularRow = await db.query.contractsTable.findFirst({
@@ -224,14 +229,78 @@ describe('syncSystemContracts', () => {
         expect(regularRow!.isSystemContract).toBe(false);
     });
 
+    it('leaves the system contracts and their permissions alone when the chain declares none', async ({ db }) => {
+        const regularAddress = '0x0000000000000000000000000000000000088888';
+        await db.insert(contractsTable).values([
+            {
+                contractAddress: registryAddress,
+                abi: registryEntry.abi,
+                name: registryEntry.name,
+                description: registryEntry.description,
+                isSystemContract: true,
+                disclosureStartBlock: '0x0'
+            },
+            {
+                contractAddress: regularAddress,
+                abi: '[]',
+                name: 'RegularContract',
+                description: null,
+                isSystemContract: false,
+                disclosureStartBlock: '0x0'
+            }
+        ]);
+        const [role] = await db
+            .insert(rolesTable)
+            .values({ roleName: 'reader', systemPermissions: [], isSystemRole: false })
+            .returning();
+        const [permission] = await db
+            .insert(contractFunctionPermissionsTable)
+            .values({
+                contractAddress: registryAddress,
+                methodSelector: '0x12345678',
+                accessType: 'read',
+                functionSignature: 'function test() view returns (uint256)',
+                ruleType: 'checkRole'
+            })
+            .returning();
+        await db
+            .insert(contractFunctionPermissionRolesTable)
+            .values({ permissionId: permission!.id, roleId: role!.id });
+
+        await syncSystemContracts(db, logger, []);
+
+        expect(await db.query.contractsTable.findMany()).toEqual([
+            expect.objectContaining({ contractAddress: registryAddress, isSystemContract: true }),
+            expect.objectContaining({ contractAddress: regularAddress, isSystemContract: false })
+        ]);
+        expect(await db.query.contractFunctionPermissionsTable.findMany()).toHaveLength(1);
+        expect(await db.query.contractFunctionPermissionRolesTable.findMany()).toHaveLength(1);
+    });
+
+    it('matches its rows however the module spells an address', async ({ db }) => {
+        const lowercased = ZKSYNC_SYSTEM_CONTRACTS.map((contract) => ({
+            ...contract,
+            address: contract.address.toLowerCase()
+        }));
+
+        await syncSystemContracts(db, logger, lowercased);
+        await syncSystemContracts(db, logger, lowercased);
+
+        const rows = await db.query.contractsTable.findMany({ where: eq(contractsTable.isSystemContract, true) });
+        expect(rows.map((row) => row.contractAddress).sort()).toEqual(
+            ZKSYNC_SYSTEM_CONTRACTS.map((contract) => contract.address).sort()
+        );
+        expect(await findSyncMutations(db, registryAddress)).toHaveLength(1);
+    });
+
     it('is idempotent', async ({ db }) => {
-        await syncSystemContracts(db, logger);
-        await syncSystemContracts(db, logger);
+        await syncSystemContracts(db, logger, ZKSYNC_SYSTEM_CONTRACTS);
+        await syncSystemContracts(db, logger, ZKSYNC_SYSTEM_CONTRACTS);
 
         const rows = await db.query.contractsTable.findMany({
             where: eq(contractsTable.isSystemContract, true)
         });
-        expect(rows).toHaveLength(SYSTEM_CONTRACTS_REGISTRY.length);
+        expect(rows).toHaveLength(ZKSYNC_SYSTEM_CONTRACTS.length);
 
         const logs = await findSyncMutations(db, registryAddress);
         expect(logs).toHaveLength(1);

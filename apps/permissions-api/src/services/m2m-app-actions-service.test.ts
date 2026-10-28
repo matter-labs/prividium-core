@@ -2,6 +2,7 @@ import { pad } from 'viem';
 import { beforeEach, describe, expect } from 'vitest';
 import { TestExternalRpc } from '../../test/rpc/test-external-rpc';
 import { type Fixture, it } from '../../test/unit-test-context';
+import { evmChain } from '../chains/evm';
 import { Repositories } from '../db';
 import { OrganizationsRepository } from '../repositories/organizations-repository';
 import { RolesRepository } from '../repositories/roles-repository';
@@ -30,7 +31,7 @@ describe('M2mAppActionsService', () => {
         externalRpc = new TestExternalRpc();
         service = new M2mAppActionsService({
             repos: new Repositories(db),
-            rpc: externalRpc,
+            chain: evmChain(externalRpc),
             walletAssociationGuard: strictWalletGuard,
             maxWalletsPerUser: MAX_WALLETS_PER_USER,
             multiOrgEnabled: false
@@ -144,7 +145,7 @@ describe('M2mAppActionsService', () => {
             const org = await orgsRepo.create({ name: 'Org1', defaultRoles: [] });
             const allowingService = new M2mAppActionsService({
                 repos: new Repositories(db),
-                rpc: externalRpc,
+                chain: evmChain(externalRpc),
                 walletAssociationGuard: createWalletAssociationGuard([ANVIL_ACCOUNT_0]),
                 maxWalletsPerUser: MAX_WALLETS_PER_USER,
                 multiOrgEnabled: false

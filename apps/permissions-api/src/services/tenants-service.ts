@@ -1,9 +1,7 @@
-import type { Address } from 'viem';
+import { type ChainAddress, type ChainNode, chainAddressListIncludes } from '@repo/api-kit';
 import type { Repositories } from '../db';
 import type { InsertTenantUser, TenantUser } from '../repositories/tenants-repository';
-import type { ExternalRpc } from '../rpc/target-rpc';
 import { InvalidInputError, WalletLimitExceededError } from '../utils/error-types';
-import { hexListIncludes } from '../utils/hex';
 import type { WalletAssociationGuard } from './wallet-association-guard';
 
 type WalletAddresses = TenantUser['walletAddresses'];
@@ -11,7 +9,7 @@ type WalletAddresses = TenantUser['walletAddresses'];
 export class TenantsService {
     constructor(
         private readonly repos: Repositories,
-        private readonly rpc: ExternalRpc,
+        private readonly chain: Pick<ChainNode, 'accountIsUnused'>,
         private readonly walletAssociationGuard: WalletAssociationGuard,
         private readonly maxWalletsPerUser: number
     ) {}
@@ -32,7 +30,7 @@ export class TenantsService {
 
         const existingUser = await this.repos.users.findById(userId);
         const existingWallets = existingUser?.wallets.map((w) => w.walletAddress) ?? [];
-        const newWallets = rawWallets.filter((w) => !hexListIncludes(existingWallets, w));
+        const newWallets = rawWallets.filter((w) => !chainAddressListIncludes(existingWallets, w));
         if (existingWallets.length + newWallets.length > this.maxWalletsPerUser) {
             throw new WalletLimitExceededError(this.maxWalletsPerUser);
         }
@@ -41,19 +39,16 @@ export class TenantsService {
         return this.repos.tenants.addWalletsToUser(tenantId, userId, walletsToAdd);
     }
 
-    // Ensures each wallet is unused (not already registered), has never sent a transaction (nonce=0),
-    // and is not a smart contract — only fresh EOAs can be added.
-    private async validateNewWalletAddresses(addresses: Address[]): Promise<void> {
+    private async validateNewWalletAddresses(addresses: ChainAddress[]): Promise<void> {
         this.walletAssociationGuard(addresses);
         await Promise.all(
             addresses.map(async (address) => {
-                const [walletAlreadyTaken, nonceIsNotZero, isContract] = await Promise.all([
+                const [walletAlreadyTaken, accountIsUnused] = await Promise.all([
                     this.repos.users.walletExistInSystem(address),
-                    this.rpc.nonceFor(address).then((nonce) => nonce !== 0n),
-                    this.rpc.isContract(address)
+                    this.chain.accountIsUnused(address)
                 ]);
 
-                if (walletAlreadyTaken || nonceIsNotZero || isContract) {
+                if (walletAlreadyTaken || !accountIsUnused) {
                     throw new InvalidInputError(`Address ${address} cannot be added`);
                 }
             })

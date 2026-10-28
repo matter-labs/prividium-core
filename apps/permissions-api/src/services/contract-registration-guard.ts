@@ -1,24 +1,28 @@
 import { hasZoneSystemPermission } from '@repo/access-control';
-import type { Address } from 'viem';
+import { type ChainAddress, type ChainNode, chainAddressListIncludes } from '@repo/api-kit';
 import type { Repositories } from '../db';
 import type { UserWithRoles } from '../repositories/users-repository';
-import type { ExternalRpc } from '../rpc/target-rpc';
 import { ChainUnavailableError, ForbiddenError, InvalidInputError } from '../utils/error-types';
-import { hexListIncludes } from '../utils/hex';
 import { isReservedContractAddress } from '../utils/reserved-contract-address';
 
 export const CODE_CHECK_TIMEOUT_MS = 5_000;
 
+const OWNERSHIP_UNVERIFIED =
+    "Cannot verify this organization's ownership; ask a zone operator to review the registration.";
+
 /**
- * Registration grants RPC access, so the address must really hold code. It also blocks
+ * Registration grants RPC access, so the address must really hold a contract. It also blocks
  * claiming an address before its owner deploys there.
  */
-export async function assertAddressHasCode(chainRpc: ExternalRpc, address: Address): Promise<void> {
+export async function assertContractDeployed(
+    chain: Pick<ChainNode, 'contractExists'>,
+    address: ChainAddress
+): Promise<void> {
     let deployed: boolean;
     try {
-        // TargetRpc.send has no abort plumbing, so bound the wait here: a stalled chain
+        // The chain clients have no abort plumbing, so bound the wait here: a stalled chain
         // gets the caller the 503 instead of hanging the admin request.
-        deployed = await raceTimeout(chainRpc.isContract(address), CODE_CHECK_TIMEOUT_MS);
+        deployed = await raceTimeout(chain.contractExists(address), CODE_CHECK_TIMEOUT_MS);
     } catch (err) {
         throw new ChainUnavailableError('Cannot reach the chain to verify the contract address', { cause: err });
     }
@@ -30,7 +34,7 @@ export async function assertAddressHasCode(chainRpc: ExternalRpc, address: Addre
 async function raceTimeout<T>(work: Promise<T>, timeoutMs: number): Promise<T> {
     let timer: NodeJS.Timeout | undefined;
     const timeout = new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error(`eth_getCode timed out after ${timeoutMs}ms`)), timeoutMs);
+        timer = setTimeout(() => reject(new Error(`Contract check timed out after ${timeoutMs}ms`)), timeoutMs);
     });
     try {
         return await Promise.race([work, timeout]);
@@ -40,13 +44,13 @@ async function raceTimeout<T>(work: Promise<T>, timeoutMs: number): Promise<T> {
 }
 
 export type OrgRegistrationCheck = {
-    chainRpc: ExternalRpc;
+    chain: Pick<ChainNode, 'contractExists'>;
     repos: Repositories;
     organizationId: string;
     caller: UserWithRoles;
 };
 
-export function assertOrgContractAddress(address: Address): void {
+export function assertOrgContractAddress(address: ChainAddress): void {
     if (isReservedContractAddress(address)) {
         throw new InvalidInputError('Cannot register a reserved contract address to an organization');
     }
@@ -57,11 +61,11 @@ export function assertOrgContractAddress(address: Address): void {
  * match: they can already assign any contract to any organization.
  */
 export async function assertOrgContractRegisterable(
-    address: Address,
-    { chainRpc, repos, organizationId, caller }: OrgRegistrationCheck
+    address: ChainAddress,
+    { chain, repos, organizationId, caller }: OrgRegistrationCheck
 ): Promise<void> {
     assertOrgContractAddress(address);
-    await assertAddressHasCode(chainRpc, address);
+    await assertContractDeployed(chain, address);
     if (hasZoneSystemPermission(caller, 'admin_write')) {
         return;
     }
@@ -75,8 +79,8 @@ export async function assertOrgContractRegisterable(
 // would let another org claim the address in that window.
 async function assertDeployerAllowed(
     repos: Repositories,
-    address: Address,
-    { organizationId, callerWallets }: { organizationId: string; callerWallets: Address[] }
+    address: ChainAddress,
+    { organizationId, callerWallets }: { organizationId: string; callerWallets: ChainAddress[] }
 ): Promise<void> {
     const claims = await repos.contractDeployments
         .findByAddress(address)
@@ -84,11 +88,9 @@ async function assertDeployerAllowed(
             succeeded !== undefined ? [succeeded] : repos.contractDeployments.findAllPendingByAddress(address)
         );
     if (claims.length === 0) {
-        throw new ForbiddenError(
-            "Cannot verify this organization's ownership; ask a zone operator to review the registration."
-        );
+        throw new ForbiddenError(OWNERSHIP_UNVERIFIED);
     }
-    if (claims.some((claim) => hexListIncludes(callerWallets, claim.deployerAddress))) {
+    if (claims.some((claim) => chainAddressListIncludes(callerWallets, claim.deployerAddress))) {
         return;
     }
 
@@ -99,7 +101,5 @@ async function assertDeployerAllowed(
         }
     }
 
-    throw new ForbiddenError(
-        "Cannot verify this organization's ownership; ask a zone operator to review the registration."
-    );
+    throw new ForbiddenError(OWNERSHIP_UNVERIFIED);
 }

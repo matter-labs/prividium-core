@@ -4,7 +4,7 @@ import { type Fixture, it } from '../../test/unit-test-context';
 import { Repositories } from '../db';
 import { type TopicConditionType, topicConditionEnum } from '../db/schema';
 import { ContractEventsPermissionsRepository } from '../repositories/contract-events-permissions-repository';
-import { type Contract, ContractsRepository } from '../repositories/contracts-repository';
+import { ContractsRepository } from '../repositories/contracts-repository';
 import { OrganizationsRepository } from '../repositories/organizations-repository';
 import { type Role, RolesRepository } from '../repositories/roles-repository';
 import { type User, UsersRepository } from '../repositories/users-repository';
@@ -19,7 +19,6 @@ describe('EventPermissionVerifier', () => {
     let orgsRepo: OrganizationsRepository;
     let permissionVerifier: EventPermissionVerifier;
     let verifierWithoutMultiOrg: EventPermissionVerifier;
-    let aContract: Contract;
     let aRole: Role;
 
     const transferEvent = parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)');
@@ -38,7 +37,7 @@ describe('EventPermissionVerifier', () => {
         permissionVerifier = new EventPermissionVerifier(new Repositories(db), true);
         verifierWithoutMultiOrg = new EventPermissionVerifier(new Repositories(db), false);
 
-        aContract = await contractsRepository.create({
+        await contractsRepository.create({
             contractAddress: testContractAddress,
             abi: validAbi,
             name: 'Test Contract',
@@ -71,7 +70,7 @@ describe('EventPermissionVerifier', () => {
                     wallets: user.wallets.map((w) => w.walletAddress),
                     organizationId: user.organizationId
                 },
-                [{ ...event, contractAddress: aContract.contractAddress }]
+                [{ ...event, contractAddress: testContractAddress }]
             )
         )[0]!;
     }
@@ -84,7 +83,7 @@ describe('EventPermissionVerifier', () => {
             });
 
             await eventPermissionRepo.create({
-                contractAddress: aContract.contractAddress,
+                contractAddress: testContractAddress,
                 roles: [aRole, roleB],
                 topic0Constant: transferEventSelector,
                 topic1Constant: null,
@@ -97,7 +96,7 @@ describe('EventPermissionVerifier', () => {
             const rules = await permissionVerifier.getRules(user.id);
 
             expect(rules).toHaveLength(1);
-            expect(rules[0]?.contractAddress).toBe(aContract.contractAddress);
+            expect(rules[0]?.contractAddress).toBe(testContractAddress);
             expect(rules[0]?.topic0).toBe(transferEventSelector);
         });
 
@@ -116,7 +115,7 @@ describe('EventPermissionVerifier', () => {
             const topic1Constant = pad('0x01');
 
             await eventPermissionRepo.create({
-                contractAddress: aContract.contractAddress,
+                contractAddress: testContractAddress,
                 roles: [aRole],
                 topic0Constant: topic0,
                 topic1Constant: topic1Constant,
@@ -132,7 +131,7 @@ describe('EventPermissionVerifier', () => {
 
             expect(rules).toHaveLength(1);
             expect(rules[0]).toEqual({
-                contractAddress: aContract.contractAddress,
+                contractAddress: testContractAddress,
                 topic0: topic0,
                 topic1: { type: 'equalTo', value: topic1Constant },
                 topic2: { type: 'userAddress' },
@@ -144,7 +143,7 @@ describe('EventPermissionVerifier', () => {
     describe('permissions with selector (topic0)', () => {
         beforeEach(async () => {
             await eventPermissionRepo.create({
-                contractAddress: aContract.contractAddress,
+                contractAddress: testContractAddress,
                 roles: [aRole],
                 topic0Constant: transferEventSelector,
                 topic1Constant: null,
@@ -157,7 +156,7 @@ describe('EventPermissionVerifier', () => {
             const user = await createUser([aRole]);
 
             const def = {
-                contractAddress: aContract.contractAddress,
+                contractAddress: testContractAddress,
                 topic0: transferEventSelector
             };
 
@@ -176,7 +175,7 @@ describe('EventPermissionVerifier', () => {
             const user = await createUser([otherRole]);
 
             const def = {
-                contractAddress: aContract.contractAddress,
+                contractAddress: testContractAddress,
                 topic0: transferEventSelector
             };
 
@@ -187,7 +186,7 @@ describe('EventPermissionVerifier', () => {
             const user = await createUser([]);
 
             const def = {
-                contractAddress: aContract.contractAddress,
+                contractAddress: testContractAddress,
                 topic0: transferEventSelector
             };
 
@@ -198,7 +197,7 @@ describe('EventPermissionVerifier', () => {
     describe('equalTo rules', () => {
         async function createEventRule(constants: (Hex | null)[]) {
             await eventPermissionRepo.create({
-                contractAddress: aContract.contractAddress,
+                contractAddress: testContractAddress,
                 roles: [aRole],
                 topic0Constant: null,
                 topic1Constant: constants[0] ?? null,
@@ -289,7 +288,7 @@ describe('EventPermissionVerifier', () => {
 
         async function createEventRule(topicsToCheck: [boolean, boolean, boolean]) {
             await eventPermissionRepo.create({
-                contractAddress: aContract.contractAddress,
+                contractAddress: testContractAddress,
                 roles: [aRole],
                 topic0Constant: null,
                 topic1Constant: null,
@@ -358,7 +357,7 @@ describe('EventPermissionVerifier', () => {
         type Def = { constant: null | Hex; type: TopicConditionType | null };
         async function createEventRule(topicsToCheck: Def[]) {
             await eventPermissionRepo.create({
-                contractAddress: aContract.contractAddress,
+                contractAddress: testContractAddress,
                 roles: [aRole],
                 topic0Constant: topicsToCheck[0]?.constant ?? null,
                 topic1Constant: topicsToCheck[1]?.constant ?? null,
@@ -409,7 +408,7 @@ describe('EventPermissionVerifier', () => {
     describe('batch and multi-contract behavior', () => {
         it('returns correct per-event booleans for multiple events', async () => {
             await eventPermissionRepo.create({
-                contractAddress: aContract.contractAddress,
+                contractAddress: testContractAddress,
                 roles: [aRole],
                 topic0Constant: transferEventSelector,
                 topic1Constant: null,
@@ -422,17 +421,18 @@ describe('EventPermissionVerifier', () => {
             const result = await permissionVerifier.checkMany(
                 { roleIds: [aRole.id], wallets: [], organizationId: null },
                 [
-                    { contractAddress: aContract.contractAddress, topic0: transferEventSelector },
-                    { contractAddress: aContract.contractAddress, topic0: otherSelector },
-                    { contractAddress: aContract.contractAddress, topic0: transferEventSelector }
+                    { contractAddress: testContractAddress, topic0: transferEventSelector },
+                    { contractAddress: testContractAddress, topic0: otherSelector },
+                    { contractAddress: testContractAddress, topic0: transferEventSelector }
                 ]
             );
             expect(result).toEqual([true, false, true]);
         });
 
         it('handles events across multiple contracts', async () => {
-            const secondContract = await contractsRepository.create({
-                contractAddress: pad('0x02', { size: 20 }),
+            const secondContractAddress = pad('0x02', { size: 20 });
+            await contractsRepository.create({
+                contractAddress: secondContractAddress,
                 abi: validAbi,
                 name: 'Second Contract',
                 description: 'Another contract',
@@ -443,7 +443,7 @@ describe('EventPermissionVerifier', () => {
             });
 
             await eventPermissionRepo.create({
-                contractAddress: aContract.contractAddress,
+                contractAddress: testContractAddress,
                 roles: [aRole],
                 topic0Constant: transferEventSelector,
                 topic1Constant: null,
@@ -454,8 +454,8 @@ describe('EventPermissionVerifier', () => {
             const result = await permissionVerifier.checkMany(
                 { roleIds: [aRole.id], wallets: [], organizationId: null },
                 [
-                    { contractAddress: aContract.contractAddress, topic0: transferEventSelector },
-                    { contractAddress: secondContract.contractAddress, topic0: transferEventSelector }
+                    { contractAddress: testContractAddress, topic0: transferEventSelector },
+                    { contractAddress: secondContractAddress, topic0: transferEventSelector }
                 ]
             );
             expect(result).toEqual([true, false]);
@@ -473,14 +473,14 @@ describe('EventPermissionVerifier', () => {
     describe('couldQueryMatch', () => {
         it('returns false for non-existent user', async () => {
             const result = await permissionVerifier.couldQueryMatch('non-existent-id', {
-                address: aContract.contractAddress
+                address: testContractAddress
             });
             expect(result).toBe(false);
         });
 
         it('returns false for user with no roles', async () => {
             await eventPermissionRepo.create({
-                contractAddress: aContract.contractAddress,
+                contractAddress: testContractAddress,
                 roles: [aRole],
                 topic0Constant: transferEventSelector,
                 topic1Constant: null,
@@ -490,7 +490,7 @@ describe('EventPermissionVerifier', () => {
 
             const user = await createUser([]);
             const result = await permissionVerifier.couldQueryMatch(user.id, {
-                address: aContract.contractAddress,
+                address: testContractAddress,
                 topics: [transferEventSelector]
             });
             expect(result).toBe(false);
@@ -498,7 +498,7 @@ describe('EventPermissionVerifier', () => {
 
         it('returns true when user has matching permission', async () => {
             await eventPermissionRepo.create({
-                contractAddress: aContract.contractAddress,
+                contractAddress: testContractAddress,
                 roles: [aRole],
                 topic0Constant: transferEventSelector,
                 topic1Constant: null,
@@ -508,7 +508,7 @@ describe('EventPermissionVerifier', () => {
 
             const user = await createUser([aRole]);
             const result = await permissionVerifier.couldQueryMatch(user.id, {
-                address: aContract.contractAddress,
+                address: testContractAddress,
                 topics: [transferEventSelector]
             });
             expect(result).toBe(true);
@@ -699,7 +699,7 @@ describe('EventPermissionVerifier', () => {
 
             it('mixes org visibility and permission checks per event', async () => {
                 await eventPermissionRepo.create({
-                    contractAddress: aContract.contractAddress,
+                    contractAddress: testContractAddress,
                     roles: [aRole],
                     topic0Constant: transferEventSelector,
                     topic1Constant: null,
@@ -718,7 +718,7 @@ describe('EventPermissionVerifier', () => {
                         // visible by org membership (no permission needed)
                         { contractAddress: orgContract, topic0: pad('0xdead') },
                         // visible by event permission (topic0 matches)
-                        { contractAddress: aContract.contractAddress, topic0: transferEventSelector },
+                        { contractAddress: testContractAddress, topic0: transferEventSelector },
                         // neither org nor permission match
                         { contractAddress: nonOrgContract, topic0: pad('0xdead') }
                     ],
@@ -763,14 +763,14 @@ describe('EventPermissionVerifier', () => {
     describe('couldQueryMatchForTenant', () => {
         it('returns false when roleNames is empty', async () => {
             const result = await permissionVerifier.couldQueryMatchForTenant([], [], {
-                address: aContract.contractAddress
+                address: testContractAddress
             });
             expect(result).toBe(false);
         });
 
         it('returns true with matching permission and address filter', async () => {
             await eventPermissionRepo.create({
-                contractAddress: aContract.contractAddress,
+                contractAddress: testContractAddress,
                 roles: [aRole],
                 topic0Constant: transferEventSelector,
                 topic1Constant: null,
@@ -779,7 +779,7 @@ describe('EventPermissionVerifier', () => {
             });
 
             const result = await permissionVerifier.couldQueryMatchForTenant([], [aRole.id], {
-                address: aContract.contractAddress,
+                address: testContractAddress,
                 topics: [transferEventSelector]
             });
             expect(result).toBe(true);
@@ -787,7 +787,7 @@ describe('EventPermissionVerifier', () => {
 
         it('returns true without address filter', async () => {
             await eventPermissionRepo.create({
-                contractAddress: aContract.contractAddress,
+                contractAddress: testContractAddress,
                 roles: [aRole],
                 topic0Constant: transferEventSelector,
                 topic1Constant: null,
@@ -803,7 +803,7 @@ describe('EventPermissionVerifier', () => {
 
         it('returns false when no permissions match', async () => {
             const result = await permissionVerifier.couldQueryMatchForTenant([], [aRole.id], {
-                address: aContract.contractAddress,
+                address: testContractAddress,
                 topics: [transferEventSelector]
             });
             expect(result).toBe(false);

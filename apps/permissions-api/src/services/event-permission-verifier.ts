@@ -1,6 +1,8 @@
 import { createHash } from 'node:crypto';
+import { areChainAddressesEqual, type ChainAddress } from '@repo/api-kit';
 import { type Address, type Hex, pad } from 'viem';
 import { z } from 'zod/v4';
+import { isEvmAddress } from '../chains/evm/addresses';
 import type { Repositories } from '../db';
 import { topicConditionEnum } from '../db/schema';
 import type { BarePermission } from '../repositories/contract-events-permissions-repository';
@@ -43,15 +45,22 @@ export const RULES_FINGERPRINT = createHash('sha256').update(stableStringify(rul
 
 type Check = { type: 'equalTo' | 'userAddress' | 'none'; value: Hex | null };
 
+type EvmPermission = BarePermission & { contractAddress: Address };
+
+const isEvmPermission = (permission: BarePermission): permission is EvmPermission =>
+    isEvmAddress(permission.contractAddress);
+
+const walletTopics = (wallets: readonly ChainAddress[]): Hex[] => wallets.filter(isEvmAddress).map((w) => pad(w));
+
 /**
  * The principal reading events. `wallets` is the default `userAddress` topic context.
  * `linkedOrgWallets` marks an M2M reader, scoped per linked organization.
  */
 export type EventReader = {
     roleIds: string[];
-    wallets: Hex[];
+    wallets: ChainAddress[];
     organizationId: string | null;
-    linkedOrgWallets?: Map<string, Address[]>;
+    linkedOrgWallets?: Map<string, ChainAddress[]>;
 };
 
 export class EventPermissionVerifier {
@@ -84,10 +93,11 @@ export class EventPermissionVerifier {
                         contractOrgs.get(p.contractAddress.toLowerCase()) ?? null
                     ) !== null
             )
+            .filter(isEvmPermission)
             .map((p) => this.toRule(p));
     }
 
-    private toRule(p: BarePermission): EventPermissionRule {
+    private toRule(p: EvmPermission): EventPermissionRule {
         const topicCondition = (conditionType: string | null, constant: Hex | null): EventPermissionRule['topic1'] => {
             if (conditionType === topicConditionEnum.enum.equalTo && constant) {
                 return { type: 'equalTo', value: constant };
@@ -129,7 +139,7 @@ export class EventPermissionVerifier {
         );
     }
 
-    private async contractOrganizations(addresses: Address[]): Promise<Map<string, string | null>> {
+    private async contractOrganizations(addresses: ChainAddress[]): Promise<Map<string, string | null>> {
         const scopedAddresses = this.multiOrgEnabled ? addresses : addresses.filter(isReservedContractAddress);
         return this.repos.contracts.organizationIdsByAddresses([...new Set(scopedAddresses)]);
     }
@@ -142,7 +152,7 @@ export class EventPermissionVerifier {
         reader: EventReader,
         permission: BarePermission,
         contractOrg: string | null
-    ): Hex[] | null {
+    ): ChainAddress[] | null {
         if (contractOrg !== null && isReservedContractAddress(permission.contractAddress)) {
             return null;
         }
@@ -175,7 +185,7 @@ export class EventPermissionVerifier {
     }
 
     private matchPermission(
-        walletAddresses: Address[],
+        walletAddresses: ChainAddress[],
         permission: BarePermission,
         definition: EventDefinition
     ): boolean {
@@ -195,7 +205,7 @@ export class EventPermissionVerifier {
 
         const zipped = checks.map((check, i): [Check, Hex | null] => [check, topics[i]!]);
 
-        const walletAsTopics = walletAddresses.map((w) => pad(w));
+        const walletAsTopics = walletTopics(walletAddresses);
         return zipped.every(([check, value]) => {
             switch (check.type) {
                 case 'equalTo':
@@ -226,7 +236,7 @@ export class EventPermissionVerifier {
     }
 
     async couldQueryMatchForTenant(
-        walletAddresses: Hex[],
+        walletAddresses: ChainAddress[],
         roleIds: string[],
         filter: GetLogsFilter,
         orgAddresses: Address[] = []
@@ -240,7 +250,7 @@ export class EventPermissionVerifier {
     }
 
     private async couldQueryMatchForRoles(
-        walletAddresses: Hex[],
+        walletAddresses: ChainAddress[],
         roleIds: string[],
         filter: GetLogsFilter
     ): Promise<boolean> {
@@ -257,7 +267,11 @@ export class EventPermissionVerifier {
         return permissions.some((p) => this.couldPermissionMatchQuery(walletAddresses, p, filter));
     }
 
-    couldPermissionMatchQuery(walletAddresses: Hex[], permission: BarePermission, filter: GetLogsFilter): boolean {
+    couldPermissionMatchQuery(
+        walletAddresses: ChainAddress[],
+        permission: BarePermission,
+        filter: GetLogsFilter
+    ): boolean {
         // Check address compatibility
         if (!this.isAddressCompatible(permission.contractAddress, filter.address)) {
             return false;
@@ -284,18 +298,18 @@ export class EventPermissionVerifier {
         return true;
     }
 
-    private isAddressCompatible(permissionAddress: Hex, filterAddress: Hex | Hex[] | undefined): boolean {
+    private isAddressCompatible(permissionAddress: ChainAddress, filterAddress: Hex | Hex[] | undefined): boolean {
         if (filterAddress === undefined) return true;
 
         if (!Array.isArray(filterAddress)) {
-            return areHexEqual(permissionAddress, filterAddress);
+            return areChainAddressesEqual(permissionAddress, filterAddress);
         }
 
-        return filterAddress.some((a) => areHexEqual(permissionAddress, a));
+        return filterAddress.some((a) => areChainAddressesEqual(permissionAddress, a));
     }
 
     private isTopicCompatible(
-        walletAddresses: Hex[],
+        walletAddresses: ChainAddress[],
         queryTopic: Hex | Hex[] | null | undefined,
         permTopic: Check
     ): boolean {
@@ -310,7 +324,7 @@ export class EventPermissionVerifier {
         }
 
         if (permTopic.type === 'userAddress') {
-            const paddedWallets = walletAddresses.map((w) => pad(w));
+            const paddedWallets = walletTopics(walletAddresses);
             return queryValues.some((v) => paddedWallets.some((w) => areHexEqual(v, w)));
         }
 
@@ -339,7 +353,7 @@ class PermissionsPerContractMap {
         return this.map.get(this.normalizeAddress(contractAddress)) ?? [];
     }
 
-    private normalizeAddress(address: Address): string {
+    private normalizeAddress(address: ChainAddress): string {
         return address.toLowerCase();
     }
 }

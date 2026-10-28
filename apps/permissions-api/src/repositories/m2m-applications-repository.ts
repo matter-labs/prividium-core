@@ -1,5 +1,5 @@
+import type { ChainAddress } from '@repo/api-kit';
 import { and, asc, count, eq, inArray, isNull, or, type SQL } from 'drizzle-orm';
-import type { Address } from 'viem';
 import type { TxType } from '../db';
 import {
     m2mApplicationsOrganizationsTable,
@@ -431,7 +431,7 @@ export class M2mApplicationsRepository extends BaseRepository {
         });
     }
 
-    async findAllWalletAddressesForApp(m2mAppId: string): Promise<Address[]> {
+    async findAllWalletAddressesForApp(m2mAppId: string): Promise<ChainAddress[]> {
         const rows = await this.db
             .selectDistinct({ address: walletsTable.walletAddress })
             .from(walletsTable)
@@ -446,7 +446,7 @@ export class M2mApplicationsRepository extends BaseRepository {
         return rows.map(({ address }) => address);
     }
 
-    async walletAddressesForAppAmong(m2mAppId: string, candidates: Address[]): Promise<Address[]> {
+    async walletAddressesForAppAmong(m2mAppId: string, candidates: ChainAddress[]): Promise<ChainAddress[]> {
         const rows = await fetchChunked(candidates, (chunk) =>
             this.db
                 .selectDistinct({ address: walletsTable.walletAddress })
@@ -470,7 +470,7 @@ export class M2mApplicationsRepository extends BaseRepository {
     }
 
     /** Member wallets of each live linked organization, keyed by organization id. Wallet-less orgs still get an entry. */
-    async walletAddressesByOrgForApp(m2mAppId: string): Promise<Map<string, Address[]>> {
+    async walletAddressesByOrgForApp(m2mAppId: string): Promise<Map<string, ChainAddress[]>> {
         const rows = await this.db
             .select({
                 organizationId: m2mApplicationsOrganizationsTable.organizationId,
@@ -482,7 +482,7 @@ export class M2mApplicationsRepository extends BaseRepository {
             .leftJoin(walletsTable, and(eq(walletsTable.userId, usersTable.id), isNull(walletsTable.deletedAt)))
             .where(eq(m2mApplicationsOrganizationsTable.m2mAppId, m2mAppId));
 
-        const byOrg = new Map<string, Address[]>();
+        const byOrg = new Map<string, ChainAddress[]>();
         for (const { organizationId, address } of rows) {
             const wallets = byOrg.get(organizationId) ?? [];
             if (address !== null) wallets.push(address);
@@ -491,7 +491,7 @@ export class M2mApplicationsRepository extends BaseRepository {
         return byOrg;
     }
 
-    async findUserByAddressForApp(m2mAppId: string, address: Address): Promise<User | undefined> {
+    async findUserByAddressForApp(m2mAppId: string, address: ChainAddress): Promise<User | undefined> {
         const userId = await this.findUserIdByAddressForApp(m2mAppId, address);
         if (userId === undefined) return undefined;
 
@@ -499,14 +499,17 @@ export class M2mApplicationsRepository extends BaseRepository {
     }
 
     /** {@link findUserByAddressForApp} with full roles, for system-permission checks. */
-    async findUserWithRolesByAddressForApp(m2mAppId: string, address: Address): Promise<UserWithRoles | undefined> {
+    async findUserWithRolesByAddressForApp(
+        m2mAppId: string,
+        address: ChainAddress
+    ): Promise<UserWithRoles | undefined> {
         const userId = await this.findUserIdByAddressForApp(m2mAppId, address);
         if (userId === undefined) return undefined;
 
         return this.db.repositories().users.findByIdWithRoles(userId);
     }
 
-    private async findUserIdByAddressForApp(m2mAppId: string, address: Address): Promise<string | undefined> {
+    private async findUserIdByAddressForApp(m2mAppId: string, address: ChainAddress): Promise<string | undefined> {
         const [row] = await this.db
             .select({ userId: usersTable.id })
             .from(usersTable)

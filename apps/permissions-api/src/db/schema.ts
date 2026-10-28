@@ -1,5 +1,6 @@
 import { ACTOR_TYPE_VALUES, type ActorType as SharedActorType } from '@repo/access-control/src/actor-types';
 import type { AuditActionType as SharedAuditActionType } from '@repo/access-control/src/audit-actions';
+import type { ChainType } from '@repo/api-kit';
 import { sql } from 'drizzle-orm';
 import {
     bigint,
@@ -18,7 +19,14 @@ import {
 import { relations } from 'drizzle-orm/relations';
 import { z } from 'zod/v4';
 import { createdAt, publicId, timestampTz, updatedAt } from './common-schema';
-import { addressColumn, hexBigIntColumn, hexBytesColumn, methodSelectorColumn, uint256Column } from './custom-types';
+import {
+    addressColumn,
+    chainAddressColumn,
+    hexBigIntColumn,
+    hexBytesColumn,
+    methodSelectorColumn,
+    uint256Column
+} from './custom-types';
 
 export const rolesTable = pgTable(
     'roles',
@@ -165,7 +173,7 @@ export const walletsTable = pgTable(
     'user_wallets',
     {
         id: bigint({ mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
-        walletAddress: addressColumn().notNull(),
+        walletAddress: chainAddressColumn().notNull(),
         userId: text()
             .notNull()
             .references(() => usersTable.id, { onUpdate: 'cascade', onDelete: 'cascade' }),
@@ -265,7 +273,7 @@ export const contractFunctionPermissionsTable = pgTable(
     'contract_function_permissions',
     {
         id: integer().primaryKey().generatedAlwaysAsIdentity(),
-        contractAddress: addressColumn()
+        contractAddress: chainAddressColumn()
             .notNull()
             .references(() => contractsTable.contractAddress, { onUpdate: 'cascade', onDelete: 'cascade' }),
         methodSelector: methodSelectorColumn().notNull(),
@@ -293,7 +301,7 @@ export const contractEventPermissionsTable = pgTable(
     'contract_event_permissions',
     {
         id: publicId,
-        contractAddress: addressColumn()
+        contractAddress: chainAddressColumn()
             .notNull()
             .references(() => contractsTable.contractAddress, { onUpdate: 'cascade', onDelete: 'cascade' }),
         topic0Constant: hexBytesColumn(),
@@ -511,7 +519,7 @@ export const contractTemplateArgumentRestrictionsRelations = relations(
 export const contractsTable = pgTable(
     'contracts',
     {
-        contractAddress: addressColumn().primaryKey(),
+        contractAddress: chainAddressColumn().primaryKey(),
         abi: text().notNull(),
         name: text(),
         description: text(),
@@ -551,11 +559,11 @@ export const contractsRelations = relations(contractsTable, ({ one, many }) => (
 
 export const contractDeploymentsTable = pgTable('contract_deployments', {
     id: publicId,
-    address: addressColumn().notNull(),
+    address: chainAddressColumn().notNull(),
     deployedBy: text()
         .references(() => usersTable.id, { onDelete: 'cascade' })
         .notNull(),
-    deployerAddress: addressColumn().notNull(),
+    deployerAddress: chainAddressColumn().notNull(),
     deployerNonce: bigint({ mode: 'number' }).notNull(),
     deployTxHash: hexBytesColumn().notNull(),
     startedAt: timestampTz(),
@@ -606,7 +614,7 @@ export const bytecodeDisclosureRolesRelations = relations(bytecodeDisclosurePerm
 export const disclosedAddressesTable = pgTable(
     'disclosed_addresses',
     {
-        contractAddress: addressColumn()
+        contractAddress: chainAddressColumn()
             .notNull()
             .references(() => contractsTable.contractAddress, { onUpdate: 'cascade', onDelete: 'cascade' }),
         address: addressColumn().notNull()
@@ -624,6 +632,16 @@ export const disclosedAddressesRelations = relations(disclosedAddressesTable, ({
 const targetTypes = ['user', 'tenant', 'service'] as const;
 export const TargetTypes = z.enum(targetTypes);
 export type TargetType = z.infer<typeof TargetTypes>;
+
+export const deploymentIdentityTable = pgTable(
+    'deployment_identity',
+    {
+        id: boolean().primaryKey().default(true),
+        chainType: text().$type<ChainType>().notNull(),
+        createdAt
+    },
+    (t) => [check('chk_deployment_identity_single_row', sql`${t.id}`)]
+);
 
 export const siweConsumedNoncesTable = pgTable(
     'siwe_consumed_nonces',

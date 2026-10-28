@@ -1,13 +1,15 @@
 import { NAME_MAX_LENGTH } from '@repo/access-control';
+import { areChainAddressesEqual, type ChainAddress } from '@repo/api-kit';
 import { Abi } from 'abitype/zod';
 import { and, count, desc, eq, ilike, inArray, isNotNull, isNull, or, type SQL, sql } from 'drizzle-orm';
-import type { Address, Hex } from 'viem';
+import type { Hex } from 'viem';
 import { z } from 'zod/v4';
 import type { DbOrTx } from '../db';
 import { contractsTable, contractTemplatesTable, disclosedAddressesTable, organizationsTable } from '../db/schema';
 import { escapeLike } from '../db/utils';
 import { EntityAlreadyExistsError, EntityNotFound, InvalidInputError, UnexpectedDbError } from '../utils/error-types';
 import { fetchChunked } from '../utils/fetch-chunked';
+import { chainAddressSchema, storedChainAddressSchema } from '../utils/schemas/address';
 import { hexSchema } from '../utils/schemas/hex-schema';
 import type { PaginatedResult } from '../utils/schemas/pagination';
 import { BaseRepository } from './base-repository';
@@ -16,7 +18,7 @@ const disclosedAddressListSchema = z.array(z.object({ address: hexSchema }));
 type DisclosedAddressList = z.infer<typeof disclosedAddressListSchema>;
 
 export const fullContractSchema = z.object({
-    contractAddress: hexSchema,
+    contractAddress: storedChainAddressSchema,
     abi: z.string().min(1, 'ABI cannot be empty'),
     name: z.string().max(NAME_MAX_LENGTH).nullable(),
     description: z.string().nullable(),
@@ -42,6 +44,7 @@ const contractWriteSchema = z.object({
         organizationId: true,
         disclosureStartBlock: true
     }).shape,
+    contractAddress: chainAddressSchema,
     templateId: z.number().int().nullable().optional(),
     templateKey: z.string().nullable().optional(), // Alternative way to specify template (resolved to id)
     disclosedAddresses: disclosedAddressListSchema.optional(),
@@ -335,7 +338,7 @@ export class ContractsRepository extends BaseRepository {
 
     private async searchByAddress(
         db: DbOrTx,
-        contractAddress: Hex,
+        contractAddress: ChainAddress,
         opts: { organizationId?: string } = {}
     ): Promise<Contract | undefined> {
         const byOrg =
@@ -350,7 +353,7 @@ export class ContractsRepository extends BaseRepository {
 
     // With `organizationId`, a contract owned by another org (or the zone) reads as not-found, so
     // cross-org existence never leaks to a caller acting on their own org.
-    async findByAddress(contractAddress: Hex, opts: { organizationId?: string } = {}): Promise<Contract> {
+    async findByAddress(contractAddress: ChainAddress, opts: { organizationId?: string } = {}): Promise<Contract> {
         const contract = await this.searchByAddress(this.db, contractAddress, opts);
 
         if (contract === undefined) {
@@ -421,7 +424,7 @@ export class ContractsRepository extends BaseRepository {
 
     private async createDisclosedAddresses(
         addresses: DisclosedAddressList | undefined,
-        contractAddress: Address
+        contractAddress: ChainAddress
     ): Promise<Contract['disclosedAddresses']> {
         if (addresses === undefined || addresses.length === 0) return [];
 
@@ -435,7 +438,7 @@ export class ContractsRepository extends BaseRepository {
         });
     }
 
-    async update(contractAddress: Hex, data: ContractUpdate): Promise<Contract> {
+    async update(contractAddress: ChainAddress, data: ContractUpdate): Promise<Contract> {
         // Check if contract exists
         const existing = await this.findByAddress(contractAddress);
         if (!existing) {
@@ -453,7 +456,7 @@ export class ContractsRepository extends BaseRepository {
                 .repositories()
                 .contracts.resolveTemplateId(fields.templateId, templateKey);
 
-            const isChangingAddress = fields.contractAddress.toLowerCase() !== contractAddress.toLowerCase();
+            const isChangingAddress = !areChainAddressesEqual(fields.contractAddress, contractAddress);
             if (isChangingAddress) {
                 const existingTarget = await this.searchByAddress(tx, fields.contractAddress);
                 if (existingTarget) {
@@ -489,7 +492,7 @@ export class ContractsRepository extends BaseRepository {
         });
     }
 
-    async delete(contractAddress: Hex): Promise<void> {
+    async delete(contractAddress: ChainAddress): Promise<void> {
         const contractToDelete = await this.searchByAddress(this.db, contractAddress);
         if (!contractToDelete) {
             throw new EntityNotFound('Contract', { contractAddress });
@@ -512,7 +515,7 @@ export class ContractsRepository extends BaseRepository {
      * contract either does not exist or has bytecode disclosure disabled. The
      * caller uses `disclosureStartBlock` to reject queries below the floor.
      */
-    async getBytecodeDisclosureConfig(address: Hex): Promise<BytecodeDisclosureConfig | null> {
+    async getBytecodeDisclosureConfig(address: ChainAddress): Promise<BytecodeDisclosureConfig | null> {
         const record = await this.db.query.contractsTable.findFirst({
             where: (f, { eq }) => eq(f.contractAddress, address),
             columns: { discloseBytecode: true, disclosureStartBlock: true }
@@ -531,7 +534,7 @@ export class ContractsRepository extends BaseRepository {
     }
 
     /** Owning organization per address, for org-scoping decisions. Addresses with no contract row are absent. */
-    async organizationIdsByAddresses(addresses: Hex[]): Promise<Map<string, string | null>> {
+    async organizationIdsByAddresses(addresses: ChainAddress[]): Promise<Map<string, string | null>> {
         if (addresses.length === 0) {
             return new Map();
         }
@@ -545,7 +548,7 @@ export class ContractsRepository extends BaseRepository {
         return new Map(rows.map((r) => [r.address.toLowerCase(), r.organizationId]));
     }
 
-    async allContractAddressesForOrg(orgId: string): Promise<Address[]> {
+    async allContractAddressesForOrg(orgId: string): Promise<ChainAddress[]> {
         const rows = await this.db
             .select({ address: contractsTable.contractAddress })
             .from(contractsTable)

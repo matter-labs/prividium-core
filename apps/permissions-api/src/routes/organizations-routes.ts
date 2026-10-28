@@ -1,7 +1,6 @@
 import { AUDIT_ACTIONS, hasSystemPermission, hasZoneSystemPermission } from '@repo/access-control';
-import { isoDatetimeInputSchema } from '@repo/api-kit';
+import { areChainAddressesEqual, type ChainAddress, type ChainNode, isoDatetimeInputSchema } from '@repo/api-kit';
 import type { FastifyRequest } from 'fastify';
-import type { Hex } from 'viem';
 import { z } from 'zod/v4';
 import type { FastifyServer } from '../build-app';
 import { auditActionTypeSchema } from '../db/schema';
@@ -22,7 +21,6 @@ import {
     updateContractSchema
 } from '../repositories/contracts-repository';
 import { displayNameField } from '../repositories/shared-schemas';
-import type { ExternalRpc } from '../rpc/target-rpc';
 import type { ApiKeyService } from '../services/api-key-service';
 import { assertOrgContractRegisterable } from '../services/contract-registration-guard';
 import type { M2mAppActionsService } from '../services/m2m-app-actions-service';
@@ -35,11 +33,10 @@ import { organizationAuditSummary } from '../services/organization-audit-service
 import { deleteOrganizationAndRevokeAccess } from '../services/organizations-service';
 import { withOverbroadFlag } from '../utils/cidr';
 import { EntityNotFound, ForbiddenError, InvalidInputError, OrgQuotaExceededError } from '../utils/error-types';
-import { areHexEqual } from '../utils/hex';
 import { orgCountGauge } from '../utils/metrics';
 import { assertValidJwksUri, assertValidUserPanelUrl } from '../utils/oidc-provider-validation';
 import { isReservedContractAddress } from '../utils/reserved-contract-address';
-import { addressSchema } from '../utils/schemas/address';
+import { chainAddressSchema } from '../utils/schemas/address';
 import { ErrorResponseSchema, PaginationQuerySchema, SearchQuerySchema } from '../utils/schemas/fastify-common';
 import { paginatedResult } from '../utils/schemas/pagination';
 import { createApiKeyBodySchema, OrgApiKeyWithSecretSchema, PaginatedOrgApiKeysSchema } from './schemas/api-keys';
@@ -71,7 +68,7 @@ import {
     UpdateSiweSettingsBodySchema
 } from './schemas/organizations';
 import { CreateRoleBodySchema, RoleSchema, RoleWithCountsSchema } from './schemas/roles';
-import { WalletAddressSchema } from './schemas/tenants';
+import { WalletAddressBodySchema } from './schemas/tenants';
 import { UserSchema } from './schemas/users';
 
 const byIdSchema = z.object({
@@ -95,7 +92,7 @@ const pendingAdminParamsSchema = z.object({
 type Deps = {
     sessionAuthValidator: SessionsAuthValidator;
     m2mAppActionsService: M2mAppActionsService;
-    chainRpc: ExternalRpc;
+    chain: Pick<ChainNode, 'contractExists'>;
     apiKeyService: ApiKeyService;
     apiKeyMaxExpirationSeconds: number;
     insecureM2mAllowAnyIp: boolean;
@@ -109,7 +106,7 @@ type Deps = {
 const orgRoleParamsSchema = z.object({ id: z.string(), roleId: z.string().min(1) });
 const orgRolesListQuerySchema = PaginationQuerySchema().extend({ searchQuery: SearchQuerySchema.optional() });
 
-const orgContractParamsSchema = z.object({ id: z.string(), contractAddress: addressSchema });
+const orgContractParamsSchema = z.object({ id: z.string(), contractAddress: chainAddressSchema });
 const orgM2mAppParamsSchema = z.object({ id: z.string(), appId: z.string() });
 // Owner is bound from the path, never the body.
 const createOrgIpWhitelistBodySchema = CreateIpWhitelistBodySchema.omit({ tenantId: true, m2mAppId: true });
@@ -179,7 +176,7 @@ export function organizationsRoutes(
     {
         sessionAuthValidator,
         m2mAppActionsService,
-        chainRpc,
+        chain,
         apiKeyService,
         apiKeyMaxExpirationSeconds,
         insecureM2mAllowAnyIp,
@@ -575,7 +572,7 @@ export function organizationsRoutes(
                     params: orgIdParams,
                     body: z.object({
                         displayName: z.string(),
-                        walletAddresses: WalletAddressSchema.array().optional().default([])
+                        walletAddresses: WalletAddressBodySchema.array().optional().default([])
                     }),
                     response: {
                         200: UserSchema,
@@ -611,7 +608,7 @@ export function organizationsRoutes(
                     description: 'Attaches wallets to a user in the specified organization',
                     tags: ['m2m-app-actions'],
                     params: userIdParams,
-                    body: WalletAddressSchema.array(),
+                    body: WalletAddressBodySchema.array(),
                     response: {
                         200: UserSchema,
                         400: ErrorResponseSchema,
@@ -1451,7 +1448,7 @@ export function organizationsRoutes(
                     }
                     await assertTemplateHasNoUmbrella(req, req.body);
                     await assertOrgContractRegisterable(req.body.contractAddress, {
-                        chainRpc,
+                        chain,
                         repos: req.repos,
                         organizationId: req.params.id,
                         caller: req.auth.currentUser()
@@ -1529,10 +1526,10 @@ export function organizationsRoutes(
                     await assertTemplateHasNoUmbrella(req, req.body);
                     // A rewrite moves the permissions onto the new address, so it has to clear the
                     // same bar as a fresh registration.
-                    const isRewrite = !areHexEqual(existing.contractAddress, req.body.contractAddress);
+                    const isRewrite = !areChainAddressesEqual(existing.contractAddress, req.body.contractAddress);
                     if (isRewrite) {
                         await assertOrgContractRegisterable(req.body.contractAddress, {
-                            chainRpc,
+                            chain,
                             repos: req.repos,
                             organizationId: req.params.id,
                             caller: req.auth.currentUser()
@@ -1860,7 +1857,11 @@ async function assertOrgOwnsRole(req: FastifyRequest, organizationId: string, ro
     }
 }
 
-async function assertOrgOwnsContract(req: FastifyRequest, organizationId: string, contractAddress: Hex): Promise<void> {
+async function assertOrgOwnsContract(
+    req: FastifyRequest,
+    organizationId: string,
+    contractAddress: ChainAddress
+): Promise<void> {
     await req.repos.organizations.getById(organizationId);
     if (isReservedContractAddress(contractAddress)) {
         throw new EntityNotFound('Contract', { contractAddress });

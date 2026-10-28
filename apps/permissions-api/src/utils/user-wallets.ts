@@ -1,6 +1,6 @@
-import { type Address, isAddressEqual } from 'viem';
+import { areChainAddressesEqual, type ChainAddress } from '@repo/api-kit';
 import type { User } from '../repositories/users-repository';
 
-export function userHasWallet(user: User, walletAddress: Address): boolean {
-    return user.wallets.some((w) => isAddressEqual(w.walletAddress, walletAddress));
+export function userHasWallet(user: User, walletAddress: ChainAddress): boolean {
+    return user.wallets.some((w) => areChainAddressesEqual(w.walletAddress, walletAddress));
 }

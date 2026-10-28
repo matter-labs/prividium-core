@@ -655,6 +655,10 @@ describe('findTargetChainTypeConflict', () => {
         expect(findTargetChainTypeConflict({ TARGET_CHAIN_TYPE: 'besu', ...base })).toBeUndefined();
     });
 
+    it('leaves another chain to its capabilities', () => {
+        expect(findTargetChainTypeConflict({ TARGET_CHAIN_TYPE: 'geth', ...base, POLICY_PORT: 8010 })).toBeUndefined();
+    });
+
     it.each([
         ['POLICY_PORT', { POLICY_PORT: 8010 }],
         ['MULTI_ORG_ENABLED', { MULTI_ORG_ENABLED: true }],
@@ -682,9 +686,16 @@ describe('TARGET_CHAIN_TYPE validation (via loadEnv)', () => {
         expect(loadEnv().TARGET_CHAIN_TYPE).toBe('zksync-os');
     });
 
-    it('rejects unknown chain types', () => {
+    it('leaves a chain type it does not know to the boot, which maps it to a module', () => {
         process.env.TARGET_CHAIN_TYPE = 'geth';
-        expect(() => loadEnv()).toThrow();
+        expect(loadEnv().TARGET_CHAIN_TYPE).toBe('geth');
+    });
+
+    it('asks nothing EVM-specific of another chain', () => {
+        process.env.TARGET_CHAIN_TYPE = 'geth';
+        delete process.env.L1_CHAIN_ID;
+        delete process.env.L1_CHAIN_NAME;
+        expect(loadEnv().TARGET_CHAIN_TYPE).toBe('geth');
     });
 
     it('accepts besu with the example configuration', () => {

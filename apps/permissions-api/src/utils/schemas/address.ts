@@ -1,1 +1,1 @@
-export { addressSchema } from '@repo/api-kit';
+export { addressSchema, chainAddressSchema, storedChainAddressSchema } from '@repo/api-kit';

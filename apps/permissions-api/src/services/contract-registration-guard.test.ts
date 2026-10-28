@@ -1,6 +1,7 @@
 import { type Address, pad } from 'viem';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TestExternalRpc } from '../../test/rpc/test-external-rpc';
+import { evmChain } from '../chains/evm';
 import type { Repositories } from '../db';
 import type { SystemPermission } from '../permissions/system-permissions';
 import type { ContractDeployment } from '../repositories/contract-deployments-repository';
@@ -8,7 +9,7 @@ import type { Role } from '../repositories/roles-repository';
 import type { User, UserWithRoles } from '../repositories/users-repository';
 import { ChainUnavailableError, ForbiddenError, InvalidInputError } from '../utils/error-types';
 import {
-    assertAddressHasCode,
+    assertContractDeployed,
     assertOrgContractRegisterable,
     CODE_CHECK_TIMEOUT_MS
 } from './contract-registration-guard';
@@ -119,23 +120,23 @@ function reposWith(
     return { repos, lookups };
 }
 
-describe('assertAddressHasCode', () => {
+describe('assertContractDeployed', () => {
     afterEach(() => {
         vi.useRealTimers();
     });
 
     it('resolves when the address holds code', async () => {
-        await expect(assertAddressHasCode(rpcWithCodeAt(CONTRACT), CONTRACT)).resolves.toBeUndefined();
+        await expect(assertContractDeployed(evmChain(rpcWithCodeAt(CONTRACT)), CONTRACT)).resolves.toBeUndefined();
     });
 
     it('rejects an address with no code, naming the address', async () => {
-        await expect(assertAddressHasCode(rpcWithCodeAt(), CONTRACT)).rejects.toThrowError(
+        await expect(assertContractDeployed(evmChain(rpcWithCodeAt()), CONTRACT)).rejects.toThrowError(
             new InvalidInputError(`No contract is deployed at ${CONTRACT}`)
         );
     });
 
     it('maps an unreachable chain to a 503 rather than an unmapped 500, keeping the cause', async () => {
-        const error = await assertAddressHasCode(new UnreachableRpc(), CONTRACT).catch((e: unknown) => e);
+        const error = await assertContractDeployed(evmChain(new UnreachableRpc()), CONTRACT).catch((e: unknown) => e);
 
         expect(error).toBeInstanceOf(ChainUnavailableError);
         expect((error as ChainUnavailableError).statusCode).toBe(503);
@@ -145,7 +146,7 @@ describe('assertAddressHasCode', () => {
 
     it('maps a stalled chain to 503 once the code check times out', async () => {
         vi.useFakeTimers();
-        const pending = assertAddressHasCode(new StalledRpc(), CONTRACT).catch((e: unknown) => e);
+        const pending = assertContractDeployed(evmChain(new StalledRpc()), CONTRACT).catch((e: unknown) => e);
         await vi.advanceTimersByTimeAsync(CODE_CHECK_TIMEOUT_MS);
         const error = await pending;
 
@@ -161,7 +162,7 @@ describe('assertOrgContractRegisterable', () => {
 
         await expect(
             assertOrgContractRegisterable(CONTRACT, {
-                chainRpc: rpcWithCodeAt(),
+                chain: evmChain(rpcWithCodeAt()),
                 repos,
                 organizationId: ORG_A,
                 caller: orgAdminOfA
@@ -175,7 +176,7 @@ describe('assertOrgContractRegisterable', () => {
 
         await expect(
             assertOrgContractRegisterable(CONTRACT, {
-                chainRpc: rpcWithCodeAt(CONTRACT),
+                chain: evmChain(rpcWithCodeAt(CONTRACT)),
                 repos,
                 organizationId: ORG_A,
                 caller: orgAdminOfA
@@ -192,7 +193,7 @@ describe('assertOrgContractRegisterable', () => {
 
         await expect(
             assertOrgContractRegisterable(CONTRACT, {
-                chainRpc: rpcWithCodeAt(CONTRACT),
+                chain: evmChain(rpcWithCodeAt(CONTRACT)),
                 repos,
                 organizationId: ORG_A,
                 caller: orgAdminOfA
@@ -210,7 +211,7 @@ describe('assertOrgContractRegisterable', () => {
 
             await expect(
                 assertOrgContractRegisterable(CONTRACT, {
-                    chainRpc: rpcWithCodeAt(CONTRACT),
+                    chain: evmChain(rpcWithCodeAt(CONTRACT)),
                     repos,
                     organizationId: ORG_A,
                     caller: orgAdminOfA
@@ -227,7 +228,7 @@ describe('assertOrgContractRegisterable', () => {
 
             await expect(
                 assertOrgContractRegisterable(CONTRACT, {
-                    chainRpc: rpcWithCodeAt(CONTRACT),
+                    chain: evmChain(rpcWithCodeAt(CONTRACT)),
                     repos,
                     organizationId: ORG_A,
                     caller: orgAdminOfA
@@ -240,7 +241,7 @@ describe('assertOrgContractRegisterable', () => {
 
             await expect(
                 assertOrgContractRegisterable(CONTRACT, {
-                    chainRpc: rpcWithCodeAt(CONTRACT),
+                    chain: evmChain(rpcWithCodeAt(CONTRACT)),
                     repos,
                     organizationId: ORG_A,
                     caller: orgAdminOfA
@@ -255,7 +256,7 @@ describe('assertOrgContractRegisterable', () => {
 
             await expect(
                 assertOrgContractRegisterable(CONTRACT, {
-                    chainRpc: rpcWithCodeAt(CONTRACT),
+                    chain: evmChain(rpcWithCodeAt(CONTRACT)),
                     repos,
                     organizationId: ORG_A,
                     caller: orgAdminOfA
@@ -278,7 +279,7 @@ describe('assertOrgContractRegisterable', () => {
 
             await expect(
                 assertOrgContractRegisterable(CONTRACT, {
-                    chainRpc: rpcWithCodeAt(CONTRACT),
+                    chain: evmChain(rpcWithCodeAt(CONTRACT)),
                     repos,
                     organizationId: ORG_A,
                     caller: zoneOperator
@@ -292,7 +293,7 @@ describe('assertOrgContractRegisterable', () => {
 
             await expect(
                 assertOrgContractRegisterable(CONTRACT, {
-                    chainRpc: rpcWithCodeAt(),
+                    chain: evmChain(rpcWithCodeAt()),
                     repos,
                     organizationId: ORG_A,
                     caller: zoneOperator
@@ -311,7 +312,7 @@ describe('assertOrgContractRegisterable', () => {
             );
             await expect(
                 assertOrgContractRegisterable(CONTRACT, {
-                    chainRpc: rpcWithCodeAt(CONTRACT),
+                    chain: evmChain(rpcWithCodeAt(CONTRACT)),
                     repos,
                     organizationId: ORG_A,
                     caller: orgAdminOfA
@@ -327,7 +328,7 @@ describe('assertOrgContractRegisterable', () => {
             );
             await expect(
                 assertOrgContractRegisterable(CONTRACT, {
-                    chainRpc: rpcWithCodeAt(CONTRACT),
+                    chain: evmChain(rpcWithCodeAt(CONTRACT)),
                     repos,
                     organizationId: ORG_A,
                     caller: orgAdminOfA
@@ -340,7 +341,7 @@ describe('assertOrgContractRegisterable', () => {
 
             await expect(
                 assertOrgContractRegisterable(CONTRACT, {
-                    chainRpc: rpcWithCodeAt(CONTRACT),
+                    chain: evmChain(rpcWithCodeAt(CONTRACT)),
                     repos,
                     organizationId: ORG_A,
                     caller: caller([role(ORG_A, ['admin_read', 'admin_write'])])
@@ -365,7 +366,7 @@ describe('reserved organization registration', () => {
         for (const caller of [orgAdminOfA, zoneOperator]) {
             await expect(
                 assertOrgContractRegisterable(address, {
-                    chainRpc: new UnreachableRpc(),
+                    chain: evmChain(new UnreachableRpc()),
                     repos,
                     organizationId: ORG_A,
                     caller

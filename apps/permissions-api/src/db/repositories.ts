@@ -7,6 +7,7 @@ import { ContractDeploymentsRepository } from '../repositories/contract-deployme
 import { ContractEventsPermissionsRepository } from '../repositories/contract-events-permissions-repository';
 import { ContractFunctionPermissionsRepository } from '../repositories/contract-function-permissions-repository';
 import { ContractsRepository } from '../repositories/contracts-repository';
+import { DeploymentIdentityRepository } from '../repositories/deployment-identity-repository';
 import { FaucetClaimsRepository } from '../repositories/faucet-claims-repository';
 import { IpWhitelistRepository } from '../repositories/ip-whitelist-repository';
 import { M2mApplicationsRepository } from '../repositories/m2m-applications-repository';
@@ -92,6 +93,10 @@ export class Repositories {
 
     get contracts(): ContractsRepository {
         return this._repo(ContractsRepository, () => new ContractsRepository(this.db));
+    }
+
+    get deploymentIdentity(): DeploymentIdentityRepository {
+        return this._repo(DeploymentIdentityRepository, () => new DeploymentIdentityRepository(this.db));
     }
 
     get faucetClaims(): FaucetClaimsRepository {

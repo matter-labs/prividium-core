@@ -1,5 +1,6 @@
+import type { ChainAddress } from '@repo/api-kit';
 import { and, asc, count, desc, eq, getTableColumns, inArray } from 'drizzle-orm';
-import type { AbiFunction, AbiParameter, Address, Hex } from 'viem';
+import type { AbiFunction, AbiParameter, Hex } from 'viem';
 import { z } from 'zod/v4';
 import type { TxType } from '../db';
 import {
@@ -19,13 +20,14 @@ import {
     normalizeFunctionSignature
 } from '../utils/abi';
 import { EntityAlreadyExistsError, EntityNotFound, InvalidInputError, UnexpectedDbError } from '../utils/error-types';
+import { chainAddressSchema, storedChainAddressSchema } from '../utils/schemas/address';
 import { hexSchema } from '../utils/schemas/hex-schema';
 import type { PaginatedResult, PaginationParams } from '../utils/schemas/pagination';
 import { BaseRepository } from './base-repository';
 
 export const basicContractPermissionSchema = z.object({
     id: z.number().int(),
-    contractAddress: hexSchema,
+    contractAddress: storedChainAddressSchema,
     methodSelector: hexSchema,
     accessType: methodAccessSchema,
     functionSignature: z.string(),
@@ -38,6 +40,7 @@ export const basicContractPermissionSchema = z.object({
 
 const insertPermissionSchema = z.object({
     ...basicContractPermissionSchema.omit({ id: true, createdAt: true, updatedAt: true }).shape,
+    contractAddress: chainAddressSchema,
     methodSelector: hexSchema.optional(),
     isUmbrella: z.boolean().optional()
 });
@@ -74,6 +77,7 @@ export const fullContractPermissionSchema = z.object({
 export type FullContractPermission = z.infer<typeof fullContractPermissionSchema>;
 export const updateContractPermissionSchema = z.object({
     ...basicContractPermissionSchema.omit({ createdAt: true, updatedAt: true }).shape,
+    contractAddress: chainAddressSchema,
     ...relationsSchema.shape,
     id: z.number().int().optional(),
     isUmbrella: z.boolean().optional()
@@ -225,7 +229,7 @@ export class ContractFunctionPermissionsRepository extends BaseRepository {
      */
     private async resolveAbiInputs(
         tx: TxType,
-        contractAddress: Hex,
+        contractAddress: ChainAddress,
         contractAbiStr: string,
         templateId: number | null,
         methodSelector: Hex,
@@ -283,7 +287,7 @@ export class ContractFunctionPermissionsRepository extends BaseRepository {
      */
     private async appendFunctionToContractAbi(
         tx: TxType,
-        contractAddress: Hex,
+        contractAddress: ChainAddress,
         contractAbiStr: string,
         abiFn: AbiFunction
     ): Promise<void> {
@@ -446,7 +450,7 @@ export class ContractFunctionPermissionsRepository extends BaseRepository {
 
     async findPaginated(
         filterOptions: {
-            contractAddress?: Address;
+            contractAddress?: ChainAddress;
             methodSelector?: Hex;
             roleId?: string;
             organizationId?: string;
@@ -586,7 +590,7 @@ export class ContractFunctionPermissionsRepository extends BaseRepository {
     }
 
     async findAllByContractAddress(
-        contractAddress: Address
+        contractAddress: ChainAddress
     ): Promise<(typeof contractFunctionPermissionsTable.$inferSelect)[]> {
         return this.db
             .select()
@@ -594,7 +598,7 @@ export class ContractFunctionPermissionsRepository extends BaseRepository {
             .where(eq(contractFunctionPermissionsTable.contractAddress, contractAddress));
     }
 
-    async clearUmbrella(contractAddress: Address): Promise<void> {
+    async clearUmbrella(contractAddress: ChainAddress): Promise<void> {
         await this.db
             .update(contractFunctionPermissionsTable)
             .set({ isUmbrella: false })

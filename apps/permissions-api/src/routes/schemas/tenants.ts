@@ -2,11 +2,13 @@ import { z } from 'zod/v4';
 import { tenantsTable } from '../../db/schema';
 import { nameField } from '../../repositories/shared-schemas';
 import { createInsertSchema, createSelectSchema, MANAGED_COLUMNS } from '../../utils/drizzle-zod-schema-factory';
+import { chainAddressSchema, storedChainAddressSchema } from '../../utils/schemas/address';
 import { hexSchema } from '../../utils/schemas/hex-schema';
 import { paginatedResult } from '../../utils/schemas/pagination';
 import { BareRoleSchema, RoleRefSchema } from './roles';
 
-export const WalletAddressSchema = z.object({ walletAddress: hexSchema });
+export const WalletAddressSchema = z.object({ walletAddress: storedChainAddressSchema });
+export const WalletAddressBodySchema = z.object({ walletAddress: chainAddressSchema });
 
 export const TenantSchema = createSelectSchema(tenantsTable, {
     publicKey: hexSchema
@@ -27,7 +29,9 @@ export const TenantUserSchema = z.object({
     displayName: z.string()
 });
 
-export const CreateTenantUserBodySchema = TenantUserSchema.omit({ id: true });
+export const CreateTenantUserBodySchema = TenantUserSchema.omit({ id: true }).extend({
+    walletAddresses: WalletAddressBodySchema.array()
+});
 
 export const PaginatedTenantsSchema = paginatedResult(TenantSchema);
 export const PaginatedTenantUsersSchema = paginatedResult(TenantUserSchema);

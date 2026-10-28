@@ -8,7 +8,7 @@ import {
     PaginatedTenantUsersSchema,
     TenantSchema,
     TenantUserSchema,
-    WalletAddressSchema
+    WalletAddressBodySchema
 } from './schemas/tenants';
 
 type Deps = {
@@ -91,7 +91,7 @@ export function tenantActions(app: FastifyServer, { tenantsService }: Deps) {
             config: { audit_action: AUDIT_ACTIONS.WALLET_ASSOCIATE },
             schema: {
                 description: 'Associates given wallet with user',
-                body: WalletAddressSchema.array(),
+                body: WalletAddressBodySchema.array(),
                 params: z.object({ userId: z.string() }),
                 response: {
                     200: TenantUserSchema,

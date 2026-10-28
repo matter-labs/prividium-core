@@ -7,7 +7,7 @@ import { prividiumPermix } from '../permissions/prividium-permix';
 import type { SystemPermission } from '../permissions/system-permissions';
 import { fullContractSchema } from '../repositories/contracts-repository';
 import { EntityNotFound } from '../utils/error-types';
-import { addressSchema } from '../utils/schemas/address';
+import { chainAddressSchema } from '../utils/schemas/address';
 import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
 import {
     CheckUserReadAccessBodySchema,
@@ -16,7 +16,7 @@ import {
 } from './schemas/m2m-app-queries';
 
 const contractAddressParamsSchema = z.object({
-    contractAddress: addressSchema
+    contractAddress: chainAddressSchema
 });
 
 type Deps = {

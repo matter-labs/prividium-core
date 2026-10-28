@@ -1,4 +1,5 @@
 import { ADMIN_ROLE_ID, AUDIT_ACTIONS } from '@repo/access-control';
+import { areChainAddressesEqual, type ChainNode } from '@repo/api-kit';
 import { z } from 'zod/v4';
 import type { FastifyServer } from '../build-app';
 import {
@@ -9,16 +10,14 @@ import {
     updateContractSchema
 } from '../repositories/contracts-repository';
 import type { UserWithRoles } from '../repositories/users-repository';
-import type { ExternalRpc } from '../rpc/target-rpc';
-import { assertAddressHasCode, assertOrgContractAddress } from '../services/contract-registration-guard';
+import { assertContractDeployed, assertOrgContractAddress } from '../services/contract-registration-guard';
 import { isSystemContractAddress } from '../services/system-contracts/registry';
 import { ForbiddenError, InvalidInputError } from '../utils/error-types';
-import { areHexEqual } from '../utils/hex';
-import { addressSchema } from '../utils/schemas/address';
+import { chainAddressSchema } from '../utils/schemas/address';
 import { ErrorResponseSchema, PaginationQuerySchema, SearchQuerySchema } from '../utils/schemas/fastify-common';
 
 const contractAddressParamSchema = z.object({
-    contractAddress: addressSchema
+    contractAddress: chainAddressSchema
 });
 
 const templateIdParamSchema = z.object({
@@ -46,7 +45,7 @@ export function resolveContractOwnerOrganizationId(
 }
 
 type Deps = {
-    chainRpc: ExternalRpc;
+    chain: Pick<ChainNode, 'contractExists'>;
 };
 
 const groupedContractsQuerySchema = PaginationQuerySchema({ limit: { max: 100 } }).extend({
@@ -57,7 +56,7 @@ const contractsByTemplateQuerySchema = PaginationQuerySchema({ limit: { max: 100
     searchQuery: SearchQuerySchema.optional()
 });
 
-export function contractsRoutes(server: FastifyServer, { chainRpc }: Deps) {
+export function contractsRoutes(server: FastifyServer, { chain }: Deps) {
     server.get(
         '/',
         {
@@ -133,7 +132,7 @@ export function contractsRoutes(server: FastifyServer, { chainRpc }: Deps) {
             }
             // These routes require zone-level `admin_write`, so the caller is always an operator and
             // the deployer match does not apply. See `assertOrgContractRegisterable`.
-            await assertAddressHasCode(chainRpc, request.body.contractAddress);
+            await assertContractDeployed(chain, request.body.contractAddress);
             const contract = await request.repos.contracts.create({ ...request.body, organizationId });
             return reply.status(201).send(contract);
         }
@@ -191,12 +190,12 @@ export function contractsRoutes(server: FastifyServer, { chainRpc }: Deps) {
             }
             // A rewrite moves the permissions onto the new address, so it has to clear the same
             // bar as a fresh registration.
-            if (!areHexEqual(contractAddress, request.body.contractAddress)) {
-                await assertAddressHasCode(chainRpc, request.body.contractAddress);
+            if (!areChainAddressesEqual(contractAddress, request.body.contractAddress)) {
+                await assertContractDeployed(chain, request.body.contractAddress);
             }
             const contract = await request.repos.contracts.update(contractAddress, request.body);
 
-            if (contract.contractAddress.toLowerCase() !== contractAddress.toLowerCase()) {
+            if (!areChainAddressesEqual(contract.contractAddress, contractAddress)) {
                 try {
                     await request.auditContext.logSecurityEvent(
                         AUDIT_ACTIONS.CONTRACT_ADDRESS_CHANGE,

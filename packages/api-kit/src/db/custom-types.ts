@@ -1,6 +1,8 @@
 import { customType } from 'drizzle-orm/pg-core';
 import { type Address, type Hex, numberToHex } from 'viem';
 import { z } from 'zod/v4';
+import type { ChainAddress } from '../chain/chain';
+import { selectedChain } from '../chain/selected-chain';
 import { addressSchema } from '../schemas/address';
 import { hexSchema } from '../schemas/hex-schema';
 
@@ -30,6 +32,25 @@ export const addressColumn = customType<{
         return addressSchema.parse(address);
     }
 });
+
+export const chainAddress = {
+    dataType() {
+        return 'bytea';
+    },
+    toDriver(val: ChainAddress): Buffer {
+        return Buffer.from(selectedChain().addresses.toBytes(val));
+    },
+    fromDriver(val: Buffer | string): ChainAddress {
+        const bytes = typeof val === 'string' ? Buffer.from(val.replace(/^\\x/, ''), 'hex') : val;
+        return selectedChain().addresses.fromBytes(bytes);
+    }
+};
+
+/** An address on the deployment's chain; EVM-only columns keep {@link addressColumn}. */
+export const chainAddressColumn = customType<{
+    data: ChainAddress;
+    driverData: Buffer;
+}>(chainAddress);
 
 export const methodSelectorColumn = customType<{
     data: `0x${string}`;

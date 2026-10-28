@@ -1,12 +1,10 @@
-import type { Address } from 'viem';
+import { type ChainAddress, type ChainNode, chainAddressListIncludes } from '@repo/api-kit';
 import type { Repositories } from '../db';
 import { UserSources } from '../db/schema';
 import { UNCHECKED_PERMISSIONS } from '../permissions/permission-catalog';
 import type { TenantUser } from '../repositories/tenants-repository';
 import type { User } from '../repositories/users-repository';
-import type { ExternalRpc } from '../rpc/target-rpc';
 import { EntityNotFound, InvalidInputError, WalletLimitExceededError } from '../utils/error-types';
-import { hexListIncludes } from '../utils/hex';
 import type { WalletAssociationGuard } from './wallet-association-guard';
 
 type WalletAddresses = TenantUser['walletAddresses'];
@@ -18,7 +16,7 @@ export interface CreateOrgUserInput {
 
 type Deps = {
     repos: Repositories;
-    rpc: ExternalRpc;
+    chain: Pick<ChainNode, 'accountIsUnused'>;
     walletAssociationGuard: WalletAssociationGuard;
     maxWalletsPerUser: number;
     multiOrgEnabled: boolean;
@@ -26,14 +24,14 @@ type Deps = {
 
 export class M2mAppActionsService {
     private readonly repos: Repositories;
-    private readonly rpc: ExternalRpc;
+    private readonly chain: Pick<ChainNode, 'accountIsUnused'>;
     private readonly walletAssociationGuard: WalletAssociationGuard;
     private readonly maxWalletsPerUser: number;
     private readonly multiOrgEnabled: boolean;
 
-    constructor({ repos, rpc, walletAssociationGuard, maxWalletsPerUser, multiOrgEnabled }: Deps) {
+    constructor({ repos, chain, walletAssociationGuard, maxWalletsPerUser, multiOrgEnabled }: Deps) {
         this.repos = repos;
-        this.rpc = rpc;
+        this.chain = chain;
         this.walletAssociationGuard = walletAssociationGuard;
         this.maxWalletsPerUser = maxWalletsPerUser;
         this.multiOrgEnabled = multiOrgEnabled;
@@ -79,7 +77,7 @@ export class M2mAppActionsService {
             throw new InvalidInputError('Duplicate wallet addresses in request');
         }
 
-        const newWallets = requestedWallets.filter((w) => !hexListIncludes(existingWallets, w));
+        const newWallets = requestedWallets.filter((w) => !chainAddressListIncludes(existingWallets, w));
         if (newWallets.length === 0) {
             throw new InvalidInputError('Wallets already belong to the user');
         }
@@ -91,20 +89,17 @@ export class M2mAppActionsService {
         return this.repos.users.update(userId, { wallets: [...existingWallets, ...newWallets] });
     }
 
-    // Ensures each wallet is unused (not already registered), has never sent a transaction (nonce=0),
-    // and is not a smart contract — only fresh EOAs can be added.
-    // NOTE: this code is repeated in tenants-service, given tenants will be deprecated soon.
-    private async validateNewWalletAddresses(addresses: Address[]): Promise<void> {
+    // Repeated in tenants-service, which goes away with tenants.
+    private async validateNewWalletAddresses(addresses: ChainAddress[]): Promise<void> {
         this.walletAssociationGuard(addresses);
         await Promise.all(
             addresses.map(async (address) => {
-                const [walletAlreadyTaken, nonceIsNotZero, isContract] = await Promise.all([
+                const [walletAlreadyTaken, accountIsUnused] = await Promise.all([
                     this.repos.users.walletExistInSystem(address),
-                    this.rpc.nonceFor(address).then((nonce) => nonce !== 0n),
-                    this.rpc.isContract(address)
+                    this.chain.accountIsUnused(address)
                 ]);
 
-                if (walletAlreadyTaken || nonceIsNotZero || isContract) {
+                if (walletAlreadyTaken || !accountIsUnused) {
                     throw new InvalidInputError(`Address ${address} cannot be added`);
                 }
             })

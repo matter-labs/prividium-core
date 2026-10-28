@@ -1,7 +1,8 @@
 import { createHash, createHmac, hkdfSync, timingSafeEqual } from 'node:crypto';
 import { hasSystemPermission, type RoleHolder } from '@repo/access-control';
+import { areChainAddressesEqual, type ChainAddress } from '@repo/api-kit';
 import { fromUnixTime, isFuture } from 'date-fns';
-import { type Address, type Hex, isAddressEqual, verifyMessage } from 'viem';
+import { type Address, type Hex, verifyMessage } from 'viem';
 import { parseSiweMessage } from 'viem/siwe';
 import type { Repositories, TxType } from '../db';
 import { type TargetType, TargetTypes, type UserSource, UserSources } from '../db/schema';
@@ -81,11 +82,11 @@ export class SiweService {
 
     /** `rpc` when the login skips SSO: always for the watchdog, and for an allowlisted wallet while wallet login is off. */
     sessionScopeFor(
-        user: RoleHolder & { source: UserSource; wallets: readonly { walletAddress: Address }[] },
+        user: RoleHolder & { source: UserSource; wallets: readonly { walletAddress: ChainAddress }[] },
         address: Address
     ): 'rpc' | undefined {
         if (this.walletLoginEnabled && user.source !== UserSources.enum.watchdog) return undefined;
-        if (!user.wallets.some((wallet) => isAddressEqual(wallet.walletAddress, address))) {
+        if (!user.wallets.some((wallet) => areChainAddressesEqual(wallet.walletAddress, address))) {
             throw new WalletNotLinkedError();
         }
         if (hasSystemPermission(user, 'admin_read') || hasSystemPermission(user, 'admin_write')) {

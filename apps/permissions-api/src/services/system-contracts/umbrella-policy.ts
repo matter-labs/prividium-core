@@ -1,3 +1,4 @@
+import type { ChainAddress } from '@repo/api-kit';
 import { type Address, type Hex, toFunctionSelector } from 'viem';
 
 type UmbrellaPolicy = {
@@ -49,7 +50,11 @@ const selectorsByAddress = new Map(
     ])
 );
 
-export function canInheritSystemContractUmbrella(address: Address, selector: Hex, allowSystemReads: boolean): boolean {
+export function canInheritSystemContractUmbrella(
+    address: ChainAddress,
+    selector: Hex,
+    allowSystemReads: boolean
+): boolean {
     const policy = selectorsByAddress.get(address.toLowerCase());
     if (!policy) return true;
     const normalizedSelector = selector.toLowerCase() as Hex;

@@ -1,5 +1,6 @@
+import type { ChainAddress } from '@repo/api-kit';
 import { Abi as AbiSchema } from 'abitype/zod';
-import { type Abi, type AbiFunction, type Address, toFunctionSelector } from 'viem';
+import { type Abi, type AbiFunction, toFunctionSelector } from 'viem';
 import { z } from 'zod/v4';
 import type { Repositories } from '../db';
 import type { MethodAccessType } from '../db/schema';
@@ -22,7 +23,7 @@ type FunctionData = {
 };
 
 export type FilteredAbiResult = {
-    contractAddress: Address;
+    contractAddress: ChainAddress;
     name: string | null;
     abi: Record<string, unknown>[];
     functions: FunctionData[];
@@ -42,7 +43,7 @@ export class ContractAbiService {
         this.multiOrgEnabled = multiOrgEnabled;
     }
 
-    async getFilteredAbi(user: User, contractAddress: Address): Promise<FilteredAbiResult> {
+    async getFilteredAbi(user: User, contractAddress: ChainAddress): Promise<FilteredAbiResult> {
         const userRoleIds = user.roles.map((r) => r.id);
 
         const contract = await this.repos.contracts.findByAddress(contractAddress);
@@ -73,7 +74,7 @@ export class ContractAbiService {
         const filteredAbi = this.filterAbi(fullAbi, accessibleSelectors);
 
         return {
-            contractAddress: contract.contractAddress as Address,
+            contractAddress: contract.contractAddress,
             name: contract.name,
             abi: filteredAbi as unknown as Record<string, unknown>[],
             functions: [...accessibleFunctionMap.values()]
@@ -124,7 +125,7 @@ export class ContractAbiService {
     }
 
     private async buildPermissionMap(
-        contractAddress: Address,
+        contractAddress: ChainAddress,
         templateId: number | null
     ): Promise<Map<string, Permission>> {
         const contractPermissions =

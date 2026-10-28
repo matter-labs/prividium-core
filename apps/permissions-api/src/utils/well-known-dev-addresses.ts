@@ -1,4 +1,5 @@
-import { type Address, isAddressEqual } from 'viem';
+import { areChainAddressesEqual, type ChainAddress } from '@repo/api-kit';
+import type { Address } from 'viem';
 
 /**
  * EOA addresses whose private keys are publicly known because they ship as defaults
@@ -82,6 +83,6 @@ export const WELL_KNOWN_DEV_ADDRESSES: readonly Address[] = [
     ...GANACHE_DETERMINISTIC
 ];
 
-export function isWellKnownDevAddress(address: Address): boolean {
-    return WELL_KNOWN_DEV_ADDRESSES.some((known) => isAddressEqual(known, address));
+export function isWellKnownDevAddress(address: ChainAddress): boolean {
+    return WELL_KNOWN_DEV_ADDRESSES.some((known) => areChainAddressesEqual(known, address));
 }
