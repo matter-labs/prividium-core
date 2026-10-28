@@ -6,6 +6,7 @@
     "exports": {
         "./src/build-app": "./src/build-app.ts",
         "./src/build-policy-app": "./src/build-policy-app.ts",
+        "./src/chains": "./src/chains/index.ts",
         "./src/chains/evm": "./src/chains/evm/index.ts",
         "./src/chains/evm/system-contracts": "./src/chains/evm/system-contracts.ts",
         "./src/core-facts/repositories-core-facts": "./src/core-facts/repositories-core-facts.ts",

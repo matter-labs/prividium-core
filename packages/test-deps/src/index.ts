@@ -6,6 +6,7 @@ export {
     startPostgres,
     stopTestDeps,
     TestDatabaseBuilder,
+    teardownWithin,
     templateDb,
     truncateTables,
     withAdminConnection

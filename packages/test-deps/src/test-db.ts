@@ -95,6 +95,22 @@ export async function stopTestDeps(): Promise<void> {
     });
 }
 
+// Vitest awaits a worker-scoped fixture's teardown with no time limit, so a close still waiting on an
+// open request or connection would hang the whole run instead of failing one step.
+export async function teardownWithin(label: string, step: () => Promise<unknown>, timeoutMs = 15_000): Promise<void> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timedOut = new Promise<true>((resolve) => {
+        timer = setTimeout(() => resolve(true), timeoutMs);
+    });
+    try {
+        if ((await Promise.race([step().then(() => false), timedOut])) === true) {
+            console.warn(`${label} did not finish within ${timeoutMs} ms; shutting down without it`);
+        }
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
 // Clones per worker kept ready; a clone takes ~150 ms, most unit tests less.
 const SPARE_DATABASES = 2;
 
@@ -138,6 +154,13 @@ export class TestDatabaseBuilder<TDB> {
 
         this.dbs.set(db, { name, fn: fn!, promise });
         return db;
+    }
+
+    /** The url of a database this builder made, for a process outside the test to connect to. */
+    urlOf(db: TDB): string {
+        const name = this.dbs.get(db)?.name;
+        if (name === undefined) throw new Error('Not a database of this builder');
+        return `${CLUSTER_URL}/${name}`;
     }
 
     /**
@@ -205,7 +228,8 @@ export class TestDatabaseBuilder<TDB> {
             return;
         }
         this.dbs.delete(db);
-        await (db as { close: () => Promise<void> }).close();
+        // A connection still checked out keeps close() waiting; the forced drop below ends it instead.
+        await teardownWithin(`Closing ${dbData.name}`, () => (db as { close: () => Promise<void> }).close());
         await this.waitForBackendsToClose(dbData.name);
         // Keep WITH (FORCE): a backend that outlives the wait would otherwise make DROP fail
         // silently, leaving an orphaned DB whose catalog locks block other workers' clones.
