@@ -1,17 +1,17 @@
 import { eq } from 'drizzle-orm';
 import { type Abi, type Address, encodeFunctionData, getAddress, parseAbi, toFunctionSelector } from 'viem';
 import { beforeEach, describe, expect } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
-import { Repositories } from '../db';
-import { contractFunctionPermissionsTable, contractsTable } from '../db/schema';
-import type { SystemPermission } from '../permissions/system-permissions';
-import { ContractFunctionPermissionsRepository } from '../repositories/contract-function-permissions-repository';
-import { ContractsRepository } from '../repositories/contracts-repository';
-import { OrganizationsRepository } from '../repositories/organizations-repository';
-import { TemplatePermissionsRepository } from '../repositories/template-permissions-repository';
-import { TemplatesRepository } from '../repositories/templates-repository';
-import { TenantsRepository } from '../repositories/tenants-repository';
-import type { User, UserWithRoles } from '../repositories/users-repository';
+import { Repositories } from '#db/index';
+import { contractFunctionPermissionsTable, contractsTable } from '#db/schema';
+import type { SystemPermission } from '#permissions/system-permissions';
+import { ContractFunctionPermissionsRepository } from '#repositories/contract-function-permissions-repository';
+import { ContractsRepository } from '#repositories/contracts-repository';
+import { OrganizationsRepository } from '#repositories/organizations-repository';
+import { TemplatePermissionsRepository } from '#repositories/template-permissions-repository';
+import { TemplatesRepository } from '#repositories/templates-repository';
+import { TenantsRepository } from '#repositories/tenants-repository';
+import type { User, UserWithRoles } from '#repositories/users-repository';
+import { type Fixture, it } from '#test/unit-test-context';
 import { AuthorizationService, type MethodAuthorizationRequest } from './authorization-service';
 
 const transferAbi: Abi = [

@@ -1,6 +1,6 @@
 import { z } from 'zod/v4';
-import { storedChainAddressSchema } from '../../utils/schemas/address';
-import { hexSchema } from '../../utils/schemas/hex-schema';
+import { storedChainAddressSchema } from '#utils/schemas/address';
+import { hexSchema } from '#utils/schemas/hex-schema';
 
 export const ContractAbiResponseSchema = z.object({
     contractAddress: storedChainAddressSchema,

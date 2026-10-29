@@ -1,7 +1,7 @@
 import { type Address, getAddress, toFunctionSelector, toFunctionSignature } from 'viem';
 import { describe, expect, it } from 'vitest';
-import { ZKSYNC_SYSTEM_CONTRACTS } from '../../chains/evm/system-contracts';
-import { abiFromString } from '../../utils/abi';
+import { ZKSYNC_SYSTEM_CONTRACTS } from '#chains/evm/system-contracts';
+import { abiFromString } from '#utils/abi';
 import { canInheritSystemContractUmbrella, SYSTEM_CONTRACT_UMBRELLA_POLICIES } from './umbrella-policy';
 
 describe('system-contract umbrella policy consistency', () => {

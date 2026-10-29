@@ -1,9 +1,9 @@
 import { it as baseIt } from '@vitest/runner';
 import pino from 'pino';
-import type { CreateContractDeployment } from '../../src/repositories/contract-deployments-repository';
-import type { DeployOutcome } from '../../src/rpc/contract-deployment-context';
-import type { BundlerContext } from '../../src/rpc/methods/handlers/bundler/utils/is-bundler-context';
-import type { AuthorizedRpcContext } from '../../src/rpc/rpc-service';
+import type { CreateContractDeployment } from '#repositories/contract-deployments-repository';
+import type { DeployOutcome } from '#rpc/contract-deployment-context';
+import type { BundlerContext } from '#rpc/methods/handlers/bundler/utils/is-bundler-context';
+import type { AuthorizedRpcContext } from '#rpc/rpc-service';
 import { TestExternalRpc } from './test-external-rpc';
 import { createDispatcherConfig } from './test-mocks';
 import { TestRpcAuthorizer } from './test-rpc-authorizer';

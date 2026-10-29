@@ -1,11 +1,11 @@
 import { eq } from 'drizzle-orm';
 import pino from 'pino';
 import { describe, expect, vi } from 'vitest';
-import { it } from '../../test/unit-test-context';
-import { chainRegistry } from '../chains';
-import { ZKSYNC_SYSTEM_CONTRACTS } from '../chains/evm/system-contracts';
-import { Repositories } from '../db';
-import { contractFunctionPermissionsTable, contractsTable } from '../db/schema';
+import { ZKSYNC_SYSTEM_CONTRACTS } from '#chains/evm/system-contracts';
+import { chainRegistry } from '#chains/index';
+import { Repositories } from '#db/index';
+import { contractFunctionPermissionsTable, contractsTable } from '#db/schema';
+import { it } from '#test/unit-test-context';
 import { prepareDatabase } from './prepare-database';
 import { syncSystemContracts } from './system-contracts/sync';
 

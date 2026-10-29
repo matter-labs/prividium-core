@@ -1,5 +1,5 @@
 import { AUDIT_ACTIONS } from '@repo/access-control';
-import type { AuditLogWithAudience } from '../repositories/audit-logs-repository';
+import type { AuditLogWithAudience } from '#repositories/audit-logs-repository';
 
 export function organizationAuditSummary(log: AuditLogWithAudience, organizationId: string) {
     const { affectedOrganizationIds: _audience, ...event } = log;

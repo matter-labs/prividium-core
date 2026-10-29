@@ -1,6 +1,6 @@
-import { RpcMethodNotFound } from '../../../../errors';
-import type { AuthorizedRpcContext } from '../../../../rpc-service';
-import type { ExternalRpc } from '../../../../target-rpc';
+import { RpcMethodNotFound } from '#rpc/errors';
+import type { AuthorizedRpcContext } from '#rpc/rpc-service';
+import type { ExternalRpc } from '#rpc/target-rpc';
 
 export type BundlerContext = AuthorizedRpcContext & { bundlerRpc: ExternalRpc };
 

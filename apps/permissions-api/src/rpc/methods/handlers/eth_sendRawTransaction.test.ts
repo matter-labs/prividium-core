@@ -1,10 +1,10 @@
 import { type Hex, serializeTransaction } from 'viem';
 import { privateKeyToAccount, signAuthorization } from 'viem/accounts';
 import { describe, expect, it } from 'vitest';
-import { rpcUnitTest } from '../../../../test/rpc/rpc-unit-test-utils';
-import { ForbiddenRpcError, WrongArguments } from '../../errors';
-import { response } from '../../json-rpc';
-import type { AuthorizedRpcContext } from '../../rpc-service';
+import { ForbiddenRpcError, WrongArguments } from '#rpc/errors';
+import { response } from '#rpc/json-rpc';
+import type { AuthorizedRpcContext } from '#rpc/rpc-service';
+import { rpcUnitTest } from '#test/rpc/rpc-unit-test-utils';
 import { decodeTx, eth_sendRawTransaction } from './eth_sendRawTransaction';
 
 // Deterministic test key (NEVER use for anything but tests).

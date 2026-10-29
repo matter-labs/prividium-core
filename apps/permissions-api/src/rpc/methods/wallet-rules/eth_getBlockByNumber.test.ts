@@ -1,8 +1,8 @@
 import { describe, expect } from 'vitest';
-import { createBlockWithTxHashes } from '../../../../test/rpc/create-blocks';
-import { rpcUnitTest } from '../../../../test/rpc/rpc-unit-test-utils';
-import { response } from '../../json-rpc';
-import type { WalletContext } from '../../rpc-service';
+import { response } from '#rpc/json-rpc';
+import type { WalletContext } from '#rpc/rpc-service';
+import { createBlockWithTxHashes } from '#test/rpc/create-blocks';
+import { rpcUnitTest } from '#test/rpc/rpc-unit-test-utils';
 import { eth_getBlockByNumber } from './eth_getBlockByNumber';
 
 describe('wallet rule: eth_getBlockByNumber', () => {

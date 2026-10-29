@@ -1,14 +1,14 @@
 import { subMinutes, subSeconds } from 'date-fns';
 import type { Address } from 'viem';
 import { beforeEach, describe, expect } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
-import { Repositories } from '../db';
-import { servicesTable, siweChallengeLogTable, tenantsTable } from '../db/schema';
-import { UsersRepository } from '../repositories/users-repository';
-import { AuditLogsService, fakeAuditLogContextForTests } from '../services/audit-logs-service';
-import { SiweService } from '../services/siwe-service';
-import { InvalidInputError, RateLimitError, WalletLoginDisabledError } from '../utils/error-types';
+import { Repositories } from '#db/index';
+import { servicesTable, siweChallengeLogTable, tenantsTable } from '#db/schema';
+import { UsersRepository } from '#repositories/users-repository';
+import { type Fixture, it } from '#test/unit-test-context';
+import { InvalidInputError, RateLimitError, WalletLoginDisabledError } from '#utils/error-types';
+import { AuditLogsService, fakeAuditLogContextForTests } from './audit-logs-service';
 import { SiweChallengeService } from './siwe-challenge-service';
+import { SiweService } from './siwe-service';
 
 type ServiceDeps = ConstructorParameters<typeof SiweChallengeService>[0];
 

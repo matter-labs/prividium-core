@@ -1,8 +1,8 @@
 import { AUDIT_ACTIONS } from '@repo/access-control';
 import { z } from 'zod/v4';
-import type { FastifyServer } from '../build-app';
-import { withOverbroadFlag } from '../utils/cidr';
-import { ErrorResponseSchema, PaginationQuerySchema, PublicIdSchema } from '../utils/schemas/fastify-common';
+import type { FastifyServer } from '#build-app';
+import { withOverbroadFlag } from '#utils/cidr';
+import { ErrorResponseSchema, PaginationQuerySchema, PublicIdSchema } from '#utils/schemas/fastify-common';
 import { CreateIpWhitelistBodySchema, IpWhitelistSchema, PaginatedIpWhitelistSchema } from './schemas/ip-whitelist';
 
 const createIpWhitelistBodySchema = CreateIpWhitelistBodySchema.omit({ tenantId: true });

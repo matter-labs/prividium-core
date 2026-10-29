@@ -1,8 +1,8 @@
 import type { PublicClient, WalletClient } from 'viem';
-import type { FastifyServer } from '../build-app';
-import { FaucetService, type FaucetServiceConfig } from '../services/faucet-service';
-import { ErrorResponseSchema, PaginationQuerySchema } from '../utils/schemas/fastify-common';
-import { paginatedResult } from '../utils/schemas/pagination';
+import type { FastifyServer } from '#build-app';
+import { FaucetService, type FaucetServiceConfig } from '#services/faucet-service';
+import { ErrorResponseSchema, PaginationQuerySchema } from '#utils/schemas/fastify-common';
+import { paginatedResult } from '#utils/schemas/pagination';
 import { AdminFaucetStatusSchema, FaucetClaimSchema } from './schemas/faucet';
 
 type Deps = {

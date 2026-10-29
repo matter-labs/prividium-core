@@ -2,9 +2,9 @@ import { eq } from 'drizzle-orm';
 import pino from 'pino';
 import { type Abi, decodeFunctionData, encodeFunctionData, parseAbi, toFunctionSelector } from 'viem';
 import { describe, expect } from 'vitest';
-import { it } from '../../../test/unit-test-context';
-import { ZKSYNC_SYSTEM_CONTRACTS } from '../../chains/evm/system-contracts';
-import { contractsTable } from '../../db/schema';
+import { ZKSYNC_SYSTEM_CONTRACTS } from '#chains/evm/system-contracts';
+import { contractsTable } from '#db/schema';
+import { it } from '#test/unit-test-context';
 import { isSystemContractAddress } from './registry';
 import { syncSystemContracts } from './sync';
 

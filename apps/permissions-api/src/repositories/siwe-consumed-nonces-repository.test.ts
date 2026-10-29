@@ -1,8 +1,8 @@
 import { subMinutes } from 'date-fns';
 import { describe, expect } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
-import { Repositories } from '../db';
-import { siweConsumedNoncesTable } from '../db/schema';
+import { Repositories } from '#db/index';
+import { siweConsumedNoncesTable } from '#db/schema';
+import { type Fixture, it } from '#test/unit-test-context';
 import { SiweConsumedNoncesRepository } from './siwe-consumed-nonces-repository';
 
 const NONCE_HASH = 'a'.repeat(64);

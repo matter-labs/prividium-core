@@ -1,7 +1,7 @@
-import { ForbiddenRpcError } from '../../errors';
-import type { JsonRpcResponse } from '../../json-rpc';
-import { type AnyParams, anyParams } from '../../params-schemas';
-import type { AuthorizedRpcContext, BaseContext, MethodHandler } from '../../rpc-service';
+import { ForbiddenRpcError } from '#rpc/errors';
+import type { JsonRpcResponse } from '#rpc/json-rpc';
+import { type AnyParams, anyParams } from '#rpc/params-schemas';
+import type { AuthorizedRpcContext, BaseContext, MethodHandler } from '#rpc/rpc-service';
 
 export function forbiddenMethod(name: string): MethodHandler<BaseContext, AnyParams> {
     return {

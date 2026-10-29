@@ -1,8 +1,8 @@
 import { and, asc, eq, isNull } from 'drizzle-orm';
-import { isUniqueConstraintError } from '../db/errors';
-import { oidcProvidersTable, organizationsTable } from '../db/schema';
-import { getFirstOrThrow } from '../db/utils';
-import { EntityAlreadyExistsError } from '../utils/error-types';
+import { isUniqueConstraintError } from '#db/errors';
+import { oidcProvidersTable, organizationsTable } from '#db/schema';
+import { getFirstOrThrow } from '#db/utils';
+import { EntityAlreadyExistsError } from '#utils/error-types';
 import { EntityRepository } from './entity-repository';
 
 const OidcProvidersRepositoryBase = EntityRepository({

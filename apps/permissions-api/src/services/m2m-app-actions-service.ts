@@ -1,10 +1,10 @@
 import { type ChainAddress, type ChainNode, chainAddressListIncludes } from '@repo/api-kit';
-import type { Repositories } from '../db';
-import { UserSources } from '../db/schema';
-import { UNCHECKED_PERMISSIONS } from '../permissions/permission-catalog';
-import type { TenantUser } from '../repositories/tenants-repository';
-import type { User } from '../repositories/users-repository';
-import { EntityNotFound, InvalidInputError, WalletLimitExceededError } from '../utils/error-types';
+import type { Repositories } from '#db/index';
+import { UserSources } from '#db/schema';
+import { UNCHECKED_PERMISSIONS } from '#permissions/permission-catalog';
+import type { TenantUser } from '#repositories/tenants-repository';
+import type { User } from '#repositories/users-repository';
+import { EntityNotFound, InvalidInputError, WalletLimitExceededError } from '#utils/error-types';
 import type { WalletAssociationGuard } from './wallet-association-guard';
 
 type WalletAddresses = TenantUser['walletAddresses'];

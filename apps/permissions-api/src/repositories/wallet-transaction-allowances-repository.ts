@@ -1,11 +1,11 @@
 import { and, eq, gt } from 'drizzle-orm';
 import type { Address, Hex } from 'viem';
 import type { z } from 'zod/v4';
-import { walletTransactionAllowancesTable } from '../db/schema';
-import { createInsertSchema } from '../utils/drizzle-zod-schema-factory';
-import { EntityNotFound } from '../utils/error-types';
-import { hexSchema } from '../utils/schemas/hex-schema';
-import { bigintUint256NumericSchema } from '../utils/schemas/numeric';
+import { walletTransactionAllowancesTable } from '#db/schema';
+import { createInsertSchema } from '#utils/drizzle-zod-schema-factory';
+import { EntityNotFound } from '#utils/error-types';
+import { hexSchema } from '#utils/schemas/hex-schema';
+import { bigintUint256NumericSchema } from '#utils/schemas/numeric';
 import { BaseRepository } from './base-repository';
 
 export const CreateWalletTransactionAllowanceSchema = createInsertSchema(walletTransactionAllowancesTable).extend({

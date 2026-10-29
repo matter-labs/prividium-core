@@ -1,7 +1,7 @@
-import type { Repositories } from '../db';
-import type { PasskeyCredential } from '../repositories/passkey-credentials-repository';
-import type { User } from '../repositories/users-repository';
-import type { WebAuthnAuthenticationResponse } from '../utils/schemas/webauthn';
+import type { Repositories } from '#db/index';
+import type { PasskeyCredential } from '#repositories/passkey-credentials-repository';
+import type { User } from '#repositories/users-repository';
+import type { WebAuthnAuthenticationResponse } from '#utils/schemas/webauthn';
 import type { AuditLogContext } from './audit-logs-service';
 import type { AuthenticationBeginResult, PasskeyService } from './passkey-service';
 

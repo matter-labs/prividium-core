@@ -1,10 +1,10 @@
 import { z } from 'zod/v4';
-import { addressSchema } from '../../../utils/schemas/address';
-import { hexSchema } from '../../../utils/schemas/hex-schema';
-import type { JsonRpcResponse } from '../../json-rpc';
-import { forwardAndRecordSubmission } from '../../rpc-observer';
-import type { AuthorizedRpcContext, MethodHandler } from '../../rpc-service';
-import { handleAndVerifyDeployment, isDeploy } from '../generic-handlers';
+import type { JsonRpcResponse } from '#rpc/json-rpc';
+import { handleAndVerifyDeployment, isDeploy } from '#rpc/methods/generic-handlers/index';
+import { forwardAndRecordSubmission } from '#rpc/rpc-observer';
+import type { AuthorizedRpcContext, MethodHandler } from '#rpc/rpc-service';
+import { addressSchema } from '#utils/schemas/address';
+import { hexSchema } from '#utils/schemas/hex-schema';
 import { decodeTx } from './eth_sendRawTransaction';
 
 const paramsSchema = z.tuple([hexSchema], z.unknown());

@@ -2,12 +2,12 @@
 
 import { decodeAbiParameters, type Hex } from 'viem';
 import { z } from 'zod/v4';
-import { hexSchema } from '../../../utils/schemas/hex-schema';
-import { ForbiddenRpcError } from '../../errors';
-import { errorResponse, response } from '../../json-rpc';
-import type { AnyParams } from '../../params-schemas';
-import { anyParams } from '../../params-schemas';
-import type { AuthorizedRpcContext, MethodHandler } from '../../rpc-service';
+import { ForbiddenRpcError } from '#rpc/errors';
+import { errorResponse, response } from '#rpc/json-rpc';
+import type { AnyParams } from '#rpc/params-schemas';
+import { anyParams } from '#rpc/params-schemas';
+import type { AuthorizedRpcContext, MethodHandler } from '#rpc/rpc-service';
+import { hexSchema } from '#utils/schemas/hex-schema';
 
 // JSON-RPC execution revert error code (EIP-1474).
 const EXECUTION_REVERT_CODE = 3;

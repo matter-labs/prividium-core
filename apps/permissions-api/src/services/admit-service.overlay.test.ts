@@ -1,7 +1,7 @@
 import { type AuthorizationOverlay, OverlayRefusal, type OverlayVerdict } from '@repo/api-kit';
 import { pad } from 'viem';
 import { describe, expect, it, vi } from 'vitest';
-import type { Repositories } from '../db';
+import type { Repositories } from '#db/index';
 import { AdmitService } from './admit-service';
 import { AuthorizationService } from './authorization-service';
 import type { TransactionClassifier } from './transaction-classifier';

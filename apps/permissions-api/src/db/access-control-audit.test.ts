@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { describe, expect } from 'vitest';
-import { it } from '../../test/unit-test-context';
+import { it } from '#test/unit-test-context';
 import { type DB, Repositories } from './index';
 import {
     m2mApplicationsOrganizationsTable,

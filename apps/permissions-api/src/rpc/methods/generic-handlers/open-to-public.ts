@@ -1,6 +1,6 @@
-import type { JsonRpcResponse } from '../../json-rpc';
-import { type AnyParams, anyParams } from '../../params-schemas';
-import type { BaseContext, MethodHandler } from '../../rpc-service';
+import type { JsonRpcResponse } from '#rpc/json-rpc';
+import { type AnyParams, anyParams } from '#rpc/params-schemas';
+import type { BaseContext, MethodHandler } from '#rpc/rpc-service';
 
 /**
  *  Allows a method to be exposed to the public (does not require a valid auth token);

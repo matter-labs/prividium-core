@@ -1,8 +1,8 @@
 import { AUDIT_ACTIONS } from '@repo/access-control';
 import { expect } from 'vitest';
-import { it } from '../../test/unit-test-context';
-import { Repositories } from '../db';
-import { auditLogsTable, organizationsTable } from '../db/schema';
+import { Repositories } from '#db/index';
+import { auditLogsTable, organizationsTable } from '#db/schema';
+import { it } from '#test/unit-test-context';
 import { type AuditLogContextData, AuditLogsService } from './audit-logs-service';
 
 it.for([

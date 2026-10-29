@@ -1,10 +1,13 @@
 import { z } from 'zod/v4';
-import { forwardFilteredReadNodeError } from '../../filtered-read-error';
-import type { JsonRpcResponse } from '../../json-rpc';
-import { response } from '../../json-rpc';
-import { type AnyParams, anyParams } from '../../params-schemas';
-import type { AuthorizedRpcContext, MethodHandler } from '../../rpc-service';
-import { filterTransactionAndReceipt, participantAddresses } from '../generic-handlers/filter-associated-transactions';
+import { forwardFilteredReadNodeError } from '#rpc/filtered-read-error';
+import type { JsonRpcResponse } from '#rpc/json-rpc';
+import { response } from '#rpc/json-rpc';
+import {
+    filterTransactionAndReceipt,
+    participantAddresses
+} from '#rpc/methods/generic-handlers/filter-associated-transactions';
+import { type AnyParams, anyParams } from '#rpc/params-schemas';
+import type { AuthorizedRpcContext, MethodHandler } from '#rpc/rpc-service';
 import { TransactionReceiptSchema } from './eth_getTransactionReceipt';
 
 export const BlockReceiptsSchema = z.array(TransactionReceiptSchema.unwrap()); // Schema is nullable so we need to unwrap it

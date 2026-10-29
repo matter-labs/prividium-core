@@ -4,7 +4,7 @@ import {
     decodeSsoCalldata,
     ERC7579_CALLTYPE,
     SSO_EXECUTE_SELECTOR
-} from '../../../../src/rpc/methods/handlers/bundler/utils/sso-calldata';
+} from '#rpc/methods/handlers/bundler/utils/sso-calldata';
 
 // =============================================================================
 // Test ABI Definitions (mirrors production constants)

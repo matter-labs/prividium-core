@@ -2,8 +2,8 @@ import { addDays, addHours, addMinutes, subSeconds } from 'date-fns';
 import { sql } from 'drizzle-orm';
 import type { Address } from 'viem';
 import { beforeEach, describe, expect } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
-import { sessionsTable } from '../db/schema';
+import { sessionsTable } from '#db/schema';
+import { type Fixture, it } from '#test/unit-test-context';
 import { SessionsRepository } from './sessions-repository';
 import { type User, UsersRepository } from './users-repository';
 

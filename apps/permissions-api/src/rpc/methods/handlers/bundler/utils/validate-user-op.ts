@@ -1,7 +1,7 @@
 import type { Hex } from 'viem';
-import { methodAccessSchema } from '../../../../../db/schema';
-import type { UserOperation } from '../../../../../utils/schemas/user-operation';
-import { type DispatchedCall, verifyAndParseDispatcher } from '../../../dispatchers';
+import { methodAccessSchema } from '#db/schema';
+import { type DispatchedCall, verifyAndParseDispatcher } from '#rpc/methods/dispatchers/index';
+import type { UserOperation } from '#utils/schemas/user-operation';
 import type { BundlerContext } from './is-bundler-context';
 
 export type ValidationResult = { authorized: true } | { authorized: false; error: string };

@@ -1,7 +1,7 @@
 import { areChainAddressesEqual, type ChainAddress } from '@repo/api-kit';
 import type { Address } from 'viem';
-import { InvalidInputError } from '../utils/error-types';
-import { isWellKnownDevAddress } from '../utils/well-known-dev-addresses';
+import { InvalidInputError } from '#utils/error-types';
+import { isWellKnownDevAddress } from '#utils/well-known-dev-addresses';
 
 export type WalletAssociationGuard = (addresses: readonly ChainAddress[]) => void;
 

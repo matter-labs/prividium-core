@@ -1,9 +1,9 @@
 import { z } from 'zod/v4';
-import type { FastifyServer } from '../build-app';
-import { requireOrgAdmin } from '../middleware/require-org-admin';
-import type { SessionsAuthValidator } from '../middleware/sessions-auth';
-import type { PermissionCatalog } from '../permissions/permission-catalog';
-import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
+import type { FastifyServer } from '#build-app';
+import { requireOrgAdmin } from '#middleware/require-org-admin';
+import type { SessionsAuthValidator } from '#middleware/sessions-auth';
+import type { PermissionCatalog } from '#permissions/permission-catalog';
+import { ErrorResponseSchema } from '#utils/schemas/fastify-common';
 import { type FeaturePermissionListing, FeaturePermissionsListSchema } from './schemas/feature-permissions';
 
 type Deps = {

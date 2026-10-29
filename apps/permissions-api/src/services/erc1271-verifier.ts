@@ -1,6 +1,6 @@
 import { type Address, encodeFunctionData, type Hex, hashTypedData, type PublicClient, zeroAddress } from 'viem';
-import { areHexEqual } from '../utils/hex';
-import type { PinoLogger } from '../utils/logger';
+import { areHexEqual } from '#utils/hex';
+import type { PinoLogger } from '#utils/logger';
 
 const IERC1271_ABI = [
     {

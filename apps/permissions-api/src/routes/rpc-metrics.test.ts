@@ -2,12 +2,12 @@ import Fastify from 'fastify';
 import { serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fastify-type-provider-zod';
 import pino from 'pino';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { FastifyServer } from '../build-app';
-import { INVALID_REQUEST_ERROR_CODE } from '../rpc/constants';
-import { MAX_RPC_METHOD_NAME_LENGTH } from '../rpc/json-rpc';
-import type { Authorizer } from '../rpc/permissions';
-import type { ExternalRpc } from '../rpc/target-rpc';
-import { metricsServer } from '../utils/metrics';
+import type { FastifyServer } from '#build-app';
+import { INVALID_REQUEST_ERROR_CODE } from '#rpc/constants';
+import { MAX_RPC_METHOD_NAME_LENGTH } from '#rpc/json-rpc';
+import type { Authorizer } from '#rpc/permissions/index';
+import type { ExternalRpc } from '#rpc/target-rpc';
+import { metricsServer } from '#utils/metrics';
 import { regularRpcRoutes } from './regular-rpc-routes';
 import { serviceRpcRoutes, walletRpcRoutes } from './rpc-routes';
 

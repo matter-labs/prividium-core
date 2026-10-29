@@ -1,19 +1,19 @@
 import { AUDIT_ACTIONS, requiresMfa } from '@repo/access-control';
 import { z } from 'zod/v4';
-import type { FastifyServer } from '../build-app';
-import type { SessionsAuthValidator } from '../middleware/sessions-auth';
-import type { AdminMfaService } from '../services/admin-mfa-service';
-import type { ApplicationsService } from '../services/applications-service';
-import { type AuditLogsService, auditLogContext } from '../services/audit-logs-service';
-import type { JwtValidatorService } from '../services/jwt-validator-service';
-import type { SessionService } from '../services/session-service';
-import type { SiweService } from '../services/siwe-service';
-import { ForbiddenError, UnauthorizedError, WalletNotLinkedError } from '../utils/error-types';
-import { currentSessionSchema, sessionTypes } from '../utils/schemas/auth';
-import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
-import { hexSchema } from '../utils/schemas/hex-schema';
-import { WebAuthnAuthenticationResponseSchema } from '../utils/schemas/webauthn';
-import { selfOriginFromRequest } from '../utils/self-origin';
+import type { FastifyServer } from '#build-app';
+import type { SessionsAuthValidator } from '#middleware/sessions-auth';
+import type { AdminMfaService } from '#services/admin-mfa-service';
+import type { ApplicationsService } from '#services/applications-service';
+import { type AuditLogsService, auditLogContext } from '#services/audit-logs-service';
+import type { JwtValidatorService } from '#services/jwt-validator-service';
+import type { SessionService } from '#services/session-service';
+import type { SiweService } from '#services/siwe-service';
+import { ForbiddenError, UnauthorizedError, WalletNotLinkedError } from '#utils/error-types';
+import { currentSessionSchema, sessionTypes } from '#utils/schemas/auth';
+import { ErrorResponseSchema } from '#utils/schemas/fastify-common';
+import { hexSchema } from '#utils/schemas/hex-schema';
+import { WebAuthnAuthenticationResponseSchema } from '#utils/schemas/webauthn';
+import { selfOriginFromRequest } from '#utils/self-origin';
 import { ApplicationSessionBodySchema, AuthResponseSchema, AuthResponseWithMfaSchema } from './schemas/auth';
 
 interface Deps {

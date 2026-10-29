@@ -3,12 +3,12 @@ import Fastify from 'fastify';
 import { serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fastify-type-provider-zod';
 import pino from 'pino';
 import { afterEach, describe, expect } from 'vitest';
-import { it } from '../../test/unit-test-context';
-import type { FastifyServer } from '../build-app';
-import { type DB, Repositories } from '../db';
-import { errorHandler } from '../error-handler';
-import type { SessionsAuthValidator } from '../middleware/sessions-auth';
-import { PermissionCatalog } from '../permissions/permission-catalog';
+import type { FastifyServer } from '#build-app';
+import { type DB, Repositories } from '#db/index';
+import { errorHandler } from '#error-handler';
+import type { SessionsAuthValidator } from '#middleware/sessions-auth';
+import { PermissionCatalog } from '#permissions/permission-catalog';
+import { it } from '#test/unit-test-context';
 import { featurePermissionsRoutes, orgFeaturePermissionsRoutes } from './feature-permissions-routes';
 
 const catalog = new PermissionCatalog([

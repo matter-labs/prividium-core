@@ -1,8 +1,8 @@
-import { servicesTable } from '../../db/schema';
-import { nameField } from '../../repositories/shared-schemas';
-import { createInsertSchema, createSelectSchema, MANAGED_COLUMNS } from '../../utils/drizzle-zod-schema-factory';
-import { hexSchema } from '../../utils/schemas/hex-schema';
-import { paginatedResult } from '../../utils/schemas/pagination';
+import { servicesTable } from '#db/schema';
+import { nameField } from '#repositories/shared-schemas';
+import { createInsertSchema, createSelectSchema, MANAGED_COLUMNS } from '#utils/drizzle-zod-schema-factory';
+import { hexSchema } from '#utils/schemas/hex-schema';
+import { paginatedResult } from '#utils/schemas/pagination';
 
 export const ServiceSchema = createSelectSchema(servicesTable, {
     publicKey: hexSchema

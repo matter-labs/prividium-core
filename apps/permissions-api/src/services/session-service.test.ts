@@ -1,8 +1,8 @@
 import type { Address } from 'viem';
 import { beforeEach, describe, expect, vi } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
-import { Repositories } from '../db';
-import { UnauthorizedError } from '../utils/error-types';
+import { Repositories } from '#db/index';
+import { type Fixture, it } from '#test/unit-test-context';
+import { UnauthorizedError } from '#utils/error-types';
 import { SessionService } from './session-service';
 
 describe('SessionService', () => {

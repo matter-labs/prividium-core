@@ -1,6 +1,6 @@
 import { z } from 'zod/v4';
-import { oidcProvidersTable } from '../../db/schema';
-import { createInsertSchema, createSelectSchema, TIMESTAMP_COLUMNS } from '../../utils/drizzle-zod-schema-factory';
+import { oidcProvidersTable } from '#db/schema';
+import { createInsertSchema, createSelectSchema, TIMESTAMP_COLUMNS } from '#utils/drizzle-zod-schema-factory';
 
 export const OidcProviderSchema = createSelectSchema(oidcProvidersTable);
 

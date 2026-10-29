@@ -1,4 +1,4 @@
-import type { DbOrTx, RawTxType, TxType } from '../db';
+import type { DbOrTx, RawTxType, TxType } from '#db/index';
 
 type TxAugmentor = (rawTx: RawTxType) => TxType;
 

@@ -1,8 +1,8 @@
 import { type Address, size } from 'viem';
 import type { z } from 'zod/v4';
-import { WATCHDOG_GRANT, WATCHDOG_PUBLIC_CODE_ADDRESSES } from '../../permissions/watchdog-grant';
-import { ForbiddenRpcError } from '../errors';
-import type { AuthorizedRpcContext, MethodHandler } from '../rpc-service';
+import { WATCHDOG_GRANT, WATCHDOG_PUBLIC_CODE_ADDRESSES } from '#permissions/watchdog-grant';
+import { ForbiddenRpcError } from '#rpc/errors';
+import type { AuthorizedRpcContext, MethodHandler } from '#rpc/rpc-service';
 import { createBaseRpcMethodList } from './base-rpc-method-list';
 import { decodeTx, eth_sendRawTransaction } from './handlers';
 

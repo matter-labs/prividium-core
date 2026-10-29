@@ -1,6 +1,6 @@
 import type { Address, Hex } from 'viem';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { TestExternalRpc } from '../../test/rpc/test-external-rpc';
+import { TestExternalRpc } from '#test/rpc/test-external-rpc';
 import { TransactionClassifier } from './transaction-classifier';
 
 const TO = '0x1111111111111111111111111111111111111111' as Address;

@@ -1,10 +1,10 @@
 import { ADMIN_ROLE_ID } from '@repo/access-control';
 import type { Address } from 'viem';
 import { describe, expect } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
-import { Repositories } from '../db';
-import { userRolesTable } from '../db/schema';
-import { InvalidInputError } from '../utils/error-types';
+import { Repositories } from '#db/index';
+import { userRolesTable } from '#db/schema';
+import { type Fixture, it } from '#test/unit-test-context';
+import { InvalidInputError } from '#utils/error-types';
 import { SessionService } from './session-service';
 import { resumeWatchdog, suspendWatchdog, syncWatchdog } from './watchdog-service';
 

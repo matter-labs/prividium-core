@@ -1,10 +1,10 @@
-import type { Repositories } from '../db';
-import type { PermissionCatalog } from '../permissions/permission-catalog';
+import type { Repositories } from '#db/index';
+import type { PermissionCatalog } from '#permissions/permission-catalog';
 import type {
     InsertM2mApplication,
     M2mApplication,
     UpdateOrgM2mApplication
-} from '../repositories/m2m-applications-repository';
+} from '#repositories/m2m-applications-repository';
 
 type M2mTarget = { appId: string; organizationId?: string };
 

@@ -1,7 +1,7 @@
 import { type ChainAddress, type ChainNode, chainAddressListIncludes } from '@repo/api-kit';
-import type { Repositories } from '../db';
-import type { InsertTenantUser, TenantUser } from '../repositories/tenants-repository';
-import { InvalidInputError, WalletLimitExceededError } from '../utils/error-types';
+import type { Repositories } from '#db/index';
+import type { InsertTenantUser, TenantUser } from '#repositories/tenants-repository';
+import { InvalidInputError, WalletLimitExceededError } from '#utils/error-types';
 import type { WalletAssociationGuard } from './wallet-association-guard';
 
 type WalletAddresses = TenantUser['walletAddresses'];

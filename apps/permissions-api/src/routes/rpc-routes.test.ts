@@ -2,9 +2,9 @@ import Fastify from 'fastify';
 import { serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fastify-type-provider-zod';
 import pino from 'pino';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { FastifyServer } from '../build-app';
-import { INTERNAL_RPC_ERROR, METHOD_NOT_FOUND_ERROR_CODE } from '../rpc/constants';
-import { type Authorizer, type AuthorizerFactory, RpcAuthorizer } from '../rpc/permissions';
+import type { FastifyServer } from '#build-app';
+import { INTERNAL_RPC_ERROR, METHOD_NOT_FOUND_ERROR_CODE } from '#rpc/constants';
+import { type Authorizer, type AuthorizerFactory, RpcAuthorizer } from '#rpc/permissions/index';
 import { rpcRoutes } from './rpc-routes';
 
 const apps: FastifyServer[] = [];

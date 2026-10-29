@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, vi } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
-import { Repositories } from '../db';
-import { EntityNotFound } from '../utils/error-types';
+import { Repositories } from '#db/index';
+import { type Fixture, it } from '#test/unit-test-context';
+import { EntityNotFound } from '#utils/error-types';
 import { ApplicationsService } from './applications-service';
 import { SessionService } from './session-service';
 

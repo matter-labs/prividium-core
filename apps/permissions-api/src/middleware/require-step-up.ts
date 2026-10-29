@@ -1,6 +1,6 @@
 import { AUDIT_ACTIONS } from '@repo/access-control';
 import type { FastifyReply, FastifyRequest, HookHandlerDoneFunction } from 'fastify';
-import { StepUpRejected, type StepUpService } from '../services/step-up-service';
+import { StepUpRejected, type StepUpService } from '#services/step-up-service';
 
 export const STEP_UP_PROOF_HEADER = 'x-step-up-proof';
 

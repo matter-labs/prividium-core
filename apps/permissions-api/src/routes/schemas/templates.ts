@@ -1,7 +1,7 @@
-import { contractTemplatesTable } from '../../db/schema';
-import { nameField } from '../../repositories/shared-schemas';
-import { createInsertSchema, createSelectSchema, TIMESTAMP_COLUMNS } from '../../utils/drizzle-zod-schema-factory';
-import { paginatedResult } from '../../utils/schemas/pagination';
+import { contractTemplatesTable } from '#db/schema';
+import { nameField } from '#repositories/shared-schemas';
+import { createInsertSchema, createSelectSchema, TIMESTAMP_COLUMNS } from '#utils/drizzle-zod-schema-factory';
+import { paginatedResult } from '#utils/schemas/pagination';
 
 export const TemplateSchema = createSelectSchema(contractTemplatesTable);
 

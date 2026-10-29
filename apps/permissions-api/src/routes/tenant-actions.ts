@@ -1,8 +1,8 @@
 import { AUDIT_ACTIONS } from '@repo/access-control';
 import { z } from 'zod/v4';
-import type { FastifyServer } from '../build-app';
-import type { TenantsService } from '../services/tenants-service';
-import { ErrorResponseSchema, PaginationQuerySchema } from '../utils/schemas/fastify-common';
+import type { FastifyServer } from '#build-app';
+import type { TenantsService } from '#services/tenants-service';
+import { ErrorResponseSchema, PaginationQuerySchema } from '#utils/schemas/fastify-common';
 import {
     CreateTenantUserBodySchema,
     PaginatedTenantUsersSchema,

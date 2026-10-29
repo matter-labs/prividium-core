@@ -1,11 +1,11 @@
 import { AUDIT_ACTIONS } from '@repo/access-control';
-import type { FastifyServer } from '../build-app';
-import type { AuthorizationService } from '../services/authorization-service';
-import type { TransactionClassifier } from '../services/transaction-classifier';
-import type { WalletTokenService } from '../services/wallet-token-service';
-import { ForbiddenError, InvalidInputError } from '../utils/error-types';
-import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
-import { userHasWallet } from '../utils/user-wallets';
+import type { FastifyServer } from '#build-app';
+import type { AuthorizationService } from '#services/authorization-service';
+import type { TransactionClassifier } from '#services/transaction-classifier';
+import type { WalletTokenService } from '#services/wallet-token-service';
+import { ForbiddenError, InvalidInputError } from '#utils/error-types';
+import { ErrorResponseSchema } from '#utils/schemas/fastify-common';
+import { userHasWallet } from '#utils/user-wallets';
 import {
     EnableWalletRequestSchema,
     EnableWalletResponseSchema,

@@ -1,7 +1,7 @@
 import { z } from 'zod/v4';
-import type { FastifyServer } from '../build-app';
-import { addressSchema } from '../utils/schemas/address';
-import { hexSchema } from '../utils/schemas/hex-schema';
+import type { FastifyServer } from '#build-app';
+import { addressSchema } from '#utils/schemas/address';
+import { hexSchema } from '#utils/schemas/hex-schema';
 
 const wellKnownFileSchema = z.object({
     v1: z.object({

@@ -1,11 +1,11 @@
 import { type Address, getContractAddress, isAddressEqual } from 'viem';
 import { z } from 'zod/v4';
-import { addressSchema } from '../../../utils/schemas/address';
-import { ForbiddenRpcError, UnauthorizedRpcError } from '../../errors';
-import { type JSONLike, type JsonRpcResponse, response } from '../../json-rpc';
-import type { Authorizer } from '../../permissions';
-import type { AuthorizedRpcContext, MethodHandler } from '../../rpc-service';
-import type { ExternalRpc } from '../../target-rpc';
+import { ForbiddenRpcError, UnauthorizedRpcError } from '#rpc/errors';
+import { type JSONLike, type JsonRpcResponse, response } from '#rpc/json-rpc';
+import type { Authorizer } from '#rpc/permissions/index';
+import type { AuthorizedRpcContext, MethodHandler } from '#rpc/rpc-service';
+import type { ExternalRpc } from '#rpc/target-rpc';
+import { addressSchema } from '#utils/schemas/address';
 
 const addressInFirstElementSchema = z.tuple([addressSchema], z.unknown());
 

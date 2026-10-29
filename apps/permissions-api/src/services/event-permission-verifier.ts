@@ -2,16 +2,16 @@ import { createHash } from 'node:crypto';
 import { areChainAddressesEqual, type ChainAddress } from '@repo/api-kit';
 import { type Address, type Hex, pad } from 'viem';
 import { z } from 'zod/v4';
-import { isEvmAddress } from '../chains/evm/addresses';
-import type { Repositories } from '../db';
-import { topicConditionEnum } from '../db/schema';
-import type { BarePermission } from '../repositories/contract-events-permissions-repository';
-import type { GetLogsFilter } from '../rpc/methods/handlers';
-import { EntityNotFound } from '../utils/error-types';
-import { areHexEqual } from '../utils/hex';
-import { isReservedContractAddress } from '../utils/reserved-contract-address';
-import { hexSizedSchema } from '../utils/schemas/hex-schema';
-import { stableStringify } from '../utils/stable-stringify';
+import { isEvmAddress } from '#chains/evm/addresses';
+import type { Repositories } from '#db/index';
+import { topicConditionEnum } from '#db/schema';
+import type { BarePermission } from '#repositories/contract-events-permissions-repository';
+import type { GetLogsFilter } from '#rpc/methods/handlers/index';
+import { EntityNotFound } from '#utils/error-types';
+import { areHexEqual } from '#utils/hex';
+import { isReservedContractAddress } from '#utils/reserved-contract-address';
+import { hexSizedSchema } from '#utils/schemas/hex-schema';
+import { stableStringify } from '#utils/stable-stringify';
 
 export const eventDefinitionSchema = z.object({
     contractAddress: hexSizedSchema(20),

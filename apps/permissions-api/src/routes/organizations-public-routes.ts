@@ -1,7 +1,7 @@
 import { z } from 'zod/v4';
-import type { FastifyServer } from '../build-app';
-import { EntityNotFound } from '../utils/error-types';
-import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
+import type { FastifyServer } from '#build-app';
+import { EntityNotFound } from '#utils/error-types';
+import { ErrorResponseSchema } from '#utils/schemas/fastify-common';
 
 const byIdParamSchema = z.object({ id: z.string() });
 

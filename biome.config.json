@@ -44,5 +44,27 @@
         "formatter": {
             "indentWidth": 4
         }
-    }
+    },
+    "overrides": [
+        {
+            "includes": ["apps/permissions-api/**"],
+            "linter": {
+                "rules": {
+                    "style": {
+                        "noRestrictedImports": {
+                            "level": "error",
+                            "options": {
+                                "patterns": [
+                                    {
+                                        "group": ["../**", ".."],
+                                        "message": "Import a module outside this folder through its # path from package.json imports, e.g. #rpc/json-rpc. `pnpm biome <file>` rewrites it."
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ]
 }

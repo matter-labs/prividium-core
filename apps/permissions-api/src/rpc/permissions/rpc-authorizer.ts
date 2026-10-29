@@ -5,26 +5,26 @@ import {
     sequencerAccessControl
 } from '@repo/access-control';
 import type { Address, Hex } from 'viem';
-import { isEvmAddress } from '../../chains/evm/addresses';
-import type { Repositories } from '../../db';
-import type { MethodAccessType } from '../../db/schema';
-import type { AuthData } from '../../middleware/auth-data';
-import type { SystemPermission } from '../../permissions/system-permissions';
-import { couldMatchWatchdogLogs, isWatchdogLog } from '../../permissions/watchdog-grant';
-import type { ContractDeployment } from '../../repositories/contract-deployments-repository';
-import type { Contract } from '../../repositories/contracts-repository';
-import type { UserWithRoles } from '../../repositories/users-repository';
-import type { AuthorizationResult, MethodAuthorizer } from '../../services/authorization-service';
-import type { EventPermissionVerifier } from '../../services/event-permission-verifier';
-import { EntityNotFound } from '../../utils/error-types';
-import { areHexEqual } from '../../utils/hex';
-import type { PinoLogger } from '../../utils/logger';
-import { isReservedContractAddress } from '../../utils/reserved-contract-address';
-import { isWatchdog } from '../../utils/watchdog';
-import { AddressSet } from '../address-set';
-import { ForbiddenRpcError, UnauthorizedRpcError } from '../errors';
-import type { GetLogsFilter } from '../methods/handlers';
-import type { ExternalRpc } from '../target-rpc';
+import { isEvmAddress } from '#chains/evm/addresses';
+import type { Repositories } from '#db/index';
+import type { MethodAccessType } from '#db/schema';
+import type { AuthData } from '#middleware/auth-data';
+import type { SystemPermission } from '#permissions/system-permissions';
+import { couldMatchWatchdogLogs, isWatchdogLog } from '#permissions/watchdog-grant';
+import type { ContractDeployment } from '#repositories/contract-deployments-repository';
+import type { Contract } from '#repositories/contracts-repository';
+import type { UserWithRoles } from '#repositories/users-repository';
+import { AddressSet } from '#rpc/address-set';
+import { ForbiddenRpcError, UnauthorizedRpcError } from '#rpc/errors';
+import type { GetLogsFilter } from '#rpc/methods/handlers/index';
+import type { ExternalRpc } from '#rpc/target-rpc';
+import type { AuthorizationResult, MethodAuthorizer } from '#services/authorization-service';
+import type { EventPermissionVerifier } from '#services/event-permission-verifier';
+import { EntityNotFound } from '#utils/error-types';
+import { areHexEqual } from '#utils/hex';
+import type { PinoLogger } from '#utils/logger';
+import { isReservedContractAddress } from '#utils/reserved-contract-address';
+import { isWatchdog } from '#utils/watchdog';
 import type { Authorizer, DeploymentAuthorization, DisclosureConfig, LogData } from './authorizer';
 
 // On an org-scoped role this grants every log of the org's contracts, through eth_getLogs only.

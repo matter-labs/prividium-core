@@ -1,8 +1,8 @@
 import { AUDIT_ACTIONS } from '@repo/access-control';
 import { z } from 'zod/v4';
-import type { FastifyServer } from '../build-app';
-import { ErrorResponseSchema, PaginationQuerySchema } from '../utils/schemas/fastify-common';
-import { paginatedResult } from '../utils/schemas/pagination';
+import type { FastifyServer } from '#build-app';
+import { ErrorResponseSchema, PaginationQuerySchema } from '#utils/schemas/fastify-common';
+import { paginatedResult } from '#utils/schemas/pagination';
 import {
     CreateEventPermissionBodySchema,
     EventPermissionSchema,

@@ -2,7 +2,7 @@ import { ADMIN_ROLE_ID } from '@repo/access-control';
 import { type ChainAddress, chainAddressListIncludes } from '@repo/api-kit';
 import { and, asc, count, eq, inArray, isNull } from 'drizzle-orm';
 import type { Address } from 'viem';
-import type { TxType } from '../db';
+import type { TxType } from '#db/index';
 import {
     rolesTable,
     tenantsDefaultRoles,
@@ -11,16 +11,16 @@ import {
     UserSources,
     usersTable,
     walletsTable
-} from '../db/schema';
-import { getFirstOrThrow } from '../db/utils';
+} from '#db/schema';
+import { getFirstOrThrow } from '#db/utils';
 import {
     CORE_PERMISSION_CATALOG,
     type PermissionCatalog,
     UNCHECKED_PERMISSIONS
-} from '../permissions/permission-catalog';
-import { EntityNotFound, InvalidInputError } from '../utils/error-types';
-import { fetchChunked } from '../utils/fetch-chunked';
-import type { PaginatedResult, PaginationParams } from '../utils/schemas/pagination';
+} from '#permissions/permission-catalog';
+import { EntityNotFound, InvalidInputError } from '#utils/error-types';
+import { fetchChunked } from '#utils/fetch-chunked';
+import type { PaginatedResult, PaginationParams } from '#utils/schemas/pagination';
 import { BaseRepository } from './base-repository';
 import type { BareRole, Role } from './roles-repository';
 

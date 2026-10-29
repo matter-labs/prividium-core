@@ -13,14 +13,14 @@ import {
     toFunctionSelector,
     zeroAddress
 } from 'viem';
-import { isEvmAddress } from '../chains/evm/addresses';
-import { ZKSYNC_SYSTEM_CONTRACTS } from '../chains/evm/system-contracts';
-import { AddressSet } from '../rpc/address-set';
-import type { GetLogsFilter } from '../rpc/methods/handlers';
-import type { LogData } from '../rpc/permissions/authorizer';
-import type { AuthorizationResult } from '../services/authorization-service';
-import { canInheritSystemContractUmbrella } from '../services/system-contracts/umbrella-policy';
-import { areHexEqual } from '../utils/hex';
+import { isEvmAddress } from '#chains/evm/addresses';
+import { ZKSYNC_SYSTEM_CONTRACTS } from '#chains/evm/system-contracts';
+import { AddressSet } from '#rpc/address-set';
+import type { GetLogsFilter } from '#rpc/methods/handlers/index';
+import type { LogData } from '#rpc/permissions/authorizer';
+import type { AuthorizationResult } from '#services/authorization-service';
+import { canInheritSystemContractUmbrella } from '#services/system-contracts/umbrella-policy';
+import { areHexEqual } from '#utils/hex';
 
 type Wallets = readonly { walletAddress: ChainAddress }[];
 

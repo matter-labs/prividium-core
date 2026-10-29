@@ -1,5 +1,5 @@
 import { z } from 'zod/v4';
-import { WebAuthnPublicKeyCredentialSchema } from '../../utils/schemas/webauthn';
+import { WebAuthnPublicKeyCredentialSchema } from '#utils/schemas/webauthn';
 
 export const AuthResponseSchema = z.object({
     token: z.string(),

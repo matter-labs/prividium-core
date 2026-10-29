@@ -1,13 +1,13 @@
 import { type Address, type Hex, keccak256, parseTransaction, type TransactionSerialized } from 'viem';
-import type { Repositories } from '../../db';
-import { prividiumPermix } from '../../permissions/prividium-permix';
-import type { UserWithRoles } from '../../repositories/users-repository';
-import type { AuthorizationResult, MethodAuthorizer } from '../../services/authorization-service';
-import type { TransactionClassifier } from '../../services/transaction-classifier';
-import { EntityNotFound } from '../../utils/error-types';
-import { areHexEqual } from '../../utils/hex';
-import { recoverTransactionAddressNative } from '../../utils/recover-tx-address-native';
-import { userHasWallet } from '../../utils/user-wallets';
+import type { Repositories } from '#db/index';
+import { prividiumPermix } from '#permissions/prividium-permix';
+import type { UserWithRoles } from '#repositories/users-repository';
+import type { AuthorizationResult, MethodAuthorizer } from '#services/authorization-service';
+import type { TransactionClassifier } from '#services/transaction-classifier';
+import { EntityNotFound } from '#utils/error-types';
+import { areHexEqual } from '#utils/hex';
+import { recoverTransactionAddressNative } from '#utils/recover-tx-address-native';
+import { userHasWallet } from '#utils/user-wallets';
 
 export class WalletAuthorizer {
     private user: UserWithRoles;

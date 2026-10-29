@@ -1,5 +1,5 @@
 import { z } from 'zod/v4';
-import { TargetTypes } from '../../db/schema';
+import { TargetTypes } from '#db/schema';
 
 export const sessionTypes = z.enum([
     TargetTypes.enum.user,

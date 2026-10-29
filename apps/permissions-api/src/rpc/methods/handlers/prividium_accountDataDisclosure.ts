@@ -1,12 +1,12 @@
 import { computeInternalBytecodeHash } from '@repo/prividium-sdk';
 import { keccak256, numberToHex, pad, size } from 'viem';
 import { z } from 'zod/v4';
-import { addressSchema } from '../../../utils/schemas/address';
-import { blockTagSchema } from '../../../utils/schemas/block-tag';
-import { ForbiddenRpcError } from '../../errors';
-import type { JsonRpcResponse } from '../../json-rpc';
-import { response } from '../../json-rpc';
-import type { AuthorizedRpcContext, MethodHandler } from '../../rpc-service';
+import { ForbiddenRpcError } from '#rpc/errors';
+import type { JsonRpcResponse } from '#rpc/json-rpc';
+import { response } from '#rpc/json-rpc';
+import type { AuthorizedRpcContext, MethodHandler } from '#rpc/rpc-service';
+import { addressSchema } from '#utils/schemas/address';
+import { blockTagSchema } from '#utils/schemas/block-tag';
 import { assertBlockAfterDisclosureStart } from './disclosure-helpers';
 
 const paramsSchema = z.tuple([addressSchema, blockTagSchema]);

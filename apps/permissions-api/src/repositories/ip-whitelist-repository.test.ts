@@ -1,8 +1,8 @@
 import type { Address } from 'viem';
 import { beforeEach, describe, expect } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
-import { m2mApplicationsTable } from '../db/schema';
-import { EntityAlreadyExistsError, EntityNotFound, InvalidInputError } from '../utils/error-types';
+import { m2mApplicationsTable } from '#db/schema';
+import { type Fixture, it } from '#test/unit-test-context';
+import { EntityAlreadyExistsError, EntityNotFound, InvalidInputError } from '#utils/error-types';
 import { IpWhitelistRepository } from './ip-whitelist-repository';
 import { TenantsRepository } from './tenants-repository';
 

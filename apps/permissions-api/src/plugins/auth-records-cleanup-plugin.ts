@@ -1,6 +1,6 @@
 import { AsyncTask, SimpleIntervalJob } from 'toad-scheduler';
-import type { Repositories } from '../db';
-import type { PinoLogger } from '../utils/logger';
+import type { Repositories } from '#db/index';
+import type { PinoLogger } from '#utils/logger';
 
 // Buffer against in-flight verifies and modest app/DB clock skew.
 const GRACE_MS = 60_000;

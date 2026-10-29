@@ -1,10 +1,10 @@
 import { and, asc, eq } from 'drizzle-orm';
 import ipaddr from 'ipaddr.js';
-import { apiKeysIpWhitelistTable } from '../db/schema';
-import { getFirst } from '../db/utils';
-import { isOverbroadCidr } from '../utils/cidr';
-import { EntityNotFound, InvalidInputError } from '../utils/error-types';
-import type { PaginatedResult, PaginationParams } from '../utils/schemas/pagination';
+import { apiKeysIpWhitelistTable } from '#db/schema';
+import { getFirst } from '#db/utils';
+import { isOverbroadCidr } from '#utils/cidr';
+import { EntityNotFound, InvalidInputError } from '#utils/error-types';
+import type { PaginatedResult, PaginationParams } from '#utils/schemas/pagination';
 import { EntityRepository } from './entity-repository';
 
 const IpWhitelistRepositoryBase = EntityRepository({

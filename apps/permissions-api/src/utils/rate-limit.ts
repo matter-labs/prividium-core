@@ -1,8 +1,8 @@
 import { and, count, gt, type SQL } from 'drizzle-orm';
 import type { AnyPgTable } from 'drizzle-orm/pg-core';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core/columns/common';
-import type { DbOrTx } from '../db';
-import { getFirstOrThrow } from '../db/utils';
+import type { DbOrTx } from '#db/index';
+import { getFirstOrThrow } from '#db/utils';
 
 /**
  * Rate limiting function that given a drizzle table,

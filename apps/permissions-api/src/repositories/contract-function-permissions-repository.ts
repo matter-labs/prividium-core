@@ -2,7 +2,7 @@ import type { ChainAddress } from '@repo/api-kit';
 import { and, asc, count, desc, eq, getTableColumns, inArray } from 'drizzle-orm';
 import type { AbiFunction, AbiParameter, Hex } from 'viem';
 import { z } from 'zod/v4';
-import type { TxType } from '../db';
+import type { TxType } from '#db/index';
 import {
     argumentRestrictionsTable,
     contractFunctionPermissionRolesTable,
@@ -12,17 +12,12 @@ import {
     methodAccessSchema,
     methodRuleSchema,
     rolesTable
-} from '../db/schema';
-import {
-    abiFromString,
-    calculateFunctionSelector,
-    findAbiFnBySelector,
-    normalizeFunctionSignature
-} from '../utils/abi';
-import { EntityAlreadyExistsError, EntityNotFound, InvalidInputError, UnexpectedDbError } from '../utils/error-types';
-import { chainAddressSchema, storedChainAddressSchema } from '../utils/schemas/address';
-import { hexSchema } from '../utils/schemas/hex-schema';
-import type { PaginatedResult, PaginationParams } from '../utils/schemas/pagination';
+} from '#db/schema';
+import { abiFromString, calculateFunctionSelector, findAbiFnBySelector, normalizeFunctionSignature } from '#utils/abi';
+import { EntityAlreadyExistsError, EntityNotFound, InvalidInputError, UnexpectedDbError } from '#utils/error-types';
+import { chainAddressSchema, storedChainAddressSchema } from '#utils/schemas/address';
+import { hexSchema } from '#utils/schemas/hex-schema';
+import type { PaginatedResult, PaginationParams } from '#utils/schemas/pagination';
 import { BaseRepository } from './base-repository';
 
 export const basicContractPermissionSchema = z.object({

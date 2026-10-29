@@ -1,6 +1,6 @@
 import type { FastifyRequest } from 'fastify';
-import type { DbOrTx, Repositories } from '../db';
-import { type ActorType, type AuditActionType, type AuditResourceType, TargetTypes } from '../db/schema';
+import type { DbOrTx, Repositories } from '#db/index';
+import { type ActorType, type AuditActionType, type AuditResourceType, TargetTypes } from '#db/schema';
 
 export type { ActorType };
 

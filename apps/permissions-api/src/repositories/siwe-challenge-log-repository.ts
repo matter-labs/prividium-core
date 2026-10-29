@@ -1,7 +1,7 @@
 import { and, count, eq, gt, lt } from 'drizzle-orm';
 import type { Address } from 'viem';
-import { siweChallengeLogTable, type TargetType } from '../db/schema';
-import { getFirstOrThrow } from '../db/utils';
+import { siweChallengeLogTable, type TargetType } from '#db/schema';
+import { getFirstOrThrow } from '#db/utils';
 import { BaseRepository } from './base-repository';
 
 export class SiweChallengeLogRepository extends BaseRepository {

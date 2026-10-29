@@ -1,11 +1,11 @@
 import { and, inArray } from 'drizzle-orm';
-import type { DbOrTx } from '../db';
+import type { DbOrTx } from '#db/index';
 import type {
     argumentRestrictionsTable,
     contractFunctionPermissionRolesTable,
     contractTemplateArgumentRestrictionsTable,
     contractTemplatePermissionRolesTable
-} from '../db/schema';
+} from '#db/schema';
 import { fetchChunked } from './fetch-chunked';
 
 /**

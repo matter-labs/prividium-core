@@ -1,7 +1,7 @@
 import type { ChainAddress } from '@repo/api-kit';
 import { and, count, eq, inArray, isNull, like } from 'drizzle-orm';
-import type { TxType } from '../db';
-import { isNoValuesToSetError } from '../db/errors';
+import { isNoValuesToSetError } from '#db/errors';
+import type { TxType } from '#db/index';
 import {
     organizationsDefaultRoles,
     organizationsTable,
@@ -10,17 +10,17 @@ import {
     userRolesTable,
     usersTable,
     walletsTable
-} from '../db/schema';
-import { getFirst, getFirstOrThrow } from '../db/utils';
+} from '#db/schema';
+import { getFirst, getFirstOrThrow } from '#db/utils';
 import {
     CORE_PERMISSION_CATALOG,
     type PermissionCatalog,
     UNCHECKED_PERMISSIONS
-} from '../permissions/permission-catalog';
-import { EntityAlreadyExistsError, EntityNotFound, InvalidInputError } from '../utils/error-types';
-import { fetchChunked } from '../utils/fetch-chunked';
-import type { PaginatedResult, PaginationParams } from '../utils/schemas/pagination';
-import { assertNotWatchdog } from '../utils/watchdog';
+} from '#permissions/permission-catalog';
+import { EntityAlreadyExistsError, EntityNotFound, InvalidInputError } from '#utils/error-types';
+import { fetchChunked } from '#utils/fetch-chunked';
+import type { PaginatedResult, PaginationParams } from '#utils/schemas/pagination';
+import { assertNotWatchdog } from '#utils/watchdog';
 import { BaseRepository } from './base-repository';
 import type { BareRole, Role } from './roles-repository';
 import { type RoleScopeOptions, USER_ORGANIZATION_COLUMNS, type User } from './users-repository';

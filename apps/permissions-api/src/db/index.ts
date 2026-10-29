@@ -9,8 +9,8 @@ import {
 } from '@repo/api-kit';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { PoolClient } from 'pg';
-import * as schema from '../db/schema';
 import { Repositories, type TxType } from './repositories';
+import * as schema from './schema';
 
 export function createDb(
     target: string | DatabaseConnection,

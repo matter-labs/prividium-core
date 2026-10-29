@@ -1,9 +1,9 @@
 import type { PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/server';
-import type { Repositories } from '../db';
-import type { PasskeyTransport } from '../db/schema';
-import type { PasskeyCredential } from '../repositories/passkey-credentials-repository';
-import { InvalidInputError } from '../utils/error-types';
-import type { WebAuthnAuthenticationResponse, WebAuthnRegistrationResponse } from '../utils/schemas/webauthn';
+import type { Repositories } from '#db/index';
+import type { PasskeyTransport } from '#db/schema';
+import type { PasskeyCredential } from '#repositories/passkey-credentials-repository';
+import { InvalidInputError } from '#utils/error-types';
+import type { WebAuthnAuthenticationResponse, WebAuthnRegistrationResponse } from '#utils/schemas/webauthn';
 import type { ExistingCredential, WebAuthnService } from './webauthn-service';
 
 export type RegistrationBeginResult = PublicKeyCredentialCreationOptionsJSON & {

@@ -3,16 +3,11 @@ import type { Address } from 'viem';
 import { generatePrivateKey, type PrivateKeyAccount, privateKeyToAccount } from 'viem/accounts';
 import { createSiweMessage } from 'viem/siwe';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { it as dbIt, type Fixture } from '../../test/unit-test-context';
-import { Repositories } from '../db';
-import type { TargetType, UserSource } from '../db/schema';
-import {
-    ForbiddenError,
-    UnauthorizedError,
-    WalletLoginDisabledError,
-    WalletNotLinkedError
-} from '../utils/error-types';
-import type { PinoLogger } from '../utils/logger';
+import { Repositories } from '#db/index';
+import type { TargetType, UserSource } from '#db/schema';
+import { it as dbIt, type Fixture } from '#test/unit-test-context';
+import { ForbiddenError, UnauthorizedError, WalletLoginDisabledError, WalletNotLinkedError } from '#utils/error-types';
+import type { PinoLogger } from '#utils/logger';
 import { SiweService } from './siwe-service';
 
 const NONCE_TOKEN_HKDF_SALT = 'prividium-siwe-hmac-v1';

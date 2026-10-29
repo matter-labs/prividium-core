@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, vi } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
-import { Repositories } from '../db';
-import type { PasskeyTransport } from '../db/schema';
-import { PasskeyChallengesRepository } from '../repositories/passkey-challenges-repository';
-import { type PasskeyCredential, PasskeyCredentialsRepository } from '../repositories/passkey-credentials-repository';
-import { type User, UsersRepository } from '../repositories/users-repository';
-import { ForbiddenError } from '../utils/error-types';
+import { Repositories } from '#db/index';
+import type { PasskeyTransport } from '#db/schema';
+import { PasskeyChallengesRepository } from '#repositories/passkey-challenges-repository';
+import { type PasskeyCredential, PasskeyCredentialsRepository } from '#repositories/passkey-credentials-repository';
+import { type User, UsersRepository } from '#repositories/users-repository';
+import { type Fixture, it } from '#test/unit-test-context';
+import { ForbiddenError } from '#utils/error-types';
 import { PasskeyService } from './passkey-service';
 import { WebAuthnService } from './webauthn-service';
 

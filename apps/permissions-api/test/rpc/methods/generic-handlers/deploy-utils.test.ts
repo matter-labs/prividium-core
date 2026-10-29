@@ -1,11 +1,11 @@
 import { pino } from 'pino';
 import { describe, expect, test } from 'vitest';
-import type { CreateContractDeployment } from '../../../../src/repositories/contract-deployments-repository';
-import type { DeploymentContext, DeployOutcome } from '../../../../src/rpc/contract-deployment-context';
-import { handleContractDeployment } from '../../../../src/rpc/methods/generic-handlers/deploy-utils';
-import type { BaseContext } from '../../../../src/rpc/rpc-service';
-import type { TxData } from '../../../../src/rpc/types';
-import { TestExternalRpc } from '../../test-external-rpc';
+import type { CreateContractDeployment } from '#repositories/contract-deployments-repository';
+import type { DeploymentContext, DeployOutcome } from '#rpc/contract-deployment-context';
+import { handleContractDeployment } from '#rpc/methods/generic-handlers/deploy-utils';
+import type { BaseContext } from '#rpc/rpc-service';
+import type { TxData } from '#rpc/types';
+import { TestExternalRpc } from '#test/rpc/test-external-rpc';
 
 const DEPLOYER = '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266';
 const RAW_TX = '0xdeadbeef';

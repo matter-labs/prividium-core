@@ -3,7 +3,7 @@ import { decodeArgumentsWithinBudget } from '@repo/api-kit/argument-decoding';
 import { and, eq, inArray } from 'drizzle-orm';
 import { type Abi, type Address, type Hex, isAddress, isAddressEqual, size, toFunctionSelector } from 'viem';
 import { z } from 'zod/v4';
-import type { Repositories } from '../db';
+import type { Repositories } from '#db/index';
 import {
     argumentRestrictionsTable,
     contractFunctionPermissionRolesTable,
@@ -14,25 +14,25 @@ import {
     contractTemplatePermissionsTable,
     contractTemplatesTable,
     type MethodAccessType
-} from '../db/schema';
+} from '#db/schema';
 import {
     decideWatchdogCall,
     decideWatchdogFrame,
     decideWatchdogTransfer,
     WATCHDOG_NOT_GRANTED
-} from '../permissions/watchdog-grant';
-import type { User, UserWithRoles } from '../repositories/users-repository';
-import { findAbiFnBySelector, resolveAbiItem } from '../utils/abi';
-import { EntityNotFound } from '../utils/error-types';
-import { extractSelector } from '../utils/extract-selector';
-import { fetchChunked } from '../utils/fetch-chunked';
-import { areHexEqual } from '../utils/hex';
-import { belongsToDeletedOrganization } from '../utils/organization-membership';
-import { fetchArgMap, fetchRoleSet } from '../utils/permission-reads';
-import { isReservedContractAddress } from '../utils/reserved-contract-address';
-import type { MethodSelector } from '../utils/schemas/hex-schema';
-import { userHasWallet } from '../utils/user-wallets';
-import { isWatchdog } from '../utils/watchdog';
+} from '#permissions/watchdog-grant';
+import type { User, UserWithRoles } from '#repositories/users-repository';
+import { findAbiFnBySelector, resolveAbiItem } from '#utils/abi';
+import { EntityNotFound } from '#utils/error-types';
+import { extractSelector } from '#utils/extract-selector';
+import { fetchChunked } from '#utils/fetch-chunked';
+import { areHexEqual } from '#utils/hex';
+import { belongsToDeletedOrganization } from '#utils/organization-membership';
+import { fetchArgMap, fetchRoleSet } from '#utils/permission-reads';
+import { isReservedContractAddress } from '#utils/reserved-contract-address';
+import type { MethodSelector } from '#utils/schemas/hex-schema';
+import { userHasWallet } from '#utils/user-wallets';
+import { isWatchdog } from '#utils/watchdog';
 import { canInheritSystemContractUmbrella } from './system-contracts/umbrella-policy';
 
 const EIP712_DOMAIN_SELECTOR = toFunctionSelector('eip712Domain()');

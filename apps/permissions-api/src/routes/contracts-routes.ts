@@ -1,20 +1,20 @@
 import { ADMIN_ROLE_ID, AUDIT_ACTIONS } from '@repo/access-control';
 import { areChainAddressesEqual, type ChainNode } from '@repo/api-kit';
 import { z } from 'zod/v4';
-import type { FastifyServer } from '../build-app';
+import type { FastifyServer } from '#build-app';
 import {
     contractsByTemplateResponseSchema,
     createContractSchema,
     fullContractSchema,
     groupedContractsResponseSchema,
     updateContractSchema
-} from '../repositories/contracts-repository';
-import type { UserWithRoles } from '../repositories/users-repository';
-import { assertContractDeployed, assertOrgContractAddress } from '../services/contract-registration-guard';
-import { isSystemContractAddress } from '../services/system-contracts/registry';
-import { ForbiddenError, InvalidInputError } from '../utils/error-types';
-import { chainAddressSchema } from '../utils/schemas/address';
-import { ErrorResponseSchema, PaginationQuerySchema, SearchQuerySchema } from '../utils/schemas/fastify-common';
+} from '#repositories/contracts-repository';
+import type { UserWithRoles } from '#repositories/users-repository';
+import { assertContractDeployed, assertOrgContractAddress } from '#services/contract-registration-guard';
+import { isSystemContractAddress } from '#services/system-contracts/registry';
+import { ForbiddenError, InvalidInputError } from '#utils/error-types';
+import { chainAddressSchema } from '#utils/schemas/address';
+import { ErrorResponseSchema, PaginationQuerySchema, SearchQuerySchema } from '#utils/schemas/fastify-common';
 
 const contractAddressParamSchema = z.object({
     contractAddress: chainAddressSchema

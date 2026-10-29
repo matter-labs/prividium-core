@@ -1,6 +1,6 @@
-import { type JsonRpcResponse, response } from '../../json-rpc';
-import { type AnyParams, anyParams } from '../../params-schemas';
-import type { MethodHandler, WalletContext } from '../../rpc-service';
+import { type JsonRpcResponse, response } from '#rpc/json-rpc';
+import { type AnyParams, anyParams } from '#rpc/params-schemas';
+import type { MethodHandler, WalletContext } from '#rpc/rpc-service';
 
 // Handler for getCode that returns empty code for allowance address (EOA) and dummy code for others
 export const eth_getCode: MethodHandler<WalletContext, AnyParams> = {

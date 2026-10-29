@@ -1,11 +1,11 @@
 import { and, eq, gt, lt, sql } from 'drizzle-orm';
 import type { z } from 'zod/v4';
-import { type PasskeyChallengeTypes, passkeyChallengesTable } from '../db/schema';
-import { getFirstOrThrow } from '../db/utils';
-import { secureRandomString } from '../utils/crypto';
-import { createInsertSchema, createSelectSchema } from '../utils/drizzle-zod-schema-factory';
-import { EntityNotFound, RateLimitError } from '../utils/error-types';
-import { rateLimit } from '../utils/rate-limit';
+import { type PasskeyChallengeTypes, passkeyChallengesTable } from '#db/schema';
+import { getFirstOrThrow } from '#db/utils';
+import { secureRandomString } from '#utils/crypto';
+import { createInsertSchema, createSelectSchema } from '#utils/drizzle-zod-schema-factory';
+import { EntityNotFound, RateLimitError } from '#utils/error-types';
+import { rateLimit } from '#utils/rate-limit';
 import { BaseRepository } from './base-repository';
 
 export const CreatePasskeyChallengeSchema = createInsertSchema(passkeyChallengesTable).omit({

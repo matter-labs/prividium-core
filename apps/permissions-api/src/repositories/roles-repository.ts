@@ -1,18 +1,18 @@
 import { ADMIN_ROLE_ID, ADMIN_ROLE_NAME, ORG_ADMIN_ROLE_NAME, RESERVED_ROLE_NAMES } from '@repo/access-control';
 import { and, asc, count, eq, getTableColumns, ilike, isNull, sql } from 'drizzle-orm';
-import { isForeignKeyConstraintError, isNoValuesToSetError, isUniqueConstraintError } from '../db/errors';
-import { contractFunctionPermissionRolesTable, rolesTable, userRolesTable } from '../db/schema';
-import { escapeLike, getFirstOrThrow } from '../db/utils';
-import { CORE_PERMISSION_CATALOG, type PermissionCatalog } from '../permissions/permission-catalog';
-import { SystemPermissions } from '../permissions/system-permissions';
+import { isForeignKeyConstraintError, isNoValuesToSetError, isUniqueConstraintError } from '#db/errors';
+import { contractFunctionPermissionRolesTable, rolesTable, userRolesTable } from '#db/schema';
+import { escapeLike, getFirstOrThrow } from '#db/utils';
+import { CORE_PERMISSION_CATALOG, type PermissionCatalog } from '#permissions/permission-catalog';
+import { SystemPermissions } from '#permissions/system-permissions';
 import {
     EntityAlreadyExistsError,
     EntityNotFound,
     ForbiddenError,
     InvalidEntity,
     InvalidInputError
-} from '../utils/error-types';
-import type { PaginatedResult, PaginationParams } from '../utils/schemas/pagination';
+} from '#utils/error-types';
+import type { PaginatedResult, PaginationParams } from '#utils/schemas/pagination';
 import { EntityRepository } from './entity-repository';
 import { paginate } from './paginate';
 

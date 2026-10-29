@@ -1,10 +1,10 @@
 import { z } from 'zod/v4';
-import { tenantsTable } from '../../db/schema';
-import { nameField } from '../../repositories/shared-schemas';
-import { createInsertSchema, createSelectSchema, MANAGED_COLUMNS } from '../../utils/drizzle-zod-schema-factory';
-import { chainAddressSchema, storedChainAddressSchema } from '../../utils/schemas/address';
-import { hexSchema } from '../../utils/schemas/hex-schema';
-import { paginatedResult } from '../../utils/schemas/pagination';
+import { tenantsTable } from '#db/schema';
+import { nameField } from '#repositories/shared-schemas';
+import { createInsertSchema, createSelectSchema, MANAGED_COLUMNS } from '#utils/drizzle-zod-schema-factory';
+import { chainAddressSchema, storedChainAddressSchema } from '#utils/schemas/address';
+import { hexSchema } from '#utils/schemas/hex-schema';
+import { paginatedResult } from '#utils/schemas/pagination';
 import { BareRoleSchema, RoleRefSchema } from './roles';
 
 export const WalletAddressSchema = z.object({ walletAddress: storedChainAddressSchema });

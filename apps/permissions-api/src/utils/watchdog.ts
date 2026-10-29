@@ -1,4 +1,4 @@
-import { type UserSource, UserSources } from '../db/schema';
+import { type UserSource, UserSources } from '#db/schema';
 import { InvalidInputError } from './error-types';
 
 export function isWatchdog(user: { source: UserSource }): boolean {

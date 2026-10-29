@@ -1,15 +1,15 @@
 import { AUDIT_ACTIONS } from '@repo/access-control';
 import * as z from 'zod/v4';
-import type { FastifyServer } from '../build-app';
+import type { FastifyServer } from '#build-app';
 import {
     fullContractPermissionSchema,
     newContractPermissionSchema,
     updateContractPermissionSchema
-} from '../repositories/contract-function-permissions-repository';
-import { chainAddressSchema } from '../utils/schemas/address';
-import { ErrorResponseSchema, PaginationQuerySchema } from '../utils/schemas/fastify-common';
-import { hexSchema } from '../utils/schemas/hex-schema';
-import { paginatedResult } from '../utils/schemas/pagination';
+} from '#repositories/contract-function-permissions-repository';
+import { chainAddressSchema } from '#utils/schemas/address';
+import { ErrorResponseSchema, PaginationQuerySchema } from '#utils/schemas/fastify-common';
+import { hexSchema } from '#utils/schemas/hex-schema';
+import { paginatedResult } from '#utils/schemas/pagination';
 
 const withIdSchema = z.object({ id: z.coerce.number() });
 

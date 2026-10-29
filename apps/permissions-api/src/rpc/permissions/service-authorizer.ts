@@ -1,5 +1,5 @@
-import type { AuthData } from '../../middleware/auth-data';
-import { UnauthorizedRpcError } from '../errors';
+import type { AuthData } from '#middleware/auth-data';
+import { UnauthorizedRpcError } from '#rpc/errors';
 
 // TODO: After moving logic from proxy to permissions api this
 // class is totally redundant. Will be refactored and removed away soon.

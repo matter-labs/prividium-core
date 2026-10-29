@@ -1,10 +1,10 @@
 import { z } from 'zod/v4';
-import { addressSchema } from '../../../../utils/schemas/address';
-import { hexSchema } from '../../../../utils/schemas/hex-schema';
-import { ZERO_LOGS_BLOOM } from '../../../constants';
-import type { JsonRpcResponse } from '../../../json-rpc';
-import { response } from '../../../json-rpc';
-import type { AuthorizedRpcContext, MethodHandler } from '../../../rpc-service';
+import { ZERO_LOGS_BLOOM } from '#rpc/constants';
+import type { JsonRpcResponse } from '#rpc/json-rpc';
+import { response } from '#rpc/json-rpc';
+import type { AuthorizedRpcContext, MethodHandler } from '#rpc/rpc-service';
+import { addressSchema } from '#utils/schemas/address';
+import { hexSchema } from '#utils/schemas/hex-schema';
 import { isBundlerContext } from './utils/is-bundler-context';
 
 // ERC-4337 eth_getUserOperationReceipt response schema

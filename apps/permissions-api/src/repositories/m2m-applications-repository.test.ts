@@ -2,16 +2,16 @@ import { defineFeaturePermission } from '@repo/api-kit';
 import { eq } from 'drizzle-orm';
 import type { Address } from 'viem';
 import { beforeEach, describe, expect } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
 import {
     m2mApplicationsOrganizationsTable,
     m2mApplicationsTable,
     m2mAppRolesTable,
     organizationsTable,
     rolesTable
-} from '../db/schema';
-import { PermissionCatalog } from '../permissions/permission-catalog';
-import { EntityNotFound, InvalidInputError } from '../utils/error-types';
+} from '#db/schema';
+import { PermissionCatalog } from '#permissions/permission-catalog';
+import { type Fixture, it } from '#test/unit-test-context';
+import { EntityNotFound, InvalidInputError } from '#utils/error-types';
 import { IpWhitelistRepository } from './ip-whitelist-repository';
 import { M2mApplicationsRepository } from './m2m-applications-repository';
 import { OrganizationsRepository } from './organizations-repository';

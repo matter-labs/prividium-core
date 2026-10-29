@@ -1,13 +1,13 @@
 import { ACTOR_TYPES, AUDIT_ACTIONS } from '@repo/access-control';
 import type { FastifyRequest, HookHandlerDoneFunction } from 'fastify';
-import type { Repositories } from '../db';
-import type { AuditActionType } from '../db/schema';
-import type { ApiKey } from '../repositories/api-keys-repository';
-import type { ApiKeyService } from '../services/api-key-service';
-import type { AuditLogsService } from '../services/audit-logs-service';
-import { UnauthorizedError } from '../utils/error-types';
-import type { PinoLogger } from '../utils/logger';
-import type { SessionType } from '../utils/schemas/auth';
+import type { Repositories } from '#db/index';
+import type { AuditActionType } from '#db/schema';
+import type { ApiKey } from '#repositories/api-keys-repository';
+import type { ApiKeyService } from '#services/api-key-service';
+import type { AuditLogsService } from '#services/audit-logs-service';
+import { UnauthorizedError } from '#utils/error-types';
+import type { PinoLogger } from '#utils/logger';
+import type { SessionType } from '#utils/schemas/auth';
 import { AuthData } from './auth-data';
 
 export const API_KEY_HEADER = 'x-api-key';

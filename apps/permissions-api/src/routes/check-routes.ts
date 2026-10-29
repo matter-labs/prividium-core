@@ -1,8 +1,8 @@
-import type { FastifyServer } from '../build-app';
-import { TargetTypes } from '../db/schema';
-import { type EventPermissionVerifier, RULES_FINGERPRINT } from '../services/event-permission-verifier';
-import { ForbiddenError } from '../utils/error-types';
-import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
+import type { FastifyServer } from '#build-app';
+import { TargetTypes } from '#db/schema';
+import { type EventPermissionVerifier, RULES_FINGERPRINT } from '#services/event-permission-verifier';
+import { ForbiddenError } from '#utils/error-types';
+import { ErrorResponseSchema } from '#utils/schemas/fastify-common';
 import { EventPermissionRulesResponseSchema } from './schemas/check';
 
 type Deps = {

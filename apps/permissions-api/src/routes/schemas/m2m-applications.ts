@@ -1,8 +1,8 @@
 import { z } from 'zod/v4';
-import { m2mApplicationsTable } from '../../db/schema';
-import { nameField } from '../../repositories/shared-schemas';
-import { createInsertSchema, createSelectSchema, MANAGED_COLUMNS } from '../../utils/drizzle-zod-schema-factory';
-import { paginatedResult } from '../../utils/schemas/pagination';
+import { m2mApplicationsTable } from '#db/schema';
+import { nameField } from '#repositories/shared-schemas';
+import { createInsertSchema, createSelectSchema, MANAGED_COLUMNS } from '#utils/drizzle-zod-schema-factory';
+import { paginatedResult } from '#utils/schemas/pagination';
 import { RoleRefSchema, RoleSchema } from './roles';
 
 export const M2mApplicationOrganizationSchema = z.object({

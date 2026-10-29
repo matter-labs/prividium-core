@@ -1,7 +1,7 @@
 import { ROLE_NAME_MAX_LENGTH } from '@repo/access-control';
 import { z } from 'zod/v4';
-import { rolesTable } from '../../db/schema';
-import { createInsertSchema, createSelectSchema, TIMESTAMP_COLUMNS } from '../../utils/drizzle-zod-schema-factory';
+import { rolesTable } from '#db/schema';
+import { createInsertSchema, createSelectSchema, TIMESTAMP_COLUMNS } from '#utils/drizzle-zod-schema-factory';
 
 export const roleNameField = z.string().min(1).max(ROLE_NAME_MAX_LENGTH);
 

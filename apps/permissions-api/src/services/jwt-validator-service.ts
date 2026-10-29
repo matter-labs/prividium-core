@@ -2,13 +2,13 @@ import { ADMIN_ROLE_ID } from '@repo/access-control';
 import { createRemoteJWKSet, decodeJwt, type JWTVerifyGetKey, jwtVerify } from 'jose';
 import { JWTClaimValidationFailed, JWTExpired } from 'jose/errors';
 import { type ZodType, z } from 'zod/v4';
-import type { Repositories } from '../db';
-import { UserSources } from '../db/schema';
-import { UNCHECKED_PERMISSIONS } from '../permissions/permission-catalog';
-import type { OidcProvider } from '../repositories/oidc-providers-repository';
-import type { User } from '../repositories/users-repository';
-import { ForbiddenError } from '../utils/error-types';
-import type { PinoLogger } from '../utils/logger';
+import type { Repositories } from '#db/index';
+import { UserSources } from '#db/schema';
+import { UNCHECKED_PERMISSIONS } from '#permissions/permission-catalog';
+import type { OidcProvider } from '#repositories/oidc-providers-repository';
+import type { User } from '#repositories/users-repository';
+import { ForbiddenError } from '#utils/error-types';
+import type { PinoLogger } from '#utils/logger';
 
 const JWKS_TIMEOUT_MS = 15000;
 

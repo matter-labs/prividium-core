@@ -1,13 +1,13 @@
 import { AUDIT_ACTIONS } from '@repo/access-control';
-import type { FastifyServer } from '../build-app';
-import type { StepUpService } from '../services/step-up-service';
-import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
+import type { FastifyServer } from '#build-app';
+import type { StepUpService } from '#services/step-up-service';
+import { ErrorResponseSchema } from '#utils/schemas/fastify-common';
 import {
     StepUpBeginRequestSchema,
     StepUpBeginResponseSchema,
     StepUpFinishRequestSchema,
     StepUpProofResponseSchema
-} from '../utils/schemas/webauthn';
+} from '#utils/schemas/webauthn';
 
 interface StepUpRoutesDeps {
     stepUpService: StepUpService;

@@ -1,4 +1,4 @@
-import type { Repositories } from '../db';
+import type { Repositories } from '#db/index';
 
 export type OrganizationDeletionResult = {
     revokedSessions: number;

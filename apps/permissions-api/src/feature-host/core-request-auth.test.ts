@@ -2,10 +2,10 @@ import { eq } from 'drizzle-orm';
 import type { FastifyRequest } from 'fastify';
 import type { PoolClient } from 'pg';
 import { describe, expect, it, vi } from 'vitest';
-import { it as dbIt } from '../../test/unit-test-context';
-import { type DB, Repositories } from '../db';
-import { auditLogsTable } from '../db/schema';
-import { AuditLogsService, fakeAuditLogContextForTests } from '../services/audit-logs-service';
+import { type DB, Repositories } from '#db/index';
+import { auditLogsTable } from '#db/schema';
+import { AuditLogsService, fakeAuditLogContextForTests } from '#services/audit-logs-service';
+import { it as dbIt } from '#test/unit-test-context';
 import { featureAuditContextOf } from './core-request-auth';
 
 describe('featureAuditContextOf', () => {

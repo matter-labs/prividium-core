@@ -1,9 +1,9 @@
 import { Abi } from 'abitype/zod';
 import { asc, eq, ilike, or, type SQL } from 'drizzle-orm';
-import { contractTemplatesTable } from '../db/schema';
-import { escapeLike } from '../db/utils';
-import { EntityAlreadyExistsError, InvalidInputError } from '../utils/error-types';
-import type { PaginatedResult, PaginationParams } from '../utils/schemas/pagination';
+import { contractTemplatesTable } from '#db/schema';
+import { escapeLike } from '#db/utils';
+import { EntityAlreadyExistsError, InvalidInputError } from '#utils/error-types';
+import type { PaginatedResult, PaginationParams } from '#utils/schemas/pagination';
 import { EntityRepository } from './entity-repository';
 
 const TemplatesRepositoryBase = EntityRepository({

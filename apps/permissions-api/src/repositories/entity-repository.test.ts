@@ -2,15 +2,15 @@ import { and, asc, desc, eq, isNull, type SQL } from 'drizzle-orm';
 import type { Address } from 'viem';
 import { generatePrivateKey, privateKeyToAddress } from 'viem/accounts';
 import { beforeEach, describe, expect } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
 import {
     contractFunctionPermissionsTable,
     contractsTable,
     organizationsTable,
     rolesTable,
     servicesTable
-} from '../db/schema';
-import { EntityNotFound, InvalidEntity, InvalidInputError } from '../utils/error-types';
+} from '#db/schema';
+import { type Fixture, it } from '#test/unit-test-context';
+import { EntityNotFound, InvalidEntity, InvalidInputError } from '#utils/error-types';
 import { EntityRepository } from './entity-repository';
 
 // --- Instantiations: one per primary-key shape in the schema -----------------

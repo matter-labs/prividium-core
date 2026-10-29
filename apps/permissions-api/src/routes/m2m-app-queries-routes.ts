@@ -1,14 +1,14 @@
 import { hasSystemPermission } from '@repo/access-control';
 import type { FastifyRequest } from 'fastify';
 import { z } from 'zod/v4';
-import type { FastifyServer } from '../build-app';
-import type { SessionsAuthValidator } from '../middleware/sessions-auth';
-import { prividiumPermix } from '../permissions/prividium-permix';
-import type { SystemPermission } from '../permissions/system-permissions';
-import { fullContractSchema } from '../repositories/contracts-repository';
-import { EntityNotFound } from '../utils/error-types';
-import { chainAddressSchema } from '../utils/schemas/address';
-import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
+import type { FastifyServer } from '#build-app';
+import type { SessionsAuthValidator } from '#middleware/sessions-auth';
+import { prividiumPermix } from '#permissions/prividium-permix';
+import type { SystemPermission } from '#permissions/system-permissions';
+import { fullContractSchema } from '#repositories/contracts-repository';
+import { EntityNotFound } from '#utils/error-types';
+import { chainAddressSchema } from '#utils/schemas/address';
+import { ErrorResponseSchema } from '#utils/schemas/fastify-common';
 import {
     CheckUserReadAccessBodySchema,
     CheckUserReadAccessResponseSchema,

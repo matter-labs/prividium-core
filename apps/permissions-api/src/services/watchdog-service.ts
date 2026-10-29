@@ -1,8 +1,8 @@
 import type { Address } from 'viem';
-import type { Repositories } from '../db';
-import { UserSources } from '../db/schema';
-import type { User } from '../repositories/users-repository';
-import { EntityNotFound, InvalidInputError } from '../utils/error-types';
+import type { Repositories } from '#db/index';
+import { UserSources } from '#db/schema';
+import type { User } from '#repositories/users-repository';
+import { EntityNotFound, InvalidInputError } from '#utils/error-types';
 
 /** Clears the watchdog's roles and gives it exactly the listed wallets; one another user holds fails the boot. */
 export async function syncWatchdog(repos: Repositories, wallets: readonly Address[]) {

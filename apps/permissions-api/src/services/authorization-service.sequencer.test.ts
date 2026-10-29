@@ -1,7 +1,7 @@
 import { encodeFunctionData, pad, parseAbiItem } from 'viem';
 import { describe, expect, it, vi } from 'vitest';
-import type { Repositories } from '../db';
-import type { UserWithRoles } from '../repositories/users-repository';
+import type { Repositories } from '#db/index';
+import type { UserWithRoles } from '#repositories/users-repository';
 import { AdmitService } from './admit-service';
 import { AuthorizationService } from './authorization-service';
 import { JudgeService, type TraceFrame } from './judge-service';

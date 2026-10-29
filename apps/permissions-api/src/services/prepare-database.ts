@@ -1,5 +1,5 @@
 import type { ChainType } from '@repo/api-kit';
-import { type DB, type DbOrTx, runWithJobContext } from '../db';
+import { type DB, type DbOrTx, runWithJobContext } from '#db/index';
 import { assertDatabaseChainType, claimDatabase } from './deployment-identity';
 
 export type DatabaseSteps = {

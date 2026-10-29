@@ -2,10 +2,10 @@ import type { ChainAddress } from '@repo/api-kit';
 import { Abi as AbiSchema } from 'abitype/zod';
 import { type Abi, type AbiFunction, toFunctionSelector } from 'viem';
 import { z } from 'zod/v4';
-import type { Repositories } from '../db';
-import type { MethodAccessType } from '../db/schema';
-import type { User } from '../repositories/users-repository';
-import { EntityNotFound, InvalidEntity } from '../utils/error-types';
+import type { Repositories } from '#db/index';
+import type { MethodAccessType } from '#db/schema';
+import type { User } from '#repositories/users-repository';
+import { EntityNotFound, InvalidEntity } from '#utils/error-types';
 
 type Permission = {
     ruleType: string;

@@ -1,5 +1,5 @@
 import { type Address, getAddress, type Hex, type PublicClient } from 'viem';
-import { decodeSsoCalldata } from '../handlers/bundler/utils/sso-calldata';
+import { decodeSsoCalldata } from '#rpc/methods/handlers/bundler/utils/sso-calldata';
 import { EIP1967_BEACON_SLOT, ZERO_SLOT } from './eip1967';
 import type { DispatchedCall, DispatcherConfig, DynamicDispatcher, VerificationResult } from './types';
 

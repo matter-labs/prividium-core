@@ -1,8 +1,8 @@
 import { z } from 'zod/v4';
-import type { FastifyServer } from '../build-app';
-import type { ApplicationsService } from '../services/applications-service';
-import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
-import { selfOriginFromRequest } from '../utils/self-origin';
+import type { FastifyServer } from '#build-app';
+import type { ApplicationsService } from '#services/applications-service';
+import { ErrorResponseSchema } from '#utils/schemas/fastify-common';
+import { selfOriginFromRequest } from '#utils/self-origin';
 import { PublicApplicationSchema } from './schemas/applications';
 
 type Deps = {

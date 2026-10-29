@@ -1,13 +1,13 @@
 import { pad } from 'viem';
 import { generatePrivateKey, privateKeyToAddress } from 'viem/accounts';
 import { beforeEach, describe, expect } from 'vitest';
-import { TestExternalRpc } from '../../test/rpc/test-external-rpc';
-import { type Fixture, it } from '../../test/unit-test-context';
-import { evmChain } from '../chains/evm';
-import { Repositories } from '../db';
-import { type Tenant, TenantsRepository } from '../repositories/tenants-repository';
-import { UsersRepository } from '../repositories/users-repository';
-import { InvalidInputError, WalletLimitExceededError } from '../utils/error-types';
+import { evmChain } from '#chains/evm/index';
+import { Repositories } from '#db/index';
+import { type Tenant, TenantsRepository } from '#repositories/tenants-repository';
+import { UsersRepository } from '#repositories/users-repository';
+import { TestExternalRpc } from '#test/rpc/test-external-rpc';
+import { type Fixture, it } from '#test/unit-test-context';
+import { InvalidInputError, WalletLimitExceededError } from '#utils/error-types';
 import { TenantsService } from './tenants-service';
 import { createWalletAssociationGuard } from './wallet-association-guard';
 

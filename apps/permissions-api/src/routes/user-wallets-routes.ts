@@ -1,17 +1,17 @@
 import { AUDIT_ACTIONS } from '@repo/access-control';
 import type { PublicClient } from 'viem';
 import { z } from 'zod/v4';
-import type { FastifyServer } from '../build-app';
-import { userAccessControlPreHandler } from '../middleware/user-access-control';
-import type { ExternalRpc } from '../rpc/target-rpc';
-import { ERC1271Verifier } from '../services/erc1271-verifier';
-import type { SiweChallengeService } from '../services/siwe-challenge-service';
-import type { SiweService } from '../services/siwe-service';
-import type { WalletAssociationGuard } from '../services/wallet-association-guard';
-import { WalletAssociationService } from '../services/wallet-association-service';
-import { EntityNotFound } from '../utils/error-types';
-import { addressSchema } from '../utils/schemas/address';
-import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
+import type { FastifyServer } from '#build-app';
+import { userAccessControlPreHandler } from '#middleware/user-access-control';
+import type { ExternalRpc } from '#rpc/target-rpc';
+import { ERC1271Verifier } from '#services/erc1271-verifier';
+import type { SiweChallengeService } from '#services/siwe-challenge-service';
+import type { SiweService } from '#services/siwe-service';
+import type { WalletAssociationGuard } from '#services/wallet-association-guard';
+import { WalletAssociationService } from '#services/wallet-association-service';
+import { EntityNotFound } from '#utils/error-types';
+import { addressSchema } from '#utils/schemas/address';
+import { ErrorResponseSchema } from '#utils/schemas/fastify-common';
 import {
     AssociateWalletSchema,
     InitiateWalletAssociationSchema,

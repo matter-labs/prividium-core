@@ -2,11 +2,11 @@ import pino from 'pino';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { z } from 'zod/v4';
-import { TestExternalRpc } from '../../test/rpc/test-external-rpc';
-import { TestRpcAuthorizer } from '../../test/rpc/test-rpc-authorizer';
-import { WATCHDOG_GRANT } from '../permissions/watchdog-grant';
-import { jsonRpcOperationCounter } from '../utils/metrics';
-import { hexSchema } from '../utils/schemas/hex-schema';
+import { WATCHDOG_GRANT } from '#permissions/watchdog-grant';
+import { TestExternalRpc } from '#test/rpc/test-external-rpc';
+import { TestRpcAuthorizer } from '#test/rpc/test-rpc-authorizer';
+import { jsonRpcOperationCounter } from '#utils/metrics';
+import { hexSchema } from '#utils/schemas/hex-schema';
 import {
     BAD_RPC_PARAMS_ERROR_CODE,
     FORBIDDEN_ERROR_CODE,

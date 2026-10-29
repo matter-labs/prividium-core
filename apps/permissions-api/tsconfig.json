@@ -13,6 +13,7 @@
         "moduleResolution": "Bundler",
         "module": "ES2022",
         "outDir": "dist",
+        "rootDir": ".",
         "sourceMap": true,
         "lib": ["es2022"]
     }

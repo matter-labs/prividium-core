@@ -1,5 +1,5 @@
-import type { FastifyServer } from '../build-app';
-import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
+import type { FastifyServer } from '#build-app';
+import { ErrorResponseSchema } from '#utils/schemas/fastify-common';
 import { UserWithRolesSchema } from './schemas/users';
 
 export function profilesRoutes(server: FastifyServer) {

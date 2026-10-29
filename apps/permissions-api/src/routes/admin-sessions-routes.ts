@@ -1,8 +1,8 @@
 import { AUDIT_ACTIONS } from '@repo/access-control';
 import { z } from 'zod/v4';
-import type { FastifyServer } from '../build-app';
-import type { Session } from '../repositories/sessions-repository';
-import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
+import type { FastifyServer } from '#build-app';
+import type { Session } from '#repositories/sessions-repository';
+import { ErrorResponseSchema } from '#utils/schemas/fastify-common';
 import { AdminSessionsListSchema } from './schemas/sessions';
 
 const userIdQuerySchema = z.object({

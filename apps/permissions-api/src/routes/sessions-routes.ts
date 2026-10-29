@@ -1,9 +1,9 @@
 import { AUDIT_ACTIONS } from '@repo/access-control';
 import { z } from 'zod/v4';
-import type { FastifyServer } from '../build-app';
-import type { Session } from '../repositories/sessions-repository';
-import { EntityNotFound } from '../utils/error-types';
-import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
+import type { FastifyServer } from '#build-app';
+import type { Session } from '#repositories/sessions-repository';
+import { EntityNotFound } from '#utils/error-types';
+import { ErrorResponseSchema } from '#utils/schemas/fastify-common';
 import { SessionsListSchema } from './schemas/sessions';
 
 const sessionIdParamSchema = z.object({

@@ -1,8 +1,8 @@
-import { contractEventPermissionsTable } from '../../db/schema';
-import { createInsertSchema, createSelectSchema, MANAGED_COLUMNS } from '../../utils/drizzle-zod-schema-factory';
-import { chainAddressSchema, storedChainAddressSchema } from '../../utils/schemas/address';
-import { hexSizedSchema } from '../../utils/schemas/hex-schema';
-import { paginatedResult } from '../../utils/schemas/pagination';
+import { contractEventPermissionsTable } from '#db/schema';
+import { createInsertSchema, createSelectSchema, MANAGED_COLUMNS } from '#utils/drizzle-zod-schema-factory';
+import { chainAddressSchema, storedChainAddressSchema } from '#utils/schemas/address';
+import { hexSizedSchema } from '#utils/schemas/hex-schema';
+import { paginatedResult } from '#utils/schemas/pagination';
 import { BareRoleSchema, RoleRefSchema } from './roles';
 
 // function form so drizzle keeps the columns' nullability

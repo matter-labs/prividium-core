@@ -1,5 +1,5 @@
 import type { Address, Hex, PublicClient } from 'viem';
-import type { PinoLogger } from '../../../utils/logger';
+import type { PinoLogger } from '#utils/logger';
 
 /**
  * Represents a call that will be dispatched by a dynamic dispatcher.

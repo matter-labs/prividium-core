@@ -1,16 +1,16 @@
 import { and, eq } from 'drizzle-orm';
 import { isNull } from 'drizzle-orm/sql/expressions/conditions';
 import { type Address, type Hex, verifyMessage } from 'viem';
-import type { Repositories } from '../db';
-import { walletsTable } from '../db/schema';
-import type { ExternalRpc } from '../rpc/target-rpc';
+import type { Repositories } from '#db/index';
+import { walletsTable } from '#db/schema';
+import type { ExternalRpc } from '#rpc/target-rpc';
 import {
     EntityAlreadyExistsError,
     ForbiddenError,
     InvalidInputError,
     WalletLimitExceededError
-} from '../utils/error-types';
-import { userHasWallet } from '../utils/user-wallets';
+} from '#utils/error-types';
+import { userHasWallet } from '#utils/user-wallets';
 import type { ERC1271Verifier } from './erc1271-verifier';
 import type { SiweChallengeService } from './siwe-challenge-service';
 import type { SiweService } from './siwe-service';

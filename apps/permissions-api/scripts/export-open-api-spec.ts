@@ -2,9 +2,9 @@ import * as fs from 'node:fs';
 import path from 'node:path';
 import { pino } from 'pino';
 import { numberToHex } from 'viem';
-import { type AppConfig, buildApp } from '../src/build-app';
-import { evmChain } from '../src/chains/evm';
-import { TargetRpc } from '../src/rpc/target-rpc';
+import { type AppConfig, buildApp } from '#build-app';
+import { evmChain } from '#chains/evm/index';
+import { TargetRpc } from '#rpc/target-rpc';
 
 const MOCK_CHAIN_ID = 506;
 

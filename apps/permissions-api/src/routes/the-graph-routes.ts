@@ -1,5 +1,5 @@
 import httpProxy from '@fastify/http-proxy';
-import type { FastifyServer } from '../build-app';
+import type { FastifyServer } from '#build-app';
 
 export function theGraphRoutes(server: FastifyServer, { theGraphApiUrl }: { theGraphApiUrl: string }) {
     server.register(httpProxy, {

@@ -1,7 +1,7 @@
 import { AUDIT_ACTIONS } from '@repo/access-control';
 import { z } from 'zod/v4';
-import type { FastifyServer } from '../build-app';
-import { ErrorResponseSchema, PaginationQuerySchema, SearchQuerySchema } from '../utils/schemas/fastify-common';
+import type { FastifyServer } from '#build-app';
+import { ErrorResponseSchema, PaginationQuerySchema, SearchQuerySchema } from '#utils/schemas/fastify-common';
 import {
     CreateTemplateBodySchema,
     PaginatedTemplatesSchema,

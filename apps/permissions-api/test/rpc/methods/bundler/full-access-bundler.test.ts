@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'vitest';
-import type { AuthorizedRpcContext } from '../../../../src/rpc/rpc-service';
-import { RpcCallHandler } from '../../../../src/rpc/rpc-service';
-import { TestExternalRpc } from '../../test-external-rpc';
-import { TestRpcAuthorizer } from '../../test-rpc-authorizer';
+import type { AuthorizedRpcContext } from '#rpc/rpc-service';
+import { RpcCallHandler } from '#rpc/rpc-service';
+import { TestExternalRpc } from '#test/rpc/test-external-rpc';
+import { TestRpcAuthorizer } from '#test/rpc/test-rpc-authorizer';
 
 function createFullAccessContext(opts: { bundlerRpc: TestExternalRpc | null }): AuthorizedRpcContext {
     return {

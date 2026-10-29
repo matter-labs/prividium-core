@@ -1,12 +1,12 @@
 import cors, { type FastifyCorsOptions } from '@fastify/cors';
 import type { FastifyRequest, preHandlerHookHandler } from 'fastify';
 import type { ZodType } from 'zod/v4';
-import type { FastifyServer } from '../build-app';
-import { rpcErrorHandler } from '../rpc/error-handler';
-import { InvalidRpcRequest } from '../rpc/errors';
-import { assertBatchWithinLimit, type JsonRpcResponse, requestOrBatch, responseOrBatch } from '../rpc/json-rpc';
-import { rpcReqSchema } from '../rpc/rpc-service';
-import type { PinoLogger } from '../utils/logger';
+import type { FastifyServer } from '#build-app';
+import { rpcErrorHandler } from '#rpc/error-handler';
+import { InvalidRpcRequest } from '#rpc/errors';
+import { assertBatchWithinLimit, type JsonRpcResponse, requestOrBatch, responseOrBatch } from '#rpc/json-rpc';
+import { rpcReqSchema } from '#rpc/rpc-service';
+import type { PinoLogger } from '#utils/logger';
 
 export type RpcTransportRequest = Omit<FastifyRequest, 'log'> & { log: PinoLogger };
 

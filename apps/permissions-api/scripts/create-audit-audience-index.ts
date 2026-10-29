@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { Pool } from 'pg';
-import { loadEnv } from '../src/env';
+import { loadEnv } from '#env';
 
 const env = loadEnv();
 const pool = new Pool({

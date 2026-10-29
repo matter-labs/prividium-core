@@ -1,6 +1,6 @@
 import type { ChainType } from '@repo/api-kit';
 import { sql } from 'drizzle-orm';
-import { deploymentIdentityTable } from '../db/schema';
+import { deploymentIdentityTable } from '#db/schema';
 import { BaseRepository } from './base-repository';
 
 export class DeploymentIdentityRepository extends BaseRepository {

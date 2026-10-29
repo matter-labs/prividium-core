@@ -1,9 +1,9 @@
 import type { Address } from 'viem';
 import { beforeEach, describe, expect } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
-import { m2mApplicationsTable } from '../db/schema';
-import { ApiKeyService } from '../services/api-key-service';
-import { EntityNotFound } from '../utils/error-types';
+import { m2mApplicationsTable } from '#db/schema';
+import { ApiKeyService } from '#services/api-key-service';
+import { type Fixture, it } from '#test/unit-test-context';
+import { EntityNotFound } from '#utils/error-types';
 import { ApiKeysRepository } from './api-keys-repository';
 import { TenantsRepository } from './tenants-repository';
 

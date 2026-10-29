@@ -1,7 +1,7 @@
 import { z } from 'zod/v4';
-import { apiKeysIpWhitelistTable } from '../../db/schema';
-import { createInsertSchema, createSelectSchema, MANAGED_COLUMNS } from '../../utils/drizzle-zod-schema-factory';
-import { paginatedResult } from '../../utils/schemas/pagination';
+import { apiKeysIpWhitelistTable } from '#db/schema';
+import { createInsertSchema, createSelectSchema, MANAGED_COLUMNS } from '#utils/drizzle-zod-schema-factory';
+import { paginatedResult } from '#utils/schemas/pagination';
 
 export const IpWhitelistSchema = createSelectSchema(apiKeysIpWhitelistTable).extend({ isOverbroad: z.boolean() });
 

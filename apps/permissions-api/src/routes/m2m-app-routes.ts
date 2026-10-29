@@ -1,14 +1,14 @@
 import { AUDIT_ACTIONS } from '@repo/access-control';
 import { z } from 'zod/v4';
-import type { FastifyServer } from '../build-app';
-import type { PermissionCatalog } from '../permissions/permission-catalog';
+import type { FastifyServer } from '#build-app';
+import type { PermissionCatalog } from '#permissions/permission-catalog';
 import {
     createAuditedM2mApplication,
     deleteAuditedM2mApplication,
     replaceAuditedM2mOrganizations,
     updateAuditedM2mApplication
-} from '../services/m2m-audit-service';
-import { ErrorResponseSchema, PaginationQuerySchema, PublicIdSchema } from '../utils/schemas/fastify-common';
+} from '#services/m2m-audit-service';
+import { ErrorResponseSchema, PaginationQuerySchema, PublicIdSchema } from '#utils/schemas/fastify-common';
 import {
     CreateM2mApplicationBodySchema,
     M2mApplicationSchema,

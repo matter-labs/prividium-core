@@ -4,17 +4,17 @@ import { areChainAddressesEqual, type ChainAddress } from '@repo/api-kit';
 import { fromUnixTime, isFuture } from 'date-fns';
 import { type Address, type Hex, verifyMessage } from 'viem';
 import { parseSiweMessage } from 'viem/siwe';
-import type { Repositories, TxType } from '../db';
-import { type TargetType, TargetTypes, type UserSource, UserSources } from '../db/schema';
-import { AddressSet } from '../rpc/address-set';
+import type { Repositories, TxType } from '#db/index';
+import { type TargetType, TargetTypes, type UserSource, UserSources } from '#db/schema';
+import { AddressSet } from '#rpc/address-set';
 import {
     ForbiddenError,
     InvalidInputError,
     UnauthorizedError,
     WalletLoginDisabledError,
     WalletNotLinkedError
-} from '../utils/error-types';
-import type { PinoLogger } from '../utils/logger';
+} from '#utils/error-types';
+import type { PinoLogger } from '#utils/logger';
 
 const NONCE_TOKEN_VERSION = 'v1';
 const NONCE_TOKEN_HKDF_SALT = 'prividium-siwe-hmac-v1';

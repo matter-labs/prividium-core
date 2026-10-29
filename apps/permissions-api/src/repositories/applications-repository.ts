@@ -1,8 +1,8 @@
 import { asc, count, eq, isNotNull } from 'drizzle-orm';
-import { applicationsTable } from '../db/schema';
-import { getFirstOrThrow } from '../db/utils';
-import { EntityNotFound } from '../utils/error-types';
-import type { PaginatedResult, PaginationParams } from '../utils/schemas/pagination';
+import { applicationsTable } from '#db/schema';
+import { getFirstOrThrow } from '#db/utils';
+import { EntityNotFound } from '#utils/error-types';
+import type { PaginatedResult, PaginationParams } from '#utils/schemas/pagination';
 import { EntityRepository } from './entity-repository';
 
 export type Application = typeof applicationsTable.$inferSelect;

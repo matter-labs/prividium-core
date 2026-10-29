@@ -12,8 +12,8 @@ import {
     verifyAuthenticationResponse,
     verifyRegistrationResponse
 } from '@simplewebauthn/server';
-import type { PasskeyChallenge } from '../repositories/passkey-challenges-repository';
-import { ForbiddenError, InvalidInputError } from '../utils/error-types';
+import type { PasskeyChallenge } from '#repositories/passkey-challenges-repository';
+import { ForbiddenError, InvalidInputError } from '#utils/error-types';
 
 export interface WebAuthnConfig {
     rpName: string;

@@ -1,7 +1,7 @@
 import type { Address } from 'viem';
 import type { z } from 'zod/v4';
-import { methodAccessSchema } from '../../db/schema';
-import type { AuthorizedRpcContext, MethodHandler } from '../rpc-service';
+import { methodAccessSchema } from '#db/schema';
+import type { AuthorizedRpcContext, MethodHandler } from '#rpc/rpc-service';
 import {
     forbiddenMethod,
     openToPublic,

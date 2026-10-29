@@ -1,5 +1,5 @@
 import { z } from 'zod/v4';
-import { TIMESTAMP_COLUMNS } from '../../utils/drizzle-zod-schema-factory';
+import { TIMESTAMP_COLUMNS } from '#utils/drizzle-zod-schema-factory';
 import { RoleSchema } from './roles';
 
 export const CheckUserReadAccessBodySchema = z.object({

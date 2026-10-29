@@ -1,10 +1,10 @@
-import { forbiddenPermix, permixForM2mApp, permixForTenant, prividiumPermix } from '../permissions/prividium-permix';
-import type { M2mApplication } from '../repositories/m2m-applications-repository';
-import type { Service } from '../repositories/services-repository';
-import type { TenantWithRoles } from '../repositories/tenants-repository';
-import type { UserWithRoles } from '../repositories/users-repository';
-import { UnauthorizedError } from '../utils/error-types';
-import type { SessionType } from '../utils/schemas/auth';
+import { forbiddenPermix, permixForM2mApp, permixForTenant, prividiumPermix } from '#permissions/prividium-permix';
+import type { M2mApplication } from '#repositories/m2m-applications-repository';
+import type { Service } from '#repositories/services-repository';
+import type { TenantWithRoles } from '#repositories/tenants-repository';
+import type { UserWithRoles } from '#repositories/users-repository';
+import { UnauthorizedError } from '#utils/error-types';
+import type { SessionType } from '#utils/schemas/auth';
 
 export type AuthMethod = 'session' | 'api_key';
 

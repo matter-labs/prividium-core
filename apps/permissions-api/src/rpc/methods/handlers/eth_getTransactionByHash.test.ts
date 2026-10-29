@@ -1,7 +1,7 @@
 import { describe, expect } from 'vitest';
-import { createReceipt } from '../../../../test/rpc/create-receipt';
-import { createTransaction } from '../../../../test/rpc/create-transaction';
-import { rpcUnitTest } from '../../../../test/rpc/rpc-unit-test-utils';
+import { createReceipt } from '#test/rpc/create-receipt';
+import { createTransaction } from '#test/rpc/create-transaction';
+import { rpcUnitTest } from '#test/rpc/rpc-unit-test-utils';
 import { eth_getTransactionByHash } from './eth_getTransactionByHash';
 
 describe('rpc method: eth_getTransactionByHash', () => {

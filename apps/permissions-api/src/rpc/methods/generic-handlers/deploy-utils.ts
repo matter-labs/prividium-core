@@ -1,12 +1,12 @@
 import { type Address, getContractAddress, type Hex, keccak256, zeroAddress } from 'viem';
-import { SUBMISSION_CONFIRMS_INCLUSION } from '../../../utils/target-chain';
-import { EIP_7966_TIMEOUT_CODE, INTERNAL_RPC_ERROR } from '../../constants';
-import type { ContractDeploymentContext } from '../../contract-deployment-context';
-import { ForbiddenRpcError, RpcException } from '../../errors';
-import type { JsonRpcResponse } from '../../json-rpc';
-import { forwardAndRecordSubmission } from '../../rpc-observer';
-import type { AuthorizedRpcContext, BaseContext } from '../../rpc-service';
-import type { TxData } from '../../types';
+import { EIP_7966_TIMEOUT_CODE, INTERNAL_RPC_ERROR } from '#rpc/constants';
+import type { ContractDeploymentContext } from '#rpc/contract-deployment-context';
+import { ForbiddenRpcError, RpcException } from '#rpc/errors';
+import type { JsonRpcResponse } from '#rpc/json-rpc';
+import { forwardAndRecordSubmission } from '#rpc/rpc-observer';
+import type { AuthorizedRpcContext, BaseContext } from '#rpc/rpc-service';
+import type { TxData } from '#rpc/types';
+import { SUBMISSION_CONFIRMS_INCLUSION } from '#utils/target-chain';
 
 export function isDeploy(call: { to?: Hex | null }) {
     return call.to === null || call.to === undefined;

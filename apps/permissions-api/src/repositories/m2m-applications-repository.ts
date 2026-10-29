@@ -1,6 +1,6 @@
 import type { ChainAddress } from '@repo/api-kit';
 import { and, asc, count, eq, inArray, isNull, or, type SQL } from 'drizzle-orm';
-import type { TxType } from '../db';
+import type { TxType } from '#db/index';
 import {
     m2mApplicationsOrganizationsTable,
     m2mApplicationsTable,
@@ -9,13 +9,13 @@ import {
     rolesTable,
     usersTable,
     walletsTable
-} from '../db/schema';
-import { getFirstOrThrow } from '../db/utils';
-import { CORE_PERMISSION_CATALOG, type PermissionCatalog } from '../permissions/permission-catalog';
-import { hasOverbroadIp } from '../utils/cidr';
-import { EntityNotFound, InvalidInputError } from '../utils/error-types';
-import { fetchChunked } from '../utils/fetch-chunked';
-import type { PaginatedResult, PaginationParams } from '../utils/schemas/pagination';
+} from '#db/schema';
+import { getFirstOrThrow } from '#db/utils';
+import { CORE_PERMISSION_CATALOG, type PermissionCatalog } from '#permissions/permission-catalog';
+import { hasOverbroadIp } from '#utils/cidr';
+import { EntityNotFound, InvalidInputError } from '#utils/error-types';
+import { fetchChunked } from '#utils/fetch-chunked';
+import type { PaginatedResult, PaginationParams } from '#utils/schemas/pagination';
 import { BaseRepository } from './base-repository';
 import type { Role } from './roles-repository';
 import type { User, UserWithRoles } from './users-repository';

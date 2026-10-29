@@ -1,6 +1,6 @@
 import type { FastifyRequest } from 'fastify';
 import { describe, expect, it } from 'vitest';
-import { ForbiddenError } from '../utils/error-types';
+import { ForbiddenError } from '#utils/error-types';
 import { requireOrgAdmin } from './require-org-admin';
 
 type Role = { systemPermissions?: string[]; organizationId: string | null };

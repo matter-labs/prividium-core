@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
+import { type Fixture, it } from '#test/unit-test-context';
 import { OidcProvidersRepository } from './oidc-providers-repository';
 import { OrganizationsRepository } from './organizations-repository';
 

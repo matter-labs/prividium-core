@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { PasskeyChallenge } from '../repositories/passkey-challenges-repository';
-import { ForbiddenError, InvalidInputError } from '../utils/error-types';
+import type { PasskeyChallenge } from '#repositories/passkey-challenges-repository';
+import { ForbiddenError, InvalidInputError } from '#utils/error-types';
 import { WebAuthnService } from './webauthn-service';
 
 describe('WebAuthnService', () => {

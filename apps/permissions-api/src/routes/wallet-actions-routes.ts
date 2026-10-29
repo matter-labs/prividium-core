@@ -1,18 +1,18 @@
 import { AUDIT_ACTIONS } from '@repo/access-control';
 import { keccak256, parseTransaction, type TransactionSerialized } from 'viem';
 import { z } from 'zod/v4';
-import type { FastifyServer } from '../build-app';
-import type { createAuditContextMiddleware } from '../middleware/audit-context';
-import type { UserWithRoles } from '../repositories/users-repository';
-import { WalletAuthorizer } from '../rpc/permissions';
-import { type AuthorizationService, methodAuthorizationSchema } from '../services/authorization-service';
-import type { TransactionClassifier } from '../services/transaction-classifier';
-import { EntityNotFound, ForbiddenError } from '../utils/error-types';
-import { areHexEqual } from '../utils/hex';
-import { recoverTransactionAddressNative } from '../utils/recover-tx-address-native';
-import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
-import { hexSchema } from '../utils/schemas/hex-schema';
-import { userHasWallet } from '../utils/user-wallets';
+import type { FastifyServer } from '#build-app';
+import type { createAuditContextMiddleware } from '#middleware/audit-context';
+import type { UserWithRoles } from '#repositories/users-repository';
+import { WalletAuthorizer } from '#rpc/permissions/index';
+import { type AuthorizationService, methodAuthorizationSchema } from '#services/authorization-service';
+import type { TransactionClassifier } from '#services/transaction-classifier';
+import { EntityNotFound, ForbiddenError } from '#utils/error-types';
+import { areHexEqual } from '#utils/hex';
+import { recoverTransactionAddressNative } from '#utils/recover-tx-address-native';
+import { ErrorResponseSchema } from '#utils/schemas/fastify-common';
+import { hexSchema } from '#utils/schemas/hex-schema';
+import { userHasWallet } from '#utils/user-wallets';
 import { UpdateTransactionHashRequestSchema, UpdateTransactionHashResponseSchema } from './schemas/wallets';
 
 type Deps = {

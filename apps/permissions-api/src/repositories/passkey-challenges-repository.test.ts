@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, vi } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
-import { passkeyChallengesTable } from '../db/schema';
-import { EntityNotFound, RateLimitError } from '../utils/error-types';
+import { passkeyChallengesTable } from '#db/schema';
+import { type Fixture, it } from '#test/unit-test-context';
+import { EntityNotFound, RateLimitError } from '#utils/error-types';
 import { PasskeyChallengesRepository } from './passkey-challenges-repository';
 import { type User, UsersRepository } from './users-repository';
 

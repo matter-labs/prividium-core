@@ -1,5 +1,5 @@
 import { type Address, type Hex, keccak256 } from 'viem';
-import type { ExternalRpc } from '../../target-rpc';
+import type { ExternalRpc } from '#rpc/target-rpc';
 import { ssoBeaconProxyDispatcher } from './sso-beacon-proxy';
 import type { DispatchedCall, DispatcherConfig, DynamicDispatcher, VerificationResult } from './types';
 

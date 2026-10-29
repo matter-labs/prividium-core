@@ -1,6 +1,6 @@
 import { it as baseIt } from '@vitest/runner';
-import type { BundlerContext } from '../../src/rpc/methods/handlers/bundler/utils/is-bundler-context';
-import type { BundlerRpcContext } from '../../src/rpc/rpc-service';
+import type { BundlerContext } from '#rpc/methods/handlers/bundler/utils/is-bundler-context';
+import type { BundlerRpcContext } from '#rpc/rpc-service';
 import { TestExternalRpc } from './test-external-rpc';
 import { createDispatcherConfig, createMockRpcClient } from './test-mocks';
 import { TestRpcAuthorizer } from './test-rpc-authorizer';

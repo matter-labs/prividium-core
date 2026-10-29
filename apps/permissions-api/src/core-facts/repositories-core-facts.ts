@@ -3,8 +3,8 @@ import type { AddressClass, CoreFacts, CoreReferences, MethodSelector, SigningId
 import { and, arrayContains, eq, inArray, isNull, or } from 'drizzle-orm';
 import type { PgColumn } from 'drizzle-orm/pg-core';
 import type { AbiFunction, Address } from 'viem';
-import { isEvmAddress } from '../chains/evm/addresses';
-import type { Repositories } from '../db';
+import { isEvmAddress } from '#chains/evm/addresses';
+import type { Repositories } from '#db/index';
 import {
     contractsTable,
     m2mApplicationsOrganizationsTable,
@@ -14,9 +14,9 @@ import {
     userRolesTable,
     usersTable,
     walletsTable
-} from '../db/schema';
-import { getFirst } from '../db/utils';
-import { resolveAbiItem } from '../utils/abi';
+} from '#db/schema';
+import { getFirst } from '#db/utils';
+import { resolveAbiItem } from '#utils/abi';
 
 export class RepositoriesCoreFacts implements CoreFacts {
     private repos: Repositories;

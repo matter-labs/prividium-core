@@ -1,9 +1,9 @@
 import { it as baseIt } from '@vitest/runner';
 import { describe, expect, vi } from 'vitest';
-import { ZERO_LOGS_BLOOM } from '../../../../src/rpc/constants';
-import { eth_getTransactionReceipt } from '../../../../src/rpc/methods/wallet-rules/eth_getTransactionReceipt';
-import type { WalletContext } from '../../../../src/rpc/rpc-service';
-import { TestExternalRpc } from '../../test-external-rpc';
+import { ZERO_LOGS_BLOOM } from '#rpc/constants';
+import { eth_getTransactionReceipt } from '#rpc/methods/wallet-rules/eth_getTransactionReceipt';
+import type { WalletContext } from '#rpc/rpc-service';
+import { TestExternalRpc } from '#test/rpc/test-external-rpc';
 
 type WalletFixture = {
     rpc: TestExternalRpc;

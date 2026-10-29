@@ -8,13 +8,13 @@
 import type { Hex } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { describe, expect, test } from 'vitest';
-import { ForbiddenRpcError } from '../../../../src/rpc/errors';
-import { eth_sendRawTransaction } from '../../../../src/rpc/methods/handlers/eth_sendRawTransaction';
-import type { AuthorizedRpcContext } from '../../../../src/rpc/rpc-service';
-import { RpcCallHandler } from '../../../../src/rpc/rpc-service';
-import { rpcUnitTest } from '../../rpc-unit-test-utils';
-import { TestExternalRpc } from '../../test-external-rpc';
-import { TestRpcAuthorizer } from '../../test-rpc-authorizer';
+import { ForbiddenRpcError } from '#rpc/errors';
+import { eth_sendRawTransaction } from '#rpc/methods/handlers/eth_sendRawTransaction';
+import type { AuthorizedRpcContext } from '#rpc/rpc-service';
+import { RpcCallHandler } from '#rpc/rpc-service';
+import { rpcUnitTest } from '#test/rpc/rpc-unit-test-utils';
+import { TestExternalRpc } from '#test/rpc/test-external-rpc';
+import { TestRpcAuthorizer } from '#test/rpc/test-rpc-authorizer';
 
 const SIGNER_KEY = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d';
 const SIGNER_ADDRESS = privateKeyToAccount(SIGNER_KEY).address;

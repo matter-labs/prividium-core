@@ -1,9 +1,9 @@
 import { z } from 'zod/v4';
-import { usersTable, walletsTable } from '../../db/schema';
-import { displayNameField } from '../../repositories/shared-schemas';
-import { createInsertSchema, createSelectSchema, MANAGED_COLUMNS } from '../../utils/drizzle-zod-schema-factory';
-import { chainAddressSchema, storedChainAddressSchema } from '../../utils/schemas/address';
-import { hexSchema } from '../../utils/schemas/hex-schema';
+import { usersTable, walletsTable } from '#db/schema';
+import { displayNameField } from '#repositories/shared-schemas';
+import { createInsertSchema, createSelectSchema, MANAGED_COLUMNS } from '#utils/drizzle-zod-schema-factory';
+import { chainAddressSchema, storedChainAddressSchema } from '#utils/schemas/address';
+import { hexSchema } from '#utils/schemas/hex-schema';
 import { OrganizationSummarySchema } from './organizations';
 import { BareRoleSchema, RoleSchema } from './roles';
 

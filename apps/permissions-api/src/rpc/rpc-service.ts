@@ -1,9 +1,9 @@
 import type { RpcObserver } from '@repo/api-kit';
 import type { Address, PublicClient } from 'viem';
 import { z } from 'zod/v4';
-import type { ContractDeployment, CreateContractDeployment } from '../repositories/contract-deployments-repository';
-import type { PinoLogger } from '../utils/logger';
-import { jsonRpcOperationCounter, jsonRpcOperationDuration } from '../utils/metrics';
+import type { ContractDeployment, CreateContractDeployment } from '#repositories/contract-deployments-repository';
+import type { PinoLogger } from '#utils/logger';
+import { jsonRpcOperationCounter, jsonRpcOperationDuration } from '#utils/metrics';
 import { INTERNAL_RPC_ERROR } from './constants';
 import type { DeploymentContext } from './contract-deployment-context';
 import { ForbiddenRpcError, InvalidRpcRequest, RpcException, WrongArguments } from './errors';

@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
-import type { Repositories, TxType } from '../db';
-import type { CreateContractDeployment } from '../repositories/contract-deployments-repository';
+import type { Repositories, TxType } from '#db/index';
+import type { CreateContractDeployment } from '#repositories/contract-deployments-repository';
 
 export type DeploymentAuditContext = {
     requestId: string | null;

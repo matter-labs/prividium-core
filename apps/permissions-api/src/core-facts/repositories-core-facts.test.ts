@@ -1,8 +1,8 @@
 import { defineFeaturePermission } from '@repo/api-kit';
 import { describe, expect } from 'vitest';
-import { it } from '../../test/unit-test-context';
-import { Repositories } from '../db';
-import { PermissionCatalog } from '../permissions/permission-catalog';
+import { Repositories } from '#db/index';
+import { PermissionCatalog } from '#permissions/permission-catalog';
+import { it } from '#test/unit-test-context';
 import { RepositoriesCoreFacts } from './repositories-core-facts';
 
 const EXAMPLE_ACCESS = defineFeaturePermission('example_feature_access', {

@@ -1,5 +1,5 @@
 import type { ChainType } from '@repo/api-kit';
-import type { Repositories } from '../db';
+import type { Repositories } from '#db/index';
 
 /** Refuses a database another chain type stamped; one without a stamp passes. */
 export async function assertDatabaseChainType(repos: Repositories, chainType: ChainType): Promise<void> {

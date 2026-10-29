@@ -1,5 +1,5 @@
-import { orgPendingAdminsTable } from '../../db/schema';
-import { createInsertSchema, createSelectSchema, MANAGED_COLUMNS } from '../../utils/drizzle-zod-schema-factory';
+import { orgPendingAdminsTable } from '#db/schema';
+import { createInsertSchema, createSelectSchema, MANAGED_COLUMNS } from '#utils/drizzle-zod-schema-factory';
 
 export const OrgPendingAdminSchema = createSelectSchema(orgPendingAdminsTable);
 

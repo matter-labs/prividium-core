@@ -1,9 +1,9 @@
 import { AUDIT_ACTIONS } from '@repo/access-control';
 import { z } from 'zod/v4';
-import type { FastifyServer } from '../build-app';
-import type { PermissionCatalog } from '../permissions/permission-catalog';
-import { ErrorResponseSchema, PaginationQuerySchema, SearchQuerySchema } from '../utils/schemas/fastify-common';
-import { paginatedResult } from '../utils/schemas/pagination';
+import type { FastifyServer } from '#build-app';
+import type { PermissionCatalog } from '#permissions/permission-catalog';
+import { ErrorResponseSchema, PaginationQuerySchema, SearchQuerySchema } from '#utils/schemas/fastify-common';
+import { paginatedResult } from '#utils/schemas/pagination';
 import { CreateRoleBodySchema as CreateRoleBodySchemaBase, RoleSchema, RoleWithCountsSchema } from './schemas/roles';
 
 const roleIdParamSchema = z.object({

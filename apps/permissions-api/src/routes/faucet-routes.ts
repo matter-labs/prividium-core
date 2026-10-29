@@ -1,10 +1,10 @@
 import { AUDIT_ACTIONS } from '@repo/access-control';
 import type { PublicClient, WalletClient } from 'viem';
-import type { FastifyServer } from '../build-app';
-import { FaucetService, type FaucetServiceConfig } from '../services/faucet-service';
-import { assertNever } from '../utils/assert-never';
-import { ForbiddenError, InternalServerError, RateLimitError } from '../utils/error-types';
-import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
+import type { FastifyServer } from '#build-app';
+import { FaucetService, type FaucetServiceConfig } from '#services/faucet-service';
+import { assertNever } from '#utils/assert-never';
+import { ForbiddenError, InternalServerError, RateLimitError } from '#utils/error-types';
+import { ErrorResponseSchema } from '#utils/schemas/fastify-common';
 import { ClaimRequestSchema, ClaimSuccessSchema, FaucetStatusSchema } from './schemas/faucet';
 
 type Deps = {

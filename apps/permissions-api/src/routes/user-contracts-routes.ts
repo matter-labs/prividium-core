@@ -1,9 +1,9 @@
 import { z } from 'zod/v4';
-import type { FastifyServer } from '../build-app';
-import type { Repositories } from '../db';
-import { ContractAbiService } from '../services/contract-abi-service';
-import { chainAddressSchema } from '../utils/schemas/address';
-import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
+import type { FastifyServer } from '#build-app';
+import type { Repositories } from '#db/index';
+import { ContractAbiService } from '#services/contract-abi-service';
+import { chainAddressSchema } from '#utils/schemas/address';
+import { ErrorResponseSchema } from '#utils/schemas/fastify-common';
 import { ContractAbiResponseSchema } from './schemas/contracts';
 
 const contractAddressParamSchema = z.object({

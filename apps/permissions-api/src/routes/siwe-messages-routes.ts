@@ -1,7 +1,7 @@
-import type { FastifyServer } from '../build-app';
-import { type AuditLogsService, auditLogContext } from '../services/audit-logs-service';
-import type { SiweChallengeService } from '../services/siwe-challenge-service';
-import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
+import type { FastifyServer } from '#build-app';
+import { type AuditLogsService, auditLogContext } from '#services/audit-logs-service';
+import type { SiweChallengeService } from '#services/siwe-challenge-service';
+import { ErrorResponseSchema } from '#utils/schemas/fastify-common';
 import {
     CreateServiceLoginSiweMsgSchema,
     CreateTenantLoginSiweMsgSchema,

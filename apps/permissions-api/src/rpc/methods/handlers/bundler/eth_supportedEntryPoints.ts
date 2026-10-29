@@ -1,6 +1,6 @@
-import type { JsonRpcResponse } from '../../../json-rpc';
-import { type AnyParams, anyParams } from '../../../params-schemas';
-import type { AuthorizedRpcContext, MethodHandler } from '../../../rpc-service';
+import type { JsonRpcResponse } from '#rpc/json-rpc';
+import { type AnyParams, anyParams } from '#rpc/params-schemas';
+import type { AuthorizedRpcContext, MethodHandler } from '#rpc/rpc-service';
 import { isBundlerContext } from './utils/is-bundler-context';
 
 export const eth_supportedEntryPoints: MethodHandler<AuthorizedRpcContext, AnyParams> = {

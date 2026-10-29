@@ -1,8 +1,8 @@
 import type { Address, Hex } from 'viem';
 import { beforeEach, describe, expect } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
-import { type DB, Repositories } from '../db';
-import { UserSources } from '../db/schema';
+import { type DB, Repositories } from '#db/index';
+import { UserSources } from '#db/schema';
+import { type Fixture, it } from '#test/unit-test-context';
 import { ContractDeploymentContext, type DeploymentAuditContext } from './contract-deployment-context';
 
 const DEPLOYER = '0x1234567890123456789012345678901234567890' as Address;

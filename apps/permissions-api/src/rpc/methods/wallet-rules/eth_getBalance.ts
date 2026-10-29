@@ -1,8 +1,8 @@
 import { z } from 'zod/v4';
-import { addressSchema } from '../../../utils/schemas/address';
-import { ForbiddenRpcError } from '../../errors';
-import type { JsonRpcResponse } from '../../json-rpc';
-import type { MethodHandler, WalletContext } from '../../rpc-service';
+import { ForbiddenRpcError } from '#rpc/errors';
+import type { JsonRpcResponse } from '#rpc/json-rpc';
+import type { MethodHandler, WalletContext } from '#rpc/rpc-service';
+import { addressSchema } from '#utils/schemas/address';
 
 const paramsSchema = z.tuple([addressSchema], z.unknown());
 

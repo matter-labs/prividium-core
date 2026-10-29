@@ -1,8 +1,8 @@
 import { type Address, type Hex, numberToHex, pad } from 'viem';
-import type { BlockTag } from '../../../utils/schemas/block-tag';
-import type { DisclosureConfig } from '../../permissions';
-import type { AuthorizedRpcContext } from '../../rpc-service';
-import type { ZksGetProofResponse } from '../../target-rpc';
+import type { DisclosureConfig } from '#rpc/permissions/index';
+import type { AuthorizedRpcContext } from '#rpc/rpc-service';
+import type { ZksGetProofResponse } from '#rpc/target-rpc';
+import type { BlockTag } from '#utils/schemas/block-tag';
 import { assertBlockAfterDisclosureStart } from './disclosure-helpers';
 import { tracerResultSchema, tracerStr } from './tracer';
 

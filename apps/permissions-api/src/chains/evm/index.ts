@@ -1,13 +1,13 @@
 import type { Chain, ChainAddress, ChainDefinition, ChainModule } from '@repo/api-kit';
 import type { Address } from 'viem';
-import { type ExternalRpc, TargetRpc } from '../../rpc/target-rpc';
+import { type ExternalRpc, TargetRpc } from '#rpc/target-rpc';
 import {
     HAS_ZKSYNC_SYSTEM_CONTRACTS,
     SEQUENCER_CALLS_BACK,
     SERVES_DISCLOSURE_METHODS,
     TARGET_CHAIN_TYPES,
     type TargetChainType
-} from '../../utils/target-chain';
+} from '#utils/target-chain';
 import { EVM_ADDRESSES, isEvmAddress } from './addresses';
 import { ZKSYNC_SYSTEM_CONTRACTS } from './system-contracts';
 

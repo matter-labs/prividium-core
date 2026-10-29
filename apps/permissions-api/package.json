@@ -3,6 +3,10 @@
     "version": "0.0.0",
     "description": "Permissions API for zksync-prividium",
     "type": "module",
+    "imports": {
+        "#test/*": "./test/*.ts",
+        "#*": "./src/*.ts"
+    },
     "exports": {
         "./src/build-app": "./src/build-app.ts",
         "./src/build-policy-app": "./src/build-policy-app.ts",

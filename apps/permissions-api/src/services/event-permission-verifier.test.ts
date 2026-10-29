@@ -1,14 +1,14 @@
 import { type Address, type Hex, pad, parseAbiItem, toEventSelector } from 'viem';
 import { beforeEach, describe, expect } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
-import { Repositories } from '../db';
-import { type TopicConditionType, topicConditionEnum } from '../db/schema';
-import { ContractEventsPermissionsRepository } from '../repositories/contract-events-permissions-repository';
-import { ContractsRepository } from '../repositories/contracts-repository';
-import { OrganizationsRepository } from '../repositories/organizations-repository';
-import { type Role, RolesRepository } from '../repositories/roles-repository';
-import { type User, UsersRepository } from '../repositories/users-repository';
-import { EntityNotFound } from '../utils/error-types';
+import { Repositories } from '#db/index';
+import { type TopicConditionType, topicConditionEnum } from '#db/schema';
+import { ContractEventsPermissionsRepository } from '#repositories/contract-events-permissions-repository';
+import { ContractsRepository } from '#repositories/contracts-repository';
+import { OrganizationsRepository } from '#repositories/organizations-repository';
+import { type Role, RolesRepository } from '#repositories/roles-repository';
+import { type User, UsersRepository } from '#repositories/users-repository';
+import { type Fixture, it } from '#test/unit-test-context';
+import { EntityNotFound } from '#utils/error-types';
 import { type EventDefinition, EventPermissionVerifier } from './event-permission-verifier';
 
 describe('EventPermissionVerifier', () => {

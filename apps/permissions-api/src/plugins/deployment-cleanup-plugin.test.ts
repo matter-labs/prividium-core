@@ -2,9 +2,9 @@ import { subHours } from 'date-fns';
 import { pino } from 'pino';
 import type { Address, Hex } from 'viem';
 import { beforeEach, describe, expect } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
-import { Repositories } from '../db';
-import { UserSources } from '../db/schema';
+import { Repositories } from '#db/index';
+import { UserSources } from '#db/schema';
+import { type Fixture, it } from '#test/unit-test-context';
 import { type SweepDeps, sweepStalePendingDeployments } from './deployment-cleanup-plugin';
 
 const DEPLOYER = '0x1234567890123456789012345678901234567890' as Address;

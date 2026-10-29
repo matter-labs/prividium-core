@@ -1,10 +1,10 @@
 import { getAddress, pad } from 'viem';
 import { describe, expect } from 'vitest';
-import { createBlockWithTxDetails, createBlockWithTxHashes } from '../../../../test/rpc/create-blocks';
-import { createReceipt } from '../../../../test/rpc/create-receipt';
-import { createTransaction } from '../../../../test/rpc/create-transaction';
-import { rpcUnitTest } from '../../../../test/rpc/rpc-unit-test-utils';
-import { ZERO_LOGS_BLOOM } from '../../constants';
+import { ZERO_LOGS_BLOOM } from '#rpc/constants';
+import { createBlockWithTxDetails, createBlockWithTxHashes } from '#test/rpc/create-blocks';
+import { createReceipt } from '#test/rpc/create-receipt';
+import { createTransaction } from '#test/rpc/create-transaction';
+import { rpcUnitTest } from '#test/rpc/rpc-unit-test-utils';
 import { eth_getBlockByHash } from './eth_getBlock';
 
 describe('rpc method: eth_getBlockByHash', () => {

@@ -1,10 +1,9 @@
 import { eq } from 'drizzle-orm';
 import { beforeEach, describe, expect } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
-import type { DB } from '../db';
-
-import { passkeyChallengesTable } from '../db/schema';
-import { type User, UsersRepository } from '../repositories/users-repository';
+import type { DB } from '#db/index';
+import { passkeyChallengesTable } from '#db/schema';
+import { type User, UsersRepository } from '#repositories/users-repository';
+import { type Fixture, it } from '#test/unit-test-context';
 import { rateLimit } from './rate-limit';
 
 describe('rateLimit', () => {

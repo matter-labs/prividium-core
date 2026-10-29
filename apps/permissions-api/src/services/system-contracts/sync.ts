@@ -1,9 +1,9 @@
 import { isDeepStrictEqual } from 'node:util';
 import { type SystemContract, selectedChain } from '@repo/api-kit';
 import { and, eq, inArray, notInArray } from 'drizzle-orm';
-import type { DbOrTx } from '../../db';
-import { contractsTable } from '../../db/schema';
-import type { PinoLogger } from '../../utils/logger';
+import type { DbOrTx } from '#db/index';
+import { contractsTable } from '#db/schema';
+import type { PinoLogger } from '#utils/logger';
 
 type SystemContractRow = Omit<typeof contractsTable.$inferSelect, 'createdAt' | 'updatedAt'>;
 

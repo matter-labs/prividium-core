@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: This document contains code that will be serialized and executed as js code. */
 
 import { z } from 'zod/v4';
-import { hexSchema } from '../../../utils/schemas/hex-schema';
+import { hexSchema } from '#utils/schemas/hex-schema';
 
 export const tracerStr = `{
     prevTop: null,

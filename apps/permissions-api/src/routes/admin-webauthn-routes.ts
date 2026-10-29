@@ -1,12 +1,12 @@
 import { AUDIT_ACTIONS } from '@repo/access-control';
 import type { FastifyRequest } from 'fastify';
 import { z } from 'zod/v4';
-import type { FastifyServer } from '../build-app';
-import { requireStepUpIfApplicable } from '../middleware/require-step-up';
-import type { StepUpService } from '../services/step-up-service';
-import { EntityNotFound, ForbiddenError } from '../utils/error-types';
-import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
-import { StepUpRequiredResponseSchema } from '../utils/schemas/webauthn';
+import type { FastifyServer } from '#build-app';
+import { requireStepUpIfApplicable } from '#middleware/require-step-up';
+import type { StepUpService } from '#services/step-up-service';
+import { EntityNotFound, ForbiddenError } from '#utils/error-types';
+import { ErrorResponseSchema } from '#utils/schemas/fastify-common';
+import { StepUpRequiredResponseSchema } from '#utils/schemas/webauthn';
 import { CredentialSchema } from './schemas/webauthn';
 
 export const PASSKEY_ADMIN_DELETE_STEP_UP_ACTION = 'passkey:admin-delete';

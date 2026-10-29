@@ -1,8 +1,8 @@
 import { getAddress, pad } from 'viem';
 import { describe, expect } from 'vitest';
-import { ZERO_LOGS_BLOOM } from '../../../../src/rpc/constants';
-import { eth_getUserOperationReceipt } from '../../../../src/rpc/methods/handlers/bundler/eth_getUserOperationReceipt';
-import { it } from '../../test-bundler-env';
+import { ZERO_LOGS_BLOOM } from '#rpc/constants';
+import { eth_getUserOperationReceipt } from '#rpc/methods/handlers/bundler/eth_getUserOperationReceipt';
+import { it } from '#test/rpc/test-bundler-env';
 
 describe('eth_getUserOperationReceipt', () => {
     const method = eth_getUserOperationReceipt;

@@ -1,12 +1,12 @@
 import type { CookieSerializeOptions } from '@fastify/cookie';
-import type { FastifyServer } from '../build-app';
-import type { Repositories } from '../db';
-import type { SessionService as SessionServiceType } from '../services/session-service';
-import { SessionService } from '../services/session-service';
-import { applyDocsSecurityHeaders } from '../utils/docs-security-headers';
-import { DOCS_SESSION_COOKIE_NAME } from '../utils/docs-session';
-import { InvalidInputError, UnauthorizedError } from '../utils/error-types';
-import { selfOriginFromRequest } from '../utils/self-origin';
+import type { FastifyServer } from '#build-app';
+import type { Repositories } from '#db/index';
+import type { SessionService as SessionServiceType } from '#services/session-service';
+import { SessionService } from '#services/session-service';
+import { applyDocsSecurityHeaders } from '#utils/docs-security-headers';
+import { DOCS_SESSION_COOKIE_NAME } from '#utils/docs-session';
+import { InvalidInputError, UnauthorizedError } from '#utils/error-types';
+import { selfOriginFromRequest } from '#utils/self-origin';
 import { EstablishSessionBodySchema } from './schemas/docs';
 
 // docs auth: /docs/login -> user-panel authorize -> /docs/callback#token -> POST /docs/session mints a docs-scoped cookie

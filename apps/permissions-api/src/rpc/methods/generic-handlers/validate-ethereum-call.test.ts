@@ -1,10 +1,10 @@
 import { type Address, getAddress, toFunctionSelector } from 'viem';
 import { describe, expect, it, vi } from 'vitest';
-import { rpcUnitTest } from '../../../../test/rpc/rpc-unit-test-utils';
-import { createDispatcherConfig, MOCK_BYTECODE } from '../../../../test/rpc/test-mocks';
-import { ForbiddenRpcError } from '../../errors';
-import { response } from '../../json-rpc';
-import type { AuthorizedRpcContext } from '../../rpc-service';
+import { ForbiddenRpcError } from '#rpc/errors';
+import { response } from '#rpc/json-rpc';
+import type { AuthorizedRpcContext } from '#rpc/rpc-service';
+import { rpcUnitTest } from '#test/rpc/rpc-unit-test-utils';
+import { createDispatcherConfig, MOCK_BYTECODE } from '#test/rpc/test-mocks';
 import { validatedEthereumCall } from './validate-ethereum-call';
 
 const CALL_OBJECT = {

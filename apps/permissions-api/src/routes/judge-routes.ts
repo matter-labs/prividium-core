@@ -1,7 +1,7 @@
-import type { FastifyServer } from '../build-app';
-import type { JudgeService, JudgeTrace } from '../services/judge-service';
-import { policyDecisionCounter } from '../utils/metrics';
-import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
+import type { FastifyServer } from '#build-app';
+import type { JudgeService, JudgeTrace } from '#services/judge-service';
+import { policyDecisionCounter } from '#utils/metrics';
+import { ErrorResponseSchema } from '#utils/schemas/fastify-common';
 import { JudgeRequestSchema, JudgeResponseSchema } from './schemas/judge';
 
 type Deps = {

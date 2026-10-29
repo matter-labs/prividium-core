@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
-import type { DB } from '../db';
-import type { PinoLogger } from '../utils/logger';
+import type { DB } from '#db/index';
+import type { PinoLogger } from '#utils/logger';
 
 export type HealthCheckResult = {
     ok: boolean;

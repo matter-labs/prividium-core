@@ -1,8 +1,8 @@
 import type { Hex } from 'viem';
-import type { AddressSet } from '../../address-set';
-import { ZERO_LOGS_BLOOM } from '../../constants';
-import type { Authorizer } from '../../permissions';
-import type { GetTransactionByHashResponse, GetTransactionReceiptsResponse } from '../handlers';
+import type { AddressSet } from '#rpc/address-set';
+import { ZERO_LOGS_BLOOM } from '#rpc/constants';
+import type { GetTransactionByHashResponse, GetTransactionReceiptsResponse } from '#rpc/methods/handlers/index';
+import type { Authorizer } from '#rpc/permissions/index';
 
 export type Transaction = NonNullable<GetTransactionByHashResponse>;
 export type Receipt = NonNullable<GetTransactionReceiptsResponse>;

@@ -1,5 +1,5 @@
 import type { Address, Hex } from 'viem';
-import type { ExternalRpc } from '../rpc/target-rpc';
+import type { ExternalRpc } from '#rpc/target-rpc';
 
 type ClassifyResponse =
     | {

@@ -1,6 +1,6 @@
 import { ADMIN_ROLE_ID, ADMIN_ROLE_NAME } from '@repo/access-control';
 import { describe, expect, it } from 'vitest';
-import type { UserWithRoles } from '../repositories/users-repository';
+import type { UserWithRoles } from '#repositories/users-repository';
 import { resolveContractOwnerOrganizationId } from './contracts-routes';
 
 function caller(organizationId: string | null, roleNames: string[]): UserWithRoles {

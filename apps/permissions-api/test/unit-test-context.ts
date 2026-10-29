@@ -1,6 +1,6 @@
 import { TestDatabaseBuilder } from '@repo/test-deps';
 import { it } from 'vitest';
-import { createDb, type DB } from '../src/db';
+import { createDb, type DB } from '#db/index';
 import { TEMPLATE_DB_PREFIX } from './global-setup';
 
 export type Fixture = {

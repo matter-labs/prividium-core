@@ -8,7 +8,7 @@
         "build": "turbo run build",
         "typecheck": "turbo typecheck",
         "test": "vitest run",
-        "biome": "biome check --write --config-path=./biome.config.json",
+        "biome": "sh -c 'node scripts/fix-parent-imports.mjs \"$@\" && biome check --write --config-path=./biome.config.json \"$@\"' --",
         "biome:check": "biome check --error-on-warnings --config-path=./biome.config.json",
         "fmt:md": "prettier --write --cache --log-level=warn \"**/*.md\"",
         "fmt:md:check": "prettier --cache --check \"**/*.md\""

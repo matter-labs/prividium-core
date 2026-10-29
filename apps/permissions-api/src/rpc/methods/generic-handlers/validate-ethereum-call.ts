@@ -1,15 +1,15 @@
 import { type Address, type Hex, zeroAddress } from 'viem';
 import { z } from 'zod/v4';
-import type { MethodAccessType } from '../../../db/schema';
-import type { AuthorizationResult } from '../../../services/authorization-service';
-import { areHexEqual } from '../../../utils/hex';
-import { addressSchema } from '../../../utils/schemas/address';
-import { blockTagSchema } from '../../../utils/schemas/block-tag';
-import { hexSchema } from '../../../utils/schemas/hex-schema';
-import { bigintStringSchema } from '../../../utils/schemas/numeric';
-import { ForbiddenRpcError, WrongArguments } from '../../errors';
-import type { JsonRpcResponse } from '../../json-rpc';
-import type { AuthorizedRpcContext, MethodHandler } from '../../rpc-service';
+import type { MethodAccessType } from '#db/schema';
+import { ForbiddenRpcError, WrongArguments } from '#rpc/errors';
+import type { JsonRpcResponse } from '#rpc/json-rpc';
+import type { AuthorizedRpcContext, MethodHandler } from '#rpc/rpc-service';
+import type { AuthorizationResult } from '#services/authorization-service';
+import { areHexEqual } from '#utils/hex';
+import { addressSchema } from '#utils/schemas/address';
+import { blockTagSchema } from '#utils/schemas/block-tag';
+import { hexSchema } from '#utils/schemas/hex-schema';
+import { bigintStringSchema } from '#utils/schemas/numeric';
 import { authorizeDeploy, isDeploy } from './deploy-utils';
 
 const eip712MetaSchema = z.object({

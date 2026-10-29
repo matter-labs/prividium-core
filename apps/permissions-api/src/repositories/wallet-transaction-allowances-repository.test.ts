@@ -1,7 +1,7 @@
 import { type Address, getAddress, type Hex } from 'viem';
 import { beforeEach, describe, expect } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
-import { EntityNotFound } from '../utils/error-types';
+import { type Fixture, it } from '#test/unit-test-context';
+import { EntityNotFound } from '#utils/error-types';
 import { ContractsRepository } from './contracts-repository';
 import { type User, UsersRepository } from './users-repository';
 import {

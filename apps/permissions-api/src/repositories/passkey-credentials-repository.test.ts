@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, vi } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
-import { EntityNotFound } from '../utils/error-types';
+import { type Fixture, it } from '#test/unit-test-context';
+import { EntityNotFound } from '#utils/error-types';
 import { type InsertPasskeyCredential, PasskeyCredentialsRepository } from './passkey-credentials-repository';
 import { type User, UsersRepository } from './users-repository';
 

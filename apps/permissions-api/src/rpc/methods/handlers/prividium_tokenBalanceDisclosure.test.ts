@@ -1,9 +1,9 @@
 import { encodeFunctionData, type Hex, numberToHex, pad, parseAbiItem, zeroAddress } from 'viem';
 import { describe, expect } from 'vitest';
-import { rpcUnitTest } from '../../../../test/rpc/rpc-unit-test-utils';
-import type { TestExternalRpc } from '../../../../test/rpc/test-external-rpc';
-import { ForbiddenRpcError } from '../../errors';
-import type { ZksGetProofResponse } from '../../target-rpc';
+import { ForbiddenRpcError } from '#rpc/errors';
+import type { ZksGetProofResponse } from '#rpc/target-rpc';
+import { rpcUnitTest } from '#test/rpc/rpc-unit-test-utils';
+import type { TestExternalRpc } from '#test/rpc/test-external-rpc';
 import { prividium_tokenBalanceDisclosure } from './prividium_tokenBalanceDisclosure';
 
 const method = prividium_tokenBalanceDisclosure;

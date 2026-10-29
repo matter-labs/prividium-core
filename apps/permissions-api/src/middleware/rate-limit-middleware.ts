@@ -1,7 +1,7 @@
 import rateLimit from '@fastify/rate-limit';
 import { hasZoneSystemPermission } from '@repo/access-control';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import { RateLimitError } from '../utils/error-types';
+import { RateLimitError } from '#utils/error-types';
 
 export interface RateLimitConfig {
     enabled: boolean;

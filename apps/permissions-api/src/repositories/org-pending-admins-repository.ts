@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
-import { organizationsTable, orgPendingAdminsTable } from '../db/schema';
-import { EntityNotFound } from '../utils/error-types';
+import { organizationsTable, orgPendingAdminsTable } from '#db/schema';
+import { EntityNotFound } from '#utils/error-types';
 import { EntityRepository } from './entity-repository';
 
 const OrgPendingAdminsRepositoryBase = EntityRepository({

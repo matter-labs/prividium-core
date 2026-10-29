@@ -12,17 +12,17 @@ import { ForbiddenError } from '@repo/api-kit';
 import type { FastifyRequest } from 'fastify';
 import type { PoolClient } from 'pg';
 import type { Address } from 'viem';
-import { createRequestScopedDb } from '../db';
-import type { AuditActionType, AuditResourceType } from '../db/schema';
-import { requireOrgAdmin, requireOrgAdminOn } from '../middleware/require-org-admin';
+import { createRequestScopedDb } from '#db/index';
+import type { AuditActionType, AuditResourceType } from '#db/schema';
+import { requireOrgAdmin, requireOrgAdminOn } from '#middleware/require-org-admin';
 import {
     requireM2mAppOrgAssociation,
     requireOrgMemberForUserCaller,
     requireOrgPermissionForM2mCaller,
     requireZonePermissionForM2mCaller
-} from '../middleware/require-org-membership';
-import type { SessionsAuthValidator } from '../middleware/sessions-auth';
-import { userHasWallet } from '../utils/user-wallets';
+} from '#middleware/require-org-membership';
+import type { SessionsAuthValidator } from '#middleware/sessions-auth';
+import { userHasWallet } from '#utils/user-wallets';
 
 /**
  * Names the subset of the core's existing guards a feature may ask for, so it never

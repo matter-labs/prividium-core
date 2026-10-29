@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { secureRandomString } from '../utils/crypto';
+import { secureRandomString } from '#utils/crypto';
 
 const API_KEY_PREFIX = 'priv_sk_';
 const API_KEY_RANDOM_LENGTH = 64;

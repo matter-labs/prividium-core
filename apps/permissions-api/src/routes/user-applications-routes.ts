@@ -1,7 +1,7 @@
-import type { FastifyServer } from '../build-app';
-import type { ApplicationsService } from '../services/applications-service';
-import { ErrorResponseSchema, PaginationQuerySchema } from '../utils/schemas/fastify-common';
-import { paginatedResult } from '../utils/schemas/pagination';
+import type { FastifyServer } from '#build-app';
+import type { ApplicationsService } from '#services/applications-service';
+import { ErrorResponseSchema, PaginationQuerySchema } from '#utils/schemas/fastify-common';
+import { paginatedResult } from '#utils/schemas/pagination';
 import { PublicApplicationCardSchema } from './schemas/applications';
 
 type Deps = {

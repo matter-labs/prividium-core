@@ -1,16 +1,16 @@
 import { type Hex, parseTransaction, type serializeTransaction, zeroAddress } from 'viem';
 import { z } from 'zod/v4';
-import { methodAccessSchema } from '../../../db/schema';
-import { TransactionClassifier } from '../../../services/transaction-classifier';
-import { recoverTransactionAddressNative } from '../../../utils/recover-tx-address-native';
-import { addressSchema } from '../../../utils/schemas/address';
-import { hexSchema } from '../../../utils/schemas/hex-schema';
-import { ForbiddenRpcError, WrongArguments } from '../../errors';
-import type { JsonRpcResponse } from '../../json-rpc';
-import { forwardAndRecordSubmission } from '../../rpc-observer';
-import type { AuthorizedRpcContext, MethodHandler } from '../../rpc-service';
-import type { TxData } from '../../types';
-import { handleAndVerifyDeployment, isDeploy } from '../generic-handlers';
+import { methodAccessSchema } from '#db/schema';
+import { ForbiddenRpcError, WrongArguments } from '#rpc/errors';
+import type { JsonRpcResponse } from '#rpc/json-rpc';
+import { handleAndVerifyDeployment, isDeploy } from '#rpc/methods/generic-handlers/index';
+import { forwardAndRecordSubmission } from '#rpc/rpc-observer';
+import type { AuthorizedRpcContext, MethodHandler } from '#rpc/rpc-service';
+import type { TxData } from '#rpc/types';
+import { TransactionClassifier } from '#services/transaction-classifier';
+import { recoverTransactionAddressNative } from '#utils/recover-tx-address-native';
+import { addressSchema } from '#utils/schemas/address';
+import { hexSchema } from '#utils/schemas/hex-schema';
 
 const SUPPORTED_TX_TYPES: ReadonlySet<string> = new Set(['legacy', 'eip2930', 'eip1559']);
 

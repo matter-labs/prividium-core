@@ -1,9 +1,9 @@
 import type { Address } from 'viem';
 import { describe, expect } from 'vitest';
-import { ForbiddenRpcError } from '../../../../src/rpc/errors';
-import { eth_estimateUserOperationGas } from '../../../../src/rpc/methods/handlers/bundler';
-import type { UserOperation } from '../../../../src/utils/schemas/user-operation';
-import { it } from '../../test-bundler-env';
+import { ForbiddenRpcError } from '#rpc/errors';
+import { eth_estimateUserOperationGas } from '#rpc/methods/handlers/bundler/index';
+import { it } from '#test/rpc/test-bundler-env';
+import type { UserOperation } from '#utils/schemas/user-operation';
 
 describe('eth_estimateUserOperationGas', () => {
     const method = eth_estimateUserOperationGas;

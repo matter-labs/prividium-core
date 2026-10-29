@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import { nanoid } from 'nanoid';
-import type { Repositories } from '../db';
-import type { InsertSession } from '../repositories/sessions-repository';
-import { UnauthorizedError } from '../utils/error-types';
+import type { Repositories } from '#db/index';
+import type { InsertSession } from '#repositories/sessions-repository';
+import { UnauthorizedError } from '#utils/error-types';
 
 export interface SessionServiceOpts {
     userSessionDurationSeconds: number;

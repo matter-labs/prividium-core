@@ -1,17 +1,17 @@
 import { and, eq, sql } from 'drizzle-orm';
 import pino from 'pino';
 import { beforeEach, describe, expect } from 'vitest';
-import { type Fixture, it } from '../../../test/unit-test-context';
-import { ZKSYNC_SYSTEM_CONTRACTS } from '../../chains/evm/system-contracts';
-import type { DB } from '../../db';
-import { Repositories } from '../../db';
+import { ZKSYNC_SYSTEM_CONTRACTS } from '#chains/evm/system-contracts';
+import type { DB } from '#db/index';
+import { Repositories } from '#db/index';
 import {
     contractFunctionPermissionRolesTable,
     contractFunctionPermissionsTable,
     contractsTable,
     dbMutationAuditLogsTable,
     rolesTable
-} from '../../db/schema';
+} from '#db/schema';
+import { type Fixture, it } from '#test/unit-test-context';
 import { syncSystemContracts } from './sync';
 
 const logger = pino({ level: 'silent' });

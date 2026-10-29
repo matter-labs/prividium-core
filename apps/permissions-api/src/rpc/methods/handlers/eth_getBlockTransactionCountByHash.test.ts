@@ -1,7 +1,7 @@
 import { describe, expect } from 'vitest';
-import { createBlockWithTxDetails, createBlockWithTxHashes } from '../../../../test/rpc/create-blocks';
-import { createReceipt } from '../../../../test/rpc/create-receipt';
-import { rpcUnitTest } from '../../../../test/rpc/rpc-unit-test-utils';
+import { createBlockWithTxDetails, createBlockWithTxHashes } from '#test/rpc/create-blocks';
+import { createReceipt } from '#test/rpc/create-receipt';
+import { rpcUnitTest } from '#test/rpc/rpc-unit-test-utils';
 import { eth_getBlockTransactionCountByHash } from './eth_getBlock';
 
 describe('rpc method: eth_getBlockTransactionCountByHash', () => {

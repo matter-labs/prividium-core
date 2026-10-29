@@ -3,7 +3,7 @@ import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Env } from '../env';
+import type { Env } from '#env';
 import { buildServerDeps } from './build-server-deps';
 import { encryptToFile } from './crypto';
 

@@ -1,7 +1,7 @@
 import { z } from 'zod/v4';
-import { ZERO_LOGS_BLOOM } from '../../constants';
-import { type JsonRpcResponse, response } from '../../json-rpc';
-import type { MethodHandler, WalletContext } from '../../rpc-service';
+import { ZERO_LOGS_BLOOM } from '#rpc/constants';
+import { type JsonRpcResponse, response } from '#rpc/json-rpc';
+import type { MethodHandler, WalletContext } from '#rpc/rpc-service';
 
 const paramsSchema = z.tuple([z.string()], z.unknown());
 

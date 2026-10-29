@@ -1,6 +1,6 @@
 // Wallet-specific method handlers
 import type { z } from 'zod/v4';
-import type { MethodHandler, WalletContext } from '../rpc-service';
+import type { MethodHandler, WalletContext } from '#rpc/rpc-service';
 import { forbiddenMethod, openToPublic } from './generic-handlers';
 import { eth_getBalance } from './wallet-rules/eth_getBalance';
 import { eth_getBlockByHash } from './wallet-rules/eth_getBlockByHash';

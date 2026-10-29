@@ -1,5 +1,5 @@
-import type { FastifyServer } from '../build-app';
-import type { HealthCheckService } from '../services/health-check-service';
+import type { FastifyServer } from '#build-app';
+import type { HealthCheckService } from '#services/health-check-service';
 
 type Deps = {
     healthCheckService: HealthCheckService;

@@ -1,13 +1,13 @@
 import { z } from 'zod/v4';
-import { hexSchema } from '../../../utils/schemas/hex-schema';
-import { EIP_7966_TIMEOUT_CODE } from '../../constants';
-import { ForbiddenRpcError, RpcException, WrongArguments } from '../../errors';
-import type { JsonRpcResponse } from '../../json-rpc';
-import { forwardAndRecordSubmission } from '../../rpc-observer';
-import type { MethodHandler, WalletContext } from '../../rpc-service';
-import type { TxData } from '../../types';
-import { handleContractDeployment, isDeploy } from '../generic-handlers';
-import { decodeTx } from '../handlers/eth_sendRawTransaction';
+import { EIP_7966_TIMEOUT_CODE } from '#rpc/constants';
+import { ForbiddenRpcError, RpcException, WrongArguments } from '#rpc/errors';
+import type { JsonRpcResponse } from '#rpc/json-rpc';
+import { handleContractDeployment, isDeploy } from '#rpc/methods/generic-handlers/index';
+import { decodeTx } from '#rpc/methods/handlers/eth_sendRawTransaction';
+import { forwardAndRecordSubmission } from '#rpc/rpc-observer';
+import type { MethodHandler, WalletContext } from '#rpc/rpc-service';
+import type { TxData } from '#rpc/types';
+import { hexSchema } from '#utils/schemas/hex-schema';
 
 const paramsSchema = z.tuple([hexSchema], z.unknown());
 

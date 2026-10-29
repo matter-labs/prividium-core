@@ -1,6 +1,6 @@
 import { z } from 'zod/v4';
-import { addressSchema, storedChainAddressSchema } from '../../utils/schemas/address';
-import { hexSchema } from '../../utils/schemas/hex-schema';
+import { addressSchema, storedChainAddressSchema } from '#utils/schemas/address';
+import { hexSchema } from '#utils/schemas/hex-schema';
 
 export const InitiateWalletAssociationSchema = z.object({
     walletAddress: addressSchema,

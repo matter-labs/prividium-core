@@ -1,16 +1,16 @@
 import { AUDIT_ACTIONS, requiresMfa } from '@repo/access-control';
 import { z } from 'zod/v4';
-import type { FastifyServer } from '../build-app';
-import { requireStepUpIfApplicable } from '../middleware/require-step-up';
-import type { PasskeyService } from '../services/passkey-service';
-import type { StepUpService } from '../services/step-up-service';
-import { EntityNotFound, ForbiddenError, InvalidInputError } from '../utils/error-types';
-import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
+import type { FastifyServer } from '#build-app';
+import { requireStepUpIfApplicable } from '#middleware/require-step-up';
+import type { PasskeyService } from '#services/passkey-service';
+import type { StepUpService } from '#services/step-up-service';
+import { EntityNotFound, ForbiddenError, InvalidInputError } from '#utils/error-types';
+import { ErrorResponseSchema } from '#utils/schemas/fastify-common';
 import {
     StepUpRequiredResponseSchema,
     WebAuthnRegistrationOptionsSchema,
     WebAuthnRegistrationResponseSchema
-} from '../utils/schemas/webauthn';
+} from '#utils/schemas/webauthn';
 import { CredentialSchema } from './schemas/webauthn';
 
 interface WebAuthnUserRoutesDeps {

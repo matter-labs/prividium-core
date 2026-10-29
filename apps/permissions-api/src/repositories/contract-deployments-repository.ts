@@ -1,12 +1,12 @@
 import { type ChainAddress, chainAddressSchema, storedChainAddressSchema } from '@repo/api-kit';
 import { and, count, eq, isNotNull, isNull, lt } from 'drizzle-orm';
 import { z } from 'zod/v4';
-import { contractDeploymentsTable } from '../db/schema';
-import { getFirstOrThrow } from '../db/utils';
-import { createInsertSchema, createSelectSchema } from '../utils/drizzle-zod-schema-factory';
-import { EntityNotFound } from '../utils/error-types';
-import { hexSchema } from '../utils/schemas/hex-schema';
-import type { PaginationParams } from '../utils/schemas/pagination';
+import { contractDeploymentsTable } from '#db/schema';
+import { getFirstOrThrow } from '#db/utils';
+import { createInsertSchema, createSelectSchema } from '#utils/drizzle-zod-schema-factory';
+import { EntityNotFound } from '#utils/error-types';
+import { hexSchema } from '#utils/schemas/hex-schema';
+import type { PaginationParams } from '#utils/schemas/pagination';
 import { BaseRepository } from './base-repository';
 
 const createContractDeploymentSchema = createInsertSchema(contractDeploymentsTable).extend({

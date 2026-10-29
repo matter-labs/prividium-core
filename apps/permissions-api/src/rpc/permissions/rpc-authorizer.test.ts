@@ -1,16 +1,16 @@
 import { type Address, type Hex, pad, toEventSelector, toFunctionSelector } from 'viem';
 import { describe, expect, it } from 'vitest';
-import type { Repositories } from '../../db';
-import { AuthData } from '../../middleware/auth-data';
-import type { SystemPermission } from '../../permissions/system-permissions';
-import type { M2mApplication } from '../../repositories/m2m-applications-repository';
-import type { Role } from '../../repositories/roles-repository';
-import type { UserWithRoles } from '../../repositories/users-repository';
-import type { MethodAuthorizer } from '../../services/authorization-service';
-import type { EventPermissionVerifier } from '../../services/event-permission-verifier';
-import type { PinoLogger } from '../../utils/logger';
-import { ForbiddenRpcError, UnauthorizedRpcError } from '../errors';
-import type { ExternalRpc } from '../target-rpc';
+import type { Repositories } from '#db/index';
+import { AuthData } from '#middleware/auth-data';
+import type { SystemPermission } from '#permissions/system-permissions';
+import type { M2mApplication } from '#repositories/m2m-applications-repository';
+import type { Role } from '#repositories/roles-repository';
+import type { UserWithRoles } from '#repositories/users-repository';
+import { ForbiddenRpcError, UnauthorizedRpcError } from '#rpc/errors';
+import type { ExternalRpc } from '#rpc/target-rpc';
+import type { MethodAuthorizer } from '#services/authorization-service';
+import type { EventPermissionVerifier } from '#services/event-permission-verifier';
+import type { PinoLogger } from '#utils/logger';
 import { RpcAuthorizer } from './rpc-authorizer';
 
 const deployerAddress = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' as Address;

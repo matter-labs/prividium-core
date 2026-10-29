@@ -1,9 +1,9 @@
 import { z } from 'zod/v4';
-import { organizationsTable } from '../../db/schema';
-import { nameField } from '../../repositories/shared-schemas';
-import { isValidHexColor, sanitizeLogoUrl } from '../../utils/branding';
-import { createInsertSchema, createSelectSchema, MANAGED_COLUMNS } from '../../utils/drizzle-zod-schema-factory';
-import { isSiweCompatibleDomain } from '../../utils/siwe-domain';
+import { organizationsTable } from '#db/schema';
+import { nameField } from '#repositories/shared-schemas';
+import { isValidHexColor, sanitizeLogoUrl } from '#utils/branding';
+import { createInsertSchema, createSelectSchema, MANAGED_COLUMNS } from '#utils/drizzle-zod-schema-factory';
+import { isSiweCompatibleDomain } from '#utils/siwe-domain';
 import { BareRoleSchema, RoleRefSchema } from './roles';
 
 export const OrganizationSchema = createSelectSchema(organizationsTable).extend({

@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { type DatabaseBeforeMigration, databaseBeforeMigration } from '../../test/migration-upgrade';
+import { type DatabaseBeforeMigration, databaseBeforeMigration } from '#test/migration-upgrade';
 
 // Every other migration test in the repo runs 0077 on an empty database. This one exercises the risky
 // part — the backfill — by migrating a fresh database only up to 0074, seeding legacy-shaped rows

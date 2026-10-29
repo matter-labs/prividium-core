@@ -1,8 +1,8 @@
 import type { Address, Hex } from 'viem';
 import { beforeEach, describe, expect } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
-import { UserSources } from '../db/schema';
-import { EntityNotFound } from '../utils/error-types';
+import { UserSources } from '#db/schema';
+import { type Fixture, it } from '#test/unit-test-context';
+import { EntityNotFound } from '#utils/error-types';
 import { ContractDeploymentsRepository, type CreateContractDeployment } from './contract-deployments-repository';
 import { UsersRepository } from './users-repository';
 

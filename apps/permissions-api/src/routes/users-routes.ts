@@ -1,14 +1,14 @@
 import { AUDIT_ACTIONS } from '@repo/access-control';
 import type { FastifyRequest } from 'fastify';
 import { z } from 'zod/v4';
-import type { FastifyServer } from '../build-app';
-import type { PermissionCatalog } from '../permissions/permission-catalog';
-import { WATCHDOG_GRANT } from '../permissions/watchdog-grant';
-import type { WalletAssociationGuard } from '../services/wallet-association-guard';
-import { resumeWatchdog, suspendWatchdog } from '../services/watchdog-service';
-import { EntityNotFound, InvalidInputError, WalletLimitExceededError } from '../utils/error-types';
-import { ErrorResponseSchema, PaginationQuerySchema } from '../utils/schemas/fastify-common';
-import { paginatedResult } from '../utils/schemas/pagination';
+import type { FastifyServer } from '#build-app';
+import type { PermissionCatalog } from '#permissions/permission-catalog';
+import { WATCHDOG_GRANT } from '#permissions/watchdog-grant';
+import type { WalletAssociationGuard } from '#services/wallet-association-guard';
+import { resumeWatchdog, suspendWatchdog } from '#services/watchdog-service';
+import { EntityNotFound, InvalidInputError, WalletLimitExceededError } from '#utils/error-types';
+import { ErrorResponseSchema, PaginationQuerySchema } from '#utils/schemas/fastify-common';
+import { paginatedResult } from '#utils/schemas/pagination';
 import { CreateUserBodySchema, UpdateUserBodySchema, UserSchema, WatchdogGrantSchema } from './schemas/users';
 
 const userIdParamSchema = z.object({

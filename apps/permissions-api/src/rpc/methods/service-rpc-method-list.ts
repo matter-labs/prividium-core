@@ -1,7 +1,7 @@
 import type { z } from 'zod/v4';
-import type { JsonRpcResponse } from '../json-rpc';
-import { type AnyParams, anyParams } from '../params-schemas';
-import type { MethodHandler, ServiceContext } from '../rpc-service';
+import type { JsonRpcResponse } from '#rpc/json-rpc';
+import { type AnyParams, anyParams } from '#rpc/params-schemas';
+import type { MethodHandler, ServiceContext } from '#rpc/rpc-service';
 
 /**
  * Creates a handler that forwards the request to the target RPC without any filtering.

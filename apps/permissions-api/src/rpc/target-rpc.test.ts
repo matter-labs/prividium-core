@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
-import { upstreamRpcDuration } from '../utils/metrics';
+import { upstreamRpcDuration } from '#utils/metrics';
 import { BAD_RPC_PARAMS_ERROR_CODE, INTERNAL_RPC_ERROR, METHOD_NOT_FOUND_ERROR_CODE } from './constants';
 import { RpcException } from './errors';
 import type { JsonRpcResponse } from './json-rpc';

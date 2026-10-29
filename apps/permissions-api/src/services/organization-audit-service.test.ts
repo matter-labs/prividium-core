@@ -1,6 +1,6 @@
 import { AUDIT_ACTIONS } from '@repo/access-control';
 import { describe, expect, it } from 'vitest';
-import type { AuditLogWithAudience } from '../repositories/audit-logs-repository';
+import type { AuditLogWithAudience } from '#repositories/audit-logs-repository';
 import { organizationAuditSummary } from './organization-audit-service';
 
 const event: AuditLogWithAudience = {

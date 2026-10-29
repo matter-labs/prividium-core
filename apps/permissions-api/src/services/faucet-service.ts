@@ -1,11 +1,11 @@
 import type { Address, Hex, PublicClient, WalletClient } from 'viem';
-import type { Repositories } from '../db';
-import type { FaucetClaim } from '../repositories/faucet-claims-repository';
-import type { User } from '../repositories/users-repository';
-import type { PinoLogger } from '../utils/logger';
-import type { PaginatedResult, PaginationParams } from '../utils/schemas/pagination';
-import { userHasWallet } from '../utils/user-wallets';
-import { viemErrorName } from '../utils/viem-error-name';
+import type { Repositories } from '#db/index';
+import type { FaucetClaim } from '#repositories/faucet-claims-repository';
+import type { User } from '#repositories/users-repository';
+import type { PinoLogger } from '#utils/logger';
+import type { PaginatedResult, PaginationParams } from '#utils/schemas/pagination';
+import { userHasWallet } from '#utils/user-wallets';
+import { viemErrorName } from '#utils/viem-error-name';
 
 const ROLLING_DAILY_CAP_WINDOW_SECONDS = 24 * 60 * 60;
 

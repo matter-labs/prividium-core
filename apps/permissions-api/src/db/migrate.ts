@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/node';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
-import type { PinoLogger } from '../utils/logger';
+import type { PinoLogger } from '#utils/logger';
 import type { DB } from '.';
 
 /**

@@ -1,7 +1,7 @@
 import { z } from 'zod/v4';
-import { apiKeysTable } from '../../db/schema';
-import { createInsertSchema, createSelectSchema } from '../../utils/drizzle-zod-schema-factory';
-import { paginatedResult } from '../../utils/schemas/pagination';
+import { apiKeysTable } from '#db/schema';
+import { createInsertSchema, createSelectSchema } from '#utils/drizzle-zod-schema-factory';
+import { paginatedResult } from '#utils/schemas/pagination';
 
 const SECONDS_PER_DAY = 24 * 60 * 60;
 

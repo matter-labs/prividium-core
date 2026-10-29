@@ -1,7 +1,7 @@
 import { type Hex, pad, parseAbiItem, toEventSelector } from 'viem';
 import { beforeEach, describe, expect } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
-import { EntityNotFound, InvalidInputError } from '../utils/error-types';
+import { type Fixture, it } from '#test/unit-test-context';
+import { EntityNotFound, InvalidInputError } from '#utils/error-types';
 import {
     ContractEventsPermissionsRepository,
     type InsertEventPermission

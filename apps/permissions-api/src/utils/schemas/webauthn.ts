@@ -5,7 +5,7 @@ import type {
     RegistrationResponseJSON
 } from '@simplewebauthn/server';
 import { z } from 'zod/v4';
-import { PasskeyTransports } from '../../db/schema';
+import { PasskeyTransports } from '#db/schema';
 
 /**
  * WebAuthn PublicKeyCredentialDescriptor, used in `allowCredentials` and `excludeCredentials`.

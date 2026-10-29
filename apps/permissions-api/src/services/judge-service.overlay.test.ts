@@ -8,7 +8,7 @@ import {
     parseAbiItem
 } from 'viem';
 import { describe, expect, it, vi } from 'vitest';
-import type { Repositories } from '../db';
+import type { Repositories } from '#db/index';
 import { AuthorizationService } from './authorization-service';
 import { JudgeService, type TraceFrame } from './judge-service';
 import type { TransactionClassifier } from './transaction-classifier';

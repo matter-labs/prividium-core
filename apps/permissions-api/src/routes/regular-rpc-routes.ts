@@ -1,9 +1,9 @@
 import type { preHandlerHookHandler } from 'fastify';
 import type { Address } from 'viem';
-import type { FastifyServer } from '../build-app';
-import { type AuthorizedRpcContext, RpcCallHandler } from '../rpc/rpc-service';
-import { actorLogContext } from '../utils/actor-log-context';
-import { isWatchdog } from '../utils/watchdog';
+import type { FastifyServer } from '#build-app';
+import { type AuthorizedRpcContext, RpcCallHandler } from '#rpc/rpc-service';
+import { actorLogContext } from '#utils/actor-log-context';
+import { isWatchdog } from '#utils/watchdog';
 import { rpcMetrics } from './rpc-metrics';
 import { type RpcTransportRequest, rpcTransport } from './rpc-transport';
 

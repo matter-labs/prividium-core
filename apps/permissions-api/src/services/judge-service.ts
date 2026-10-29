@@ -1,6 +1,6 @@
 import { type AuthorizationOverlay, OVERLAY_UNAVAILABLE, type OverlayMoment, OverlayRefusal } from '@repo/api-kit';
 import { type Address, type Hex, size } from 'viem';
-import type { PinoLogger } from '../utils/logger';
+import type { PinoLogger } from '#utils/logger';
 import type { AuthorizationResult, FrameEvaluation, SequencerAuthorizer } from './authorization-service';
 import { type DecisionCacheStore, withDecisionCache } from './decision-cache';
 import type { TransactionClassifier } from './transaction-classifier';

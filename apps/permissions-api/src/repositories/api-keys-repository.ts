@@ -1,7 +1,7 @@
 import { and, asc, eq, gt, inArray, isNull, sql } from 'drizzle-orm';
-import type { DbOrTx } from '../db';
-import { apiKeysTable, m2mApplicationsTable } from '../db/schema';
-import type { PaginationParams } from '../utils/schemas/pagination';
+import type { DbOrTx } from '#db/index';
+import { apiKeysTable, m2mApplicationsTable } from '#db/schema';
+import type { PaginationParams } from '#utils/schemas/pagination';
 import { EntityRepository } from './entity-repository';
 
 const ApiKeysRepositoryBase = EntityRepository({

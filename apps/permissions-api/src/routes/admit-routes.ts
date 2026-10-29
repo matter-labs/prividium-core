@@ -1,8 +1,8 @@
 import type { AdmitDeniedHook } from '@repo/api-kit';
-import type { FastifyServer } from '../build-app';
-import type { AdmitService } from '../services/admit-service';
-import { policyDecisionCounter } from '../utils/metrics';
-import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
+import type { FastifyServer } from '#build-app';
+import type { AdmitService } from '#services/admit-service';
+import { policyDecisionCounter } from '#utils/metrics';
+import { ErrorResponseSchema } from '#utils/schemas/fastify-common';
 import { AdmitRequestSchema, AdmitResponseSchema } from './schemas/admit';
 
 type Deps = {

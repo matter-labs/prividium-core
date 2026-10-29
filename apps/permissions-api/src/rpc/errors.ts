@@ -1,4 +1,4 @@
-import type { RuleId } from '../services/authorization-service';
+import type { RuleId } from '#services/authorization-service';
 import {
     BAD_RPC_PARAMS_ERROR_CODE,
     FORBIDDEN_ERROR_CODE,

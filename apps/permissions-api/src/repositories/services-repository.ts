@@ -1,6 +1,6 @@
 import { asc, eq } from 'drizzle-orm';
 import type { Address } from 'viem';
-import { servicesTable } from '../db/schema';
+import { servicesTable } from '#db/schema';
 import { EntityRepository } from './entity-repository';
 
 export type Service = typeof servicesTable.$inferSelect;

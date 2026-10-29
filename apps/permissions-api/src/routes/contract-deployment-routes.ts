@@ -1,7 +1,7 @@
-import type { FastifyServer } from '../build-app';
-import { contractDeploymentSchema } from '../repositories/contract-deployments-repository';
-import { ErrorResponseSchema, PaginationQuerySchema } from '../utils/schemas/fastify-common';
-import { paginatedResult } from '../utils/schemas/pagination';
+import type { FastifyServer } from '#build-app';
+import { contractDeploymentSchema } from '#repositories/contract-deployments-repository';
+import { ErrorResponseSchema, PaginationQuerySchema } from '#utils/schemas/fastify-common';
+import { paginatedResult } from '#utils/schemas/pagination';
 
 export function contractDeploymentRoutes(server: FastifyServer) {
     server.get(

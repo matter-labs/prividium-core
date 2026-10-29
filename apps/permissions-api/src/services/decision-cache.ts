@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { policyDecisionCacheCounter } from '../utils/metrics';
+import { policyDecisionCacheCounter } from '#utils/metrics';
 import type { AuthorizationResult } from './authorization-service';
 
 /**

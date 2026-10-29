@@ -1,5 +1,5 @@
 import type { Hex } from 'viem';
-import { ForbiddenRpcError } from '../../errors';
+import { ForbiddenRpcError } from '#rpc/errors';
 
 /**
  * Reject a selective-disclosure call when the requested block is older than

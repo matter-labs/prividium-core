@@ -1,8 +1,8 @@
 import { subMinutes, subSeconds } from 'date-fns';
 import { describe, expect } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
-import { Repositories } from '../db';
-import { siweChallengeLogTable } from '../db/schema';
+import { Repositories } from '#db/index';
+import { siweChallengeLogTable } from '#db/schema';
+import { type Fixture, it } from '#test/unit-test-context';
 import { SiweChallengeLogRepository } from './siwe-challenge-log-repository';
 
 const ADDRESS = '0x1234567890123456789012345678901234567890' as const;

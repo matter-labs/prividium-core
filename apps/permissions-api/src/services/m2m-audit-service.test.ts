@@ -1,8 +1,8 @@
 import { sql } from 'drizzle-orm';
 import { describe, expect, vi } from 'vitest';
-import { it } from '../../test/unit-test-context';
-import { Repositories } from '../db';
-import { EntityNotFound } from '../utils/error-types';
+import { Repositories } from '#db/index';
+import { it } from '#test/unit-test-context';
+import { EntityNotFound } from '#utils/error-types';
 import {
     createAuditedM2mApplication,
     deleteAuditedM2mApplication,

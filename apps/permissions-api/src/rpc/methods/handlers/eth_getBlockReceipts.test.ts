@@ -1,7 +1,7 @@
 import { describe, expect } from 'vitest';
-import { createReceipt } from '../../../../test/rpc/create-receipt';
-import { rpcUnitTest } from '../../../../test/rpc/rpc-unit-test-utils';
-import { ZERO_LOGS_BLOOM } from '../../constants';
+import { ZERO_LOGS_BLOOM } from '#rpc/constants';
+import { createReceipt } from '#test/rpc/create-receipt';
+import { rpcUnitTest } from '#test/rpc/rpc-unit-test-utils';
 import { eth_getBlockReceipts } from './eth_getBlockReceipts';
 
 describe('rpc method: eth_getBlockReceipts', () => {

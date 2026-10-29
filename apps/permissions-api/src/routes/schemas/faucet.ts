@@ -1,7 +1,7 @@
 import { z } from 'zod/v4';
-import { FaucetClaimStatus } from '../../db/schema';
-import { addressSchema } from '../../utils/schemas/address';
-import { hexSchema } from '../../utils/schemas/hex-schema';
+import { FaucetClaimStatus } from '#db/schema';
+import { addressSchema } from '#utils/schemas/address';
+import { hexSchema } from '#utils/schemas/hex-schema';
 
 export const ClaimRequestSchema = z.object({
     walletAddress: addressSchema

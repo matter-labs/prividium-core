@@ -1,10 +1,10 @@
 // Mock authorizer that allows everything by default
 import type { Address, Hex } from 'viem';
-import type { MethodAccessType } from '../../src/db/schema';
-import { AddressSet } from '../../src/rpc/address-set';
-import type { GetLogsFilter } from '../../src/rpc/methods/handlers/eth_getLogs';
-import type { Authorizer, DeploymentAuthorization, DisclosureConfig, LogData } from '../../src/rpc/permissions';
-import type { AuthorizationResult } from '../../src/services/authorization-service';
+import type { MethodAccessType } from '#db/schema';
+import { AddressSet } from '#rpc/address-set';
+import type { GetLogsFilter } from '#rpc/methods/handlers/eth_getLogs';
+import type { Authorizer, DeploymentAuthorization, DisclosureConfig, LogData } from '#rpc/permissions/index';
+import type { AuthorizationResult } from '#services/authorization-service';
 
 const ALLOW_FROM_GENESIS: DisclosureConfig = { disclosureStartBlock: '0x0' };
 

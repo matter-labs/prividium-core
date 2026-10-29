@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { config } from 'dotenv';
 import { sql } from 'drizzle-orm';
-import { createDb } from '../src/db';
+import { createDb } from '#db/index';
 import { scriptLogger } from './script-logger';
 
 // Reads only the database settings, not the API's full env schema: seeding a fresh database must not

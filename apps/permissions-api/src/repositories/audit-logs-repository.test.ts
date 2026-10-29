@@ -1,10 +1,10 @@
 import { AUDIT_ACTIONS } from '@repo/access-control';
 import { eq } from 'drizzle-orm';
 import { describe, expect } from 'vitest';
-import { it } from '../../test/unit-test-context';
-import { Repositories } from '../db';
-import { auditLogsTable, organizationsTable } from '../db/schema';
-import { AuditLogsService, fakeAuditLogContextForTests } from '../services/audit-logs-service';
+import { Repositories } from '#db/index';
+import { auditLogsTable, organizationsTable } from '#db/schema';
+import { AuditLogsService, fakeAuditLogContextForTests } from '#services/audit-logs-service';
+import { it } from '#test/unit-test-context';
 
 describe('Audit event organization audience persistence', () => {
     it('caps organization counts across legacy and explicit audiences', async ({ db }) => {

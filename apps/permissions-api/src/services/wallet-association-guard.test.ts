@@ -1,6 +1,6 @@
 import { getAddress } from 'viem';
 import { describe, expect, it } from 'vitest';
-import { InvalidInputError } from '../utils/error-types';
+import { InvalidInputError } from '#utils/error-types';
 import { createWalletAssociationGuard } from './wallet-association-guard';
 
 const ANVIL_ACCOUNT_0 = getAddress('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');

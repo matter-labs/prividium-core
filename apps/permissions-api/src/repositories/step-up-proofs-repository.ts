@@ -1,5 +1,5 @@
 import { and, asc, eq, gt, isNull, lt, sql } from 'drizzle-orm';
-import { stepUpProofsTable } from '../db/schema';
+import { stepUpProofsTable } from '#db/schema';
 import { EntityRepository } from './entity-repository';
 
 const StepUpProofsRepositoryBase = EntityRepository({

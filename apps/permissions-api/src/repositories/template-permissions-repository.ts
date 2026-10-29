@@ -2,7 +2,7 @@ import { Abi as AbiSchema } from 'abitype/zod';
 import { and, asc, count, desc, eq, getTableColumns, inArray } from 'drizzle-orm';
 import type { Abi, AbiParameter, Hex } from 'viem';
 import { z } from 'zod/v4';
-import type { TxType } from '../db';
+import type { TxType } from '#db/index';
 import {
     contractTemplateArgumentRestrictionsTable,
     contractTemplatePermissionRolesTable,
@@ -11,17 +11,17 @@ import {
     methodAccessSchema,
     methodRuleSchema,
     rolesTable
-} from '../db/schema';
-import { calculateFunctionSelector, findAbiFnBySelector, normalizeFunctionSignature } from '../utils/abi';
+} from '#db/schema';
+import { calculateFunctionSelector, findAbiFnBySelector, normalizeFunctionSignature } from '#utils/abi';
 import {
     EntityAlreadyExistsError,
     EntityNotFound,
     InvalidEntity,
     InvalidInputError,
     UnexpectedDbError
-} from '../utils/error-types';
-import { hexSchema } from '../utils/schemas/hex-schema';
-import type { PaginatedResult, PaginationParams } from '../utils/schemas/pagination';
+} from '#utils/error-types';
+import { hexSchema } from '#utils/schemas/hex-schema';
+import type { PaginatedResult, PaginationParams } from '#utils/schemas/pagination';
 import { BaseRepository } from './base-repository';
 
 export const basicTemplatePermissionSchema = z.object({

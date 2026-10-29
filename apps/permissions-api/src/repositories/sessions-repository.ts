@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, gt, inArray, isNotNull, isNull, lt, ne, or, sql } from 'drizzle-orm';
-import { sessionsTable, usersTable } from '../db/schema';
+import { sessionsTable, usersTable } from '#db/schema';
 import { EntityRepository } from './entity-repository';
 
 const SessionsRepositoryBase = EntityRepository({

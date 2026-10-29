@@ -1,10 +1,10 @@
 import { pino } from 'pino';
 import { privateKeyToAccount } from 'viem/accounts';
 import { describe, expect, test, vi } from 'vitest';
-import { eth_sendRawTransaction } from '../../../../src/rpc/methods/wallet-rules/eth_sendRawTransaction';
-import type { WalletAuthorizer } from '../../../../src/rpc/permissions/wallet-authorizer';
-import type { WalletContext } from '../../../../src/rpc/rpc-service';
-import { TestExternalRpc } from '../../test-external-rpc';
+import { eth_sendRawTransaction } from '#rpc/methods/wallet-rules/eth_sendRawTransaction';
+import type { WalletAuthorizer } from '#rpc/permissions/wallet-authorizer';
+import type { WalletContext } from '#rpc/rpc-service';
+import { TestExternalRpc } from '#test/rpc/test-external-rpc';
 
 const SIGNER_KEY = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d';
 const HASH = '0x1111111111111111111111111111111111111111111111111111111111111111';

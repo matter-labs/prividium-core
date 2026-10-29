@@ -1,9 +1,9 @@
 import { createRemoteJWKSet } from 'jose';
 import { numberToHex } from 'viem';
-import { type Env, envHasOidcAuthMethod } from '../env';
-import type { PrividiumInfo } from '../routes/dot-well-known-routes';
-import type { JwtValidationData } from '../services/jwt-validator-service';
-import type { SiweConfig } from '../siwe-config';
+import { type Env, envHasOidcAuthMethod } from '#env';
+import type { PrividiumInfo } from '#routes/dot-well-known-routes';
+import type { JwtValidationData } from '#services/jwt-validator-service';
+import type { SiweConfig } from '#siwe-config';
 
 export type AppDeps = {
     oidcOpts?: JwtValidationData;

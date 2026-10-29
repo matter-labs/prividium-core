@@ -9,8 +9,8 @@ import {
     auditLogsTable,
     auditRequestLogTable,
     dbMutationAuditLogsTable
-} from '../db/schema';
-import type { PaginationParams } from '../utils/schemas/pagination';
+} from '#db/schema';
+import type { PaginationParams } from '#utils/schemas/pagination';
 import { BaseRepository } from './base-repository';
 
 // ─── Semantic audit logs (audit_logs table) ───────────────────────────────────

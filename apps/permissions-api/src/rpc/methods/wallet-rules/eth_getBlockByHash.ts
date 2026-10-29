@@ -1,7 +1,7 @@
-import { ZERO_LOGS_BLOOM } from '../../constants';
-import { type JsonRpcResponse, response } from '../../json-rpc';
-import { type AnyParams, anyParams } from '../../params-schemas';
-import type { MethodHandler, WalletContext } from '../../rpc-service';
+import { ZERO_LOGS_BLOOM } from '#rpc/constants';
+import { type JsonRpcResponse, response } from '#rpc/json-rpc';
+import { type AnyParams, anyParams } from '#rpc/params-schemas';
+import type { MethodHandler, WalletContext } from '#rpc/rpc-service';
 
 // Handler for getBlockByHash that returns a mocked block with only the filtered transaction hash
 export const eth_getBlockByHash: MethodHandler<WalletContext, AnyParams> = {

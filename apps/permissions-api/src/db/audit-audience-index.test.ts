@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { expect } from 'vitest';
-import { it } from '../../test/unit-test-context';
+import { it } from '#test/unit-test-context';
 import { auditAudienceIndexIsValid } from './audit-audience-index';
 
 it('recognizes the rollout index and detects missing or invalid builds', async ({ db }) => {

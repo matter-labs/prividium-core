@@ -1,6 +1,6 @@
 import { z } from 'zod/v4';
-import { type JsonRpcResponse, response } from '../../json-rpc';
-import type { MethodHandler, WalletContext } from '../../rpc-service';
+import { type JsonRpcResponse, response } from '#rpc/json-rpc';
+import type { MethodHandler, WalletContext } from '#rpc/rpc-service';
 
 const paramsSchema = z.tuple([z.string()], z.unknown());
 

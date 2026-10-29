@@ -1,14 +1,14 @@
-import type { Repositories } from '../db';
+import type { Repositories } from '#db/index';
 import type {
     Application,
     InsertApplication,
     PublicApplication,
     PublicApplicationCard,
     UpdateApplication
-} from '../repositories/applications-repository';
-import { secureRandomString } from '../utils/crypto';
-import { InvalidEntity } from '../utils/error-types';
-import type { PaginatedResult, PaginationParams } from '../utils/schemas/pagination';
+} from '#repositories/applications-repository';
+import { secureRandomString } from '#utils/crypto';
+import { InvalidEntity } from '#utils/error-types';
+import type { PaginatedResult, PaginationParams } from '#utils/schemas/pagination';
 
 export type ApplicationServiceOpts = {
     blockExplorerRedirectUris: string[];

@@ -1,7 +1,7 @@
 import { z } from 'zod/v4';
-import type { FastifyServer } from '../build-app';
-import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
-import { hexSchema } from '../utils/schemas/hex-schema';
+import type { FastifyServer } from '#build-app';
+import { ErrorResponseSchema } from '#utils/schemas/fastify-common';
+import { hexSchema } from '#utils/schemas/hex-schema';
 import { AuthorizedSchema } from './schemas/public-check';
 
 const withAddressSchema = z.object({

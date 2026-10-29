@@ -2,10 +2,10 @@ import Fastify from 'fastify';
 import { serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fastify-type-provider-zod';
 import pino from 'pino';
 import { describe, expect } from 'vitest';
-import { it } from '../../test/unit-test-context';
-import { Repositories } from '../db';
-import { errorHandler } from '../error-handler';
-import { ApplicationsService } from '../services/applications-service';
+import { Repositories } from '#db/index';
+import { errorHandler } from '#error-handler';
+import { ApplicationsService } from '#services/applications-service';
+import { it } from '#test/unit-test-context';
 import { publicApplicationsRoutes } from './public-applications-routes';
 
 describe('GET /oauth-clients/:oauthClientId', () => {

@@ -2,43 +2,43 @@ import { AUDIT_ACTIONS, hasSystemPermission, hasZoneSystemPermission } from '@re
 import { areChainAddressesEqual, type ChainAddress, type ChainNode, isoDatetimeInputSchema } from '@repo/api-kit';
 import type { FastifyRequest } from 'fastify';
 import { z } from 'zod/v4';
-import type { FastifyServer } from '../build-app';
-import { auditActionTypeSchema } from '../db/schema';
-import { requireOrgAdmin } from '../middleware/require-org-admin';
-import { requireM2mAppOrgAssociation, requireOrgAdminForUserCaller } from '../middleware/require-org-membership';
-import type { SessionsAuthValidator } from '../middleware/sessions-auth';
-import type { PermissionCatalog } from '../permissions/permission-catalog';
+import type { FastifyServer } from '#build-app';
+import { auditActionTypeSchema } from '#db/schema';
+import { requireOrgAdmin } from '#middleware/require-org-admin';
+import { requireM2mAppOrgAssociation, requireOrgAdminForUserCaller } from '#middleware/require-org-membership';
+import type { SessionsAuthValidator } from '#middleware/sessions-auth';
+import type { PermissionCatalog } from '#permissions/permission-catalog';
 import {
     fullContractPermissionSchema,
     newContractPermissionSchema,
     updateContractPermissionSchema
-} from '../repositories/contract-function-permissions-repository';
+} from '#repositories/contract-function-permissions-repository';
 import {
     contractsByTemplateResponseSchema,
     createContractSchema,
     fullContractSchema,
     groupedContractsResponseSchema,
     updateContractSchema
-} from '../repositories/contracts-repository';
-import { displayNameField } from '../repositories/shared-schemas';
-import type { ApiKeyService } from '../services/api-key-service';
-import { assertOrgContractRegisterable } from '../services/contract-registration-guard';
-import type { M2mAppActionsService } from '../services/m2m-app-actions-service';
+} from '#repositories/contracts-repository';
+import { displayNameField } from '#repositories/shared-schemas';
+import type { ApiKeyService } from '#services/api-key-service';
+import { assertOrgContractRegisterable } from '#services/contract-registration-guard';
+import type { M2mAppActionsService } from '#services/m2m-app-actions-service';
 import {
     createAuditedM2mApplication,
     deleteAuditedM2mApplication,
     updateAuditedM2mApplication
-} from '../services/m2m-audit-service';
-import { organizationAuditSummary } from '../services/organization-audit-service';
-import { deleteOrganizationAndRevokeAccess } from '../services/organizations-service';
-import { withOverbroadFlag } from '../utils/cidr';
-import { EntityNotFound, ForbiddenError, InvalidInputError, OrgQuotaExceededError } from '../utils/error-types';
-import { orgCountGauge } from '../utils/metrics';
-import { assertValidJwksUri, assertValidUserPanelUrl } from '../utils/oidc-provider-validation';
-import { isReservedContractAddress } from '../utils/reserved-contract-address';
-import { chainAddressSchema } from '../utils/schemas/address';
-import { ErrorResponseSchema, PaginationQuerySchema, SearchQuerySchema } from '../utils/schemas/fastify-common';
-import { paginatedResult } from '../utils/schemas/pagination';
+} from '#services/m2m-audit-service';
+import { organizationAuditSummary } from '#services/organization-audit-service';
+import { deleteOrganizationAndRevokeAccess } from '#services/organizations-service';
+import { withOverbroadFlag } from '#utils/cidr';
+import { EntityNotFound, ForbiddenError, InvalidInputError, OrgQuotaExceededError } from '#utils/error-types';
+import { orgCountGauge } from '#utils/metrics';
+import { assertValidJwksUri, assertValidUserPanelUrl } from '#utils/oidc-provider-validation';
+import { isReservedContractAddress } from '#utils/reserved-contract-address';
+import { chainAddressSchema } from '#utils/schemas/address';
+import { ErrorResponseSchema, PaginationQuerySchema, SearchQuerySchema } from '#utils/schemas/fastify-common';
+import { paginatedResult } from '#utils/schemas/pagination';
 import { createApiKeyBodySchema, OrgApiKeyWithSecretSchema, PaginatedOrgApiKeysSchema } from './schemas/api-keys';
 import { auditPaginationQuerySchema, OrganizationAuditLogSchema } from './schemas/audit-logs';
 import {

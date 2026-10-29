@@ -3,11 +3,11 @@ import Fastify from 'fastify';
 import { serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fastify-type-provider-zod';
 import pino from 'pino';
 import { afterEach, describe, expect } from 'vitest';
-import { it } from '../../test/unit-test-context';
-import type { FastifyServer } from '../build-app';
-import { type DB, Repositories } from '../db';
-import { errorHandler } from '../error-handler';
-import { CORE_PERMISSION_CATALOG, PermissionCatalog } from '../permissions/permission-catalog';
+import type { FastifyServer } from '#build-app';
+import { type DB, Repositories } from '#db/index';
+import { errorHandler } from '#error-handler';
+import { CORE_PERMISSION_CATALOG, PermissionCatalog } from '#permissions/permission-catalog';
+import { it } from '#test/unit-test-context';
 import { rolesRoutes } from './roles-routes';
 
 const EXAMPLE_ACCESS = defineFeaturePermission('example_feature_access', {

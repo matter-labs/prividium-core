@@ -1,9 +1,9 @@
 import { hasZoneSystemPermission } from '@repo/access-control';
 import { type ChainAddress, type ChainNode, chainAddressListIncludes } from '@repo/api-kit';
-import type { Repositories } from '../db';
-import type { UserWithRoles } from '../repositories/users-repository';
-import { ChainUnavailableError, ForbiddenError, InvalidInputError } from '../utils/error-types';
-import { isReservedContractAddress } from '../utils/reserved-contract-address';
+import type { Repositories } from '#db/index';
+import type { UserWithRoles } from '#repositories/users-repository';
+import { ChainUnavailableError, ForbiddenError, InvalidInputError } from '#utils/error-types';
+import { isReservedContractAddress } from '#utils/reserved-contract-address';
 
 export const CODE_CHECK_TIMEOUT_MS = 5_000;
 

@@ -1,10 +1,10 @@
 import { z } from 'zod/v4';
-import type { FastifyServer } from '../build-app';
-import { prividiumPermix } from '../permissions/prividium-permix';
-import { fullContractSchema } from '../repositories/contracts-repository';
-import { EntityNotFound } from '../utils/error-types';
-import { chainAddressSchema } from '../utils/schemas/address';
-import { ErrorResponseSchema } from '../utils/schemas/fastify-common';
+import type { FastifyServer } from '#build-app';
+import { prividiumPermix } from '#permissions/prividium-permix';
+import { fullContractSchema } from '#repositories/contracts-repository';
+import { EntityNotFound } from '#utils/error-types';
+import { chainAddressSchema } from '#utils/schemas/address';
+import { ErrorResponseSchema } from '#utils/schemas/fastify-common';
 import { ServiceActionBodySchema, ServiceActionResponseSchema } from './schemas/service-action';
 
 export function serviceActionRoutes(app: FastifyServer) {

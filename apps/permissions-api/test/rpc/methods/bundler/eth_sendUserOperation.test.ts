@@ -1,11 +1,11 @@
 import { type Address, concat, encodeFunctionData, type Hex, pad, toHex } from 'viem';
 import { describe, expect } from 'vitest';
-import { ForbiddenRpcError } from '../../../../src/rpc/errors';
-import { eth_sendUserOperation } from '../../../../src/rpc/methods/handlers/bundler';
-import { ERC7579_CALLTYPE } from '../../../../src/rpc/methods/handlers/bundler/utils/sso-calldata';
-import type { UserOperation } from '../../../../src/utils/schemas/user-operation';
-import { it } from '../../test-bundler-env';
-import { MOCK_BYTECODE } from '../../test-mocks';
+import { ForbiddenRpcError } from '#rpc/errors';
+import { eth_sendUserOperation } from '#rpc/methods/handlers/bundler/index';
+import { ERC7579_CALLTYPE } from '#rpc/methods/handlers/bundler/utils/sso-calldata';
+import { it } from '#test/rpc/test-bundler-env';
+import { MOCK_BYTECODE } from '#test/rpc/test-mocks';
+import type { UserOperation } from '#utils/schemas/user-operation';
 
 // =============================================================================
 // Test ABI Definitions

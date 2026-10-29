@@ -1,6 +1,6 @@
 import { type Address, type Hex, keccak256, type PublicClient, pad } from 'viem';
 import { vi } from 'vitest';
-import type { DispatcherConfig } from '../../src/rpc/methods/dispatchers/types';
+import type { DispatcherConfig } from '#rpc/methods/dispatchers/types';
 
 // Sample bytecode and addresses for mock dispatcher verification
 export const MOCK_BYTECODE = '0x608060405234801561001057600080fd5b50' as Hex;

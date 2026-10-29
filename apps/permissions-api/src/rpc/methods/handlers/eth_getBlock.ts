@@ -1,13 +1,16 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import { type Hex, numberToHex } from 'viem';
 import { z } from 'zod/v4';
-import { blockTagSchema } from '../../../utils/schemas/block-tag';
-import { hexSchema } from '../../../utils/schemas/hex-schema';
-import { ZERO_LOGS_BLOOM } from '../../constants';
-import type { JsonRpcResponse } from '../../json-rpc';
-import { response } from '../../json-rpc';
-import type { AuthorizedRpcContext, MethodHandler } from '../../rpc-service';
-import { filterTransactionAndReceipt, participantAddresses } from '../generic-handlers/filter-associated-transactions';
+import { ZERO_LOGS_BLOOM } from '#rpc/constants';
+import type { JsonRpcResponse } from '#rpc/json-rpc';
+import { response } from '#rpc/json-rpc';
+import {
+    filterTransactionAndReceipt,
+    participantAddresses
+} from '#rpc/methods/generic-handlers/filter-associated-transactions';
+import type { AuthorizedRpcContext, MethodHandler } from '#rpc/rpc-service';
+import { blockTagSchema } from '#utils/schemas/block-tag';
+import { hexSchema } from '#utils/schemas/hex-schema';
 import { BlockReceiptsSchema, type GetBlockReceiptsResponse } from './eth_getBlockReceipts';
 import { TransactionSchema } from './eth_getTransactionByHash';
 

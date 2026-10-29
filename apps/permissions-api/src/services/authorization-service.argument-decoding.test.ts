@@ -3,14 +3,14 @@ import { serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fas
 import pino from 'pino';
 import { type Address, encodeFunctionData, type Hex, parseAbi, toFunctionSelector } from 'viem';
 import { describe, expect } from 'vitest';
-import { TestExternalRpc } from '../../test/rpc/test-external-rpc';
-import { it } from '../../test/unit-test-context';
-import { type DB, Repositories } from '../db';
-import type { MethodRule } from '../db/schema';
-import { AuthData } from '../middleware/auth-data';
-import { regularRpcRoutes } from '../routes/regular-rpc-routes';
-import { FORBIDDEN_ERROR_CODE } from '../rpc/constants';
-import { RpcAuthorizer } from '../rpc/permissions/rpc-authorizer';
+import { type DB, Repositories } from '#db/index';
+import type { MethodRule } from '#db/schema';
+import { AuthData } from '#middleware/auth-data';
+import { regularRpcRoutes } from '#routes/regular-rpc-routes';
+import { FORBIDDEN_ERROR_CODE } from '#rpc/constants';
+import { RpcAuthorizer } from '#rpc/permissions/rpc-authorizer';
+import { TestExternalRpc } from '#test/rpc/test-external-rpc';
+import { it } from '#test/unit-test-context';
 import { type AuthorizationResult, AuthorizationService } from './authorization-service';
 import { EventPermissionVerifier } from './event-permission-verifier';
 

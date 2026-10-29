@@ -1,6 +1,6 @@
-import type { JsonRpcResponse } from '../../json-rpc';
-import { type AnyParams, anyParams } from '../../params-schemas';
-import type { AuthorizedRpcContext, MethodHandler } from '../../rpc-service';
+import type { JsonRpcResponse } from '#rpc/json-rpc';
+import { type AnyParams, anyParams } from '#rpc/params-schemas';
+import type { AuthorizedRpcContext, MethodHandler } from '#rpc/rpc-service';
 
 /**
  * Unrestricted methods can be called for any user with a valid Prividium™ account with

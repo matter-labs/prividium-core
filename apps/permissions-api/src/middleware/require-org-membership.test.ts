@@ -1,7 +1,7 @@
 import { defineFeaturePermission } from '@repo/api-kit';
 import type { FastifyRequest } from 'fastify';
 import { describe, expect, it } from 'vitest';
-import { ForbiddenError } from '../utils/error-types';
+import { ForbiddenError } from '#utils/error-types';
 import { requireOrgPermissionForM2mCaller, requireZonePermissionForM2mCaller } from './require-org-membership';
 
 const EXAMPLE_ACCESS = defineFeaturePermission('example_feature_access', {

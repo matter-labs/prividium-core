@@ -1,6 +1,6 @@
 import { addStartTimeHook, saveRouteNames } from '@repo/api-metrics';
-import type { FastifyServer } from '../build-app';
-import { httpRequestCounter, httpRequestDuration } from '../utils/metrics';
+import type { FastifyServer } from '#build-app';
+import { httpRequestCounter, httpRequestDuration } from '#utils/metrics';
 
 export function registerMetricMiddlewares(app: FastifyServer) {
     // Register metrics tracking hooks

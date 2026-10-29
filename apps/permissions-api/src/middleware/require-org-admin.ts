@@ -1,7 +1,7 @@
 import { hasSystemPermission } from '@repo/access-control';
 import type { FastifyRequest } from 'fastify';
 import { z } from 'zod/v4';
-import { ForbiddenError, InternalServerError } from '../utils/error-types';
+import { ForbiddenError, InternalServerError } from '#utils/error-types';
 
 function extractId(params: unknown, paramName = 'id'): string {
     const parsed = z.object({ [paramName]: z.string() }).safeParse(params);

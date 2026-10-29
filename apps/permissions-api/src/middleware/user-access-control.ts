@@ -1,7 +1,7 @@
 import { type UserAccessControlDefinition, userAccessControl, userForbiddenAccessControl } from '@repo/access-control';
 import type { FastifyReply, FastifyRequest, HookHandlerDoneFunction } from 'fastify';
 import { createPermix } from 'permix/fastify';
-import { ForbiddenError } from '../utils/error-types';
+import { ForbiddenError } from '#utils/error-types';
 
 export const userFastifyPermix = createPermix<UserAccessControlDefinition>();
 

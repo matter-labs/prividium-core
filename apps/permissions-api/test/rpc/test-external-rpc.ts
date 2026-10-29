@@ -1,8 +1,8 @@
 import { type Address, type BlockTag, type Hex, type PublicClient, size } from 'viem';
 import type { TypeOf, ZodTypeAny } from 'zod/v4';
-import type { JSONLike, JsonRpcRequest, JsonRpcResponse } from '../../src/rpc/json-rpc';
-import { type ExternalRpc, submitRawTransactionUpstream, type ZksGetProofResponse } from '../../src/rpc/target-rpc';
-import type { TargetChainType } from '../../src/utils/target-chain';
+import type { JSONLike, JsonRpcRequest, JsonRpcResponse } from '#rpc/json-rpc';
+import { type ExternalRpc, submitRawTransactionUpstream, type ZksGetProofResponse } from '#rpc/target-rpc';
+import type { TargetChainType } from '#utils/target-chain';
 import { createMockRpcClient } from './test-mocks';
 
 type HistoryEntry = {

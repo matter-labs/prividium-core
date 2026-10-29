@@ -1,7 +1,7 @@
 import type { Hex } from 'viem';
 import { beforeEach, describe, expect } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
-import { EntityAlreadyExistsError, EntityNotFound, InvalidInputError } from '../utils/error-types';
+import { type Fixture, it } from '#test/unit-test-context';
+import { EntityAlreadyExistsError, EntityNotFound, InvalidInputError } from '#utils/error-types';
 import { RolesRepository } from './roles-repository';
 import {
     type FullTemplatePermission,

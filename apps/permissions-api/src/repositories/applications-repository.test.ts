@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
-import { EntityNotFound } from '../utils/error-types';
+import { type Fixture, it } from '#test/unit-test-context';
+import { EntityNotFound } from '#utils/error-types';
 import { ApplicationsRepository } from './applications-repository';
 
 describe('ApplicationsRepository', () => {

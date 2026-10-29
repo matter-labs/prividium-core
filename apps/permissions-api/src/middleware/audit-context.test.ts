@@ -3,10 +3,10 @@ import type { FastifyContextConfig } from 'fastify';
 import Fastify from 'fastify';
 import type { PoolClient } from 'pg';
 import { describe, expect, it, vi } from 'vitest';
-import type { FastifyServer } from '../build-app';
-import type { DB, Repositories } from '../db';
-import { errorHandler } from '../error-handler';
-import type { AuditLogsService } from '../services/audit-logs-service';
+import type { FastifyServer } from '#build-app';
+import type { DB, Repositories } from '#db/index';
+import { errorHandler } from '#error-handler';
+import type { AuditLogsService } from '#services/audit-logs-service';
 import { createAuditContextMiddleware, registerAuditContextCleanup } from './audit-context';
 
 type PoolShape = { max: number; connectionTimeoutMillis: number };

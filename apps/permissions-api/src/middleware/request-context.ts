@@ -1,7 +1,7 @@
 import { registerRequestContext } from '@repo/api-kit';
-import type { FastifyServer } from '../build-app';
-import type { Repositories } from '../db';
-import { redactSensitiveUrl } from '../utils/redact-url';
+import type { FastifyServer } from '#build-app';
+import type { Repositories } from '#db/index';
+import { redactSensitiveUrl } from '#utils/redact-url';
 
 declare module 'fastify' {
     interface FastifyRequest {

@@ -1,11 +1,11 @@
 import { ADMIN_ROLE_ID } from '@repo/access-control';
 import { defineFeaturePermission } from '@repo/api-kit';
 import { beforeEach, describe, expect } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
-import { rolesTable, UserSources } from '../db/schema';
-import { PermissionCatalog } from '../permissions/permission-catalog';
-import { SystemPermissions } from '../permissions/system-permissions';
-import { EntityAlreadyExistsError, EntityNotFound, InvalidEntity, InvalidInputError } from '../utils/error-types';
+import { rolesTable, UserSources } from '#db/schema';
+import { PermissionCatalog } from '#permissions/permission-catalog';
+import { SystemPermissions } from '#permissions/system-permissions';
+import { type Fixture, it } from '#test/unit-test-context';
+import { EntityAlreadyExistsError, EntityNotFound, InvalidEntity, InvalidInputError } from '#utils/error-types';
 import { ContractFunctionPermissionsRepository } from './contract-function-permissions-repository';
 import { ContractsRepository } from './contracts-repository';
 import { OrganizationsRepository } from './organizations-repository';

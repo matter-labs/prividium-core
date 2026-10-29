@@ -1,13 +1,13 @@
 import { type Address, pad } from 'viem';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { TestExternalRpc } from '../../test/rpc/test-external-rpc';
-import { evmChain } from '../chains/evm';
-import type { Repositories } from '../db';
-import type { SystemPermission } from '../permissions/system-permissions';
-import type { ContractDeployment } from '../repositories/contract-deployments-repository';
-import type { Role } from '../repositories/roles-repository';
-import type { User, UserWithRoles } from '../repositories/users-repository';
-import { ChainUnavailableError, ForbiddenError, InvalidInputError } from '../utils/error-types';
+import { evmChain } from '#chains/evm/index';
+import type { Repositories } from '#db/index';
+import type { SystemPermission } from '#permissions/system-permissions';
+import type { ContractDeployment } from '#repositories/contract-deployments-repository';
+import type { Role } from '#repositories/roles-repository';
+import type { User, UserWithRoles } from '#repositories/users-repository';
+import { TestExternalRpc } from '#test/rpc/test-external-rpc';
+import { ChainUnavailableError, ForbiddenError, InvalidInputError } from '#utils/error-types';
 import {
     assertContractDeployed,
     assertOrgContractRegisterable,

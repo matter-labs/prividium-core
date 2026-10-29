@@ -1,5 +1,5 @@
 import { z } from 'zod/v4';
-import { hexSchema } from '../../utils/schemas/hex-schema';
+import { hexSchema } from '#utils/schemas/hex-schema';
 
 const baseCreateLoginSiweMsgSchema = z.object({
     address: hexSchema

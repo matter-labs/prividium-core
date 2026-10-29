@@ -1,5 +1,5 @@
 import type { z } from 'zod/v4';
-import type { AuthorizedRpcContext, MethodHandler } from '../../../rpc-service';
+import type { AuthorizedRpcContext, MethodHandler } from '#rpc/rpc-service';
 import { eth_estimateUserOperationGas } from './eth_estimateUserOperationGas';
 import { eth_getUserOperationByHash } from './eth_getUserOperationByHash';
 import { eth_getUserOperationReceipt } from './eth_getUserOperationReceipt';

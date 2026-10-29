@@ -1,12 +1,12 @@
 import { clearAuditSessionVars, setAuditSessionVarsSql } from '@repo/api-kit';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { PoolClient } from 'pg';
-import type { FastifyServer } from '../build-app';
-import type { DB, DbOrTx } from '../db';
-import { createRequestScopedDb, Repositories } from '../db';
-import type { AuditResourceType } from '../db/schema';
-import { type AuditLogContext, type AuditLogsService, auditLogContext } from '../services/audit-logs-service';
-import { ServiceOverloadedError } from '../utils/error-types';
+import type { FastifyServer } from '#build-app';
+import type { DB, DbOrTx } from '#db/index';
+import { createRequestScopedDb, Repositories } from '#db/index';
+import type { AuditResourceType } from '#db/schema';
+import { type AuditLogContext, type AuditLogsService, auditLogContext } from '#services/audit-logs-service';
+import { ServiceOverloadedError } from '#utils/error-types';
 
 export const SERVICE_NAME = 'permissions-api' as const;
 

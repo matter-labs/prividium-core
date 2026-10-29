@@ -1,8 +1,8 @@
 import { sql } from 'drizzle-orm';
 import { describe, expect } from 'vitest';
-import { it } from '../../test/unit-test-context';
-import { chainRegistry } from '../chains';
-import { Repositories } from '../db';
+import { chainRegistry } from '#chains/index';
+import { Repositories } from '#db/index';
+import { it } from '#test/unit-test-context';
 import { assertDatabaseChainType, claimDatabase } from './deployment-identity';
 
 // A chain type exists only once a module declares it; a bare ref stands in for a private chain module.

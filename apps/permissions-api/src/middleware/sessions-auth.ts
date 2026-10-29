@@ -1,21 +1,17 @@
 import '@fastify/cookie';
 import { ACTOR_TYPES, hasZoneSystemPermission, type Permission } from '@repo/access-control';
 import type { FastifyRequest, HookHandlerDoneFunction } from 'fastify';
-import type { Repositories } from '../db';
-import { TargetTypes } from '../db/schema';
-import type { Session } from '../repositories/sessions-repository';
-import type { UserWithRoles } from '../repositories/users-repository';
-import {
-    type AuditLogContextData,
-    AuditLogsService,
-    resolveActiveOrganizationId
-} from '../services/audit-logs-service';
-import { SessionService } from '../services/session-service';
-import { DOCS_SESSION_COOKIE_NAME, isDocsRequest } from '../utils/docs-session';
-import { ForbiddenError, UnauthorizedError } from '../utils/error-types';
-import type { PinoLogger } from '../utils/logger';
-import { belongsToDeletedOrganization } from '../utils/organization-membership';
-import { sessionTypes } from '../utils/schemas/auth';
+import type { Repositories } from '#db/index';
+import { TargetTypes } from '#db/schema';
+import type { Session } from '#repositories/sessions-repository';
+import type { UserWithRoles } from '#repositories/users-repository';
+import { type AuditLogContextData, AuditLogsService, resolveActiveOrganizationId } from '#services/audit-logs-service';
+import { SessionService } from '#services/session-service';
+import { DOCS_SESSION_COOKIE_NAME, isDocsRequest } from '#utils/docs-session';
+import { ForbiddenError, UnauthorizedError } from '#utils/error-types';
+import type { PinoLogger } from '#utils/logger';
+import { belongsToDeletedOrganization } from '#utils/organization-membership';
+import { sessionTypes } from '#utils/schemas/auth';
 import { API_KEY_HEADER, type ApiKeyAuthValidator, type ApiKeyTarget } from './api-key-auth';
 import { AuthData } from './auth-data';
 

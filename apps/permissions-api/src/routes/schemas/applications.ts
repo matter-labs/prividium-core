@@ -1,9 +1,9 @@
 import { z } from 'zod/v4';
-import { applicationsTable } from '../../db/schema';
-import { nameField } from '../../repositories/shared-schemas';
-import { createInsertSchema, createSelectSchema, MANAGED_COLUMNS } from '../../utils/drizzle-zod-schema-factory';
-import { CorsOriginSchema } from '../../utils/schemas/cors-origin';
-import { paginatedResult } from '../../utils/schemas/pagination';
+import { applicationsTable } from '#db/schema';
+import { nameField } from '#repositories/shared-schemas';
+import { createInsertSchema, createSelectSchema, MANAGED_COLUMNS } from '#utils/drizzle-zod-schema-factory';
+import { CorsOriginSchema } from '#utils/schemas/cors-origin';
+import { paginatedResult } from '#utils/schemas/pagination';
 
 // No value refinements here — a stored row failing them would 500 every read; strictness belongs on write bodies.
 export const ApplicationSchema = createSelectSchema(applicationsTable);

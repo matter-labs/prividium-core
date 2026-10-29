@@ -1,13 +1,13 @@
 import { pad } from 'viem';
 import { beforeEach, describe, expect } from 'vitest';
-import { TestExternalRpc } from '../../test/rpc/test-external-rpc';
-import { type Fixture, it } from '../../test/unit-test-context';
-import { evmChain } from '../chains/evm';
-import { Repositories } from '../db';
-import { OrganizationsRepository } from '../repositories/organizations-repository';
-import { RolesRepository } from '../repositories/roles-repository';
-import { UsersRepository } from '../repositories/users-repository';
-import { EntityNotFound, InvalidInputError, WalletLimitExceededError } from '../utils/error-types';
+import { evmChain } from '#chains/evm/index';
+import { Repositories } from '#db/index';
+import { OrganizationsRepository } from '#repositories/organizations-repository';
+import { RolesRepository } from '#repositories/roles-repository';
+import { UsersRepository } from '#repositories/users-repository';
+import { TestExternalRpc } from '#test/rpc/test-external-rpc';
+import { type Fixture, it } from '#test/unit-test-context';
+import { EntityNotFound, InvalidInputError, WalletLimitExceededError } from '#utils/error-types';
 import { M2mAppActionsService } from './m2m-app-actions-service';
 import { createWalletAssociationGuard } from './wallet-association-guard';
 

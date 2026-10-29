@@ -1,12 +1,12 @@
 import type { ChainAddress } from '@repo/api-kit';
 import { and, asc, count, eq, getTableColumns, inArray } from 'drizzle-orm';
 import { size } from 'viem';
-import { extractForeignKeyConstraintProblem, isForeignKeyConstraintError } from '../db/errors';
-import { contractEventPermissionsRoles, contractEventPermissionsTable, topicConditionEnum } from '../db/schema';
-import { getFirstOrThrow } from '../db/utils';
-import { abiFromString, abiHasEventSelector } from '../utils/abi';
-import { EntityNotFound, InvalidInputError } from '../utils/error-types';
-import type { PaginatedResult, PaginationParams } from '../utils/schemas/pagination';
+import { extractForeignKeyConstraintProblem, isForeignKeyConstraintError } from '#db/errors';
+import { contractEventPermissionsRoles, contractEventPermissionsTable, topicConditionEnum } from '#db/schema';
+import { getFirstOrThrow } from '#db/utils';
+import { abiFromString, abiHasEventSelector } from '#utils/abi';
+import { EntityNotFound, InvalidInputError } from '#utils/error-types';
+import type { PaginatedResult, PaginationParams } from '#utils/schemas/pagination';
 import { EntityRepository } from './entity-repository';
 import type { BareRole, Role } from './roles-repository';
 

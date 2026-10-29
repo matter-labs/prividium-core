@@ -2,15 +2,15 @@ import Fastify from 'fastify';
 import pino from 'pino';
 import { generatePrivateKey, privateKeyToAddress } from 'viem/accounts';
 import { beforeEach, describe, expect } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
-import { Repositories } from '../db';
-import { apiKeysTable, m2mApplicationsTable, TargetTypes, tenantsTable } from '../db/schema';
-import { ApiKeysRepository } from '../repositories/api-keys-repository';
-import { AuditLogsRepository } from '../repositories/audit-logs-repository';
-import { IpWhitelistRepository } from '../repositories/ip-whitelist-repository';
-import { type Tenant, TenantsRepository } from '../repositories/tenants-repository';
-import { ApiKeyService } from '../services/api-key-service';
-import { AuditLogsService } from '../services/audit-logs-service';
+import { Repositories } from '#db/index';
+import { apiKeysTable, m2mApplicationsTable, TargetTypes, tenantsTable } from '#db/schema';
+import { ApiKeysRepository } from '#repositories/api-keys-repository';
+import { AuditLogsRepository } from '#repositories/audit-logs-repository';
+import { IpWhitelistRepository } from '#repositories/ip-whitelist-repository';
+import { type Tenant, TenantsRepository } from '#repositories/tenants-repository';
+import { ApiKeyService } from '#services/api-key-service';
+import { AuditLogsService } from '#services/audit-logs-service';
+import { type Fixture, it } from '#test/unit-test-context';
 import { API_KEY_HEADER, ApiKeyAuthValidator } from './api-key-auth';
 
 describe('ApiKeyAuthValidator', () => {

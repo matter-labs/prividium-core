@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto';
 import { nanoid } from 'nanoid';
-import type { Repositories } from '../db';
-import type { PasskeyTransport } from '../db/schema';
-import type { User } from '../repositories/users-repository';
-import { InvalidInputError, UnauthorizedError } from '../utils/error-types';
-import type { WebAuthnAuthenticationResponse } from '../utils/schemas/webauthn';
+import type { Repositories } from '#db/index';
+import type { PasskeyTransport } from '#db/schema';
+import type { User } from '#repositories/users-repository';
+import { InvalidInputError, UnauthorizedError } from '#utils/error-types';
+import type { WebAuthnAuthenticationResponse } from '#utils/schemas/webauthn';
 import type { PasskeyService } from './passkey-service';
 
 export interface StepUpBeginResult {

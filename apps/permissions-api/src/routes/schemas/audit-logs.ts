@@ -1,6 +1,6 @@
 import { z } from 'zod/v4';
-import { SelectAuditLogSchema } from '../../repositories/audit-logs-repository';
-import { PaginationQuerySchema } from '../../utils/schemas/fastify-common';
+import { SelectAuditLogSchema } from '#repositories/audit-logs-repository';
+import { PaginationQuerySchema } from '#utils/schemas/fastify-common';
 
 export function auditPaginationQuerySchema(maxItems: number) {
     return PaginationQuerySchema({

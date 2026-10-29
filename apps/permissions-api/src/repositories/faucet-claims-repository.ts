@@ -1,9 +1,9 @@
 import { subSeconds } from 'date-fns';
 import { and, desc, eq, gt, inArray, lt, or, sql } from 'drizzle-orm';
 import type { Address, Hex } from 'viem';
-import type { DbOrTx } from '../db';
-import { faucetClaimsTable } from '../db/schema';
-import { InternalServerError } from '../utils/error-types';
+import type { DbOrTx } from '#db/index';
+import { faucetClaimsTable } from '#db/schema';
+import { InternalServerError } from '#utils/error-types';
 import { BaseRepository } from './base-repository';
 
 export type FaucetClaim = typeof faucetClaimsTable.$inferSelect;

@@ -1,6 +1,6 @@
 import { describe, expect } from 'vitest';
-import { eth_supportedEntryPoints } from '../../../../src/rpc/methods/handlers/bundler/eth_supportedEntryPoints';
-import { it } from '../../test-bundler-env';
+import { eth_supportedEntryPoints } from '#rpc/methods/handlers/bundler/eth_supportedEntryPoints';
+import { it } from '#test/rpc/test-bundler-env';
 
 describe('eth_supportedEntryPoints', () => {
     const method = eth_supportedEntryPoints;

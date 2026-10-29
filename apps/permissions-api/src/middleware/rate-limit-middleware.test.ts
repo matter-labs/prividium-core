@@ -1,8 +1,8 @@
 import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import { describe, expect } from 'vitest';
-import { it } from '../../test/unit-test-context';
-import { RateLimitError } from '../utils/error-types';
+import { it } from '#test/unit-test-context';
+import { RateLimitError } from '#utils/error-types';
 import {
     actorKeyGenerator,
     isTrustedActor,

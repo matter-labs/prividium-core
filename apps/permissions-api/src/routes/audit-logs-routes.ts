@@ -1,16 +1,16 @@
 import { AUDIT_ACTION_TYPES } from '@repo/access-control';
 import { z } from 'zod/v4';
-import type { FastifyServer } from '../build-app';
-import { auditActionTypeSchema } from '../db/schema';
+import type { FastifyServer } from '#build-app';
+import { auditActionTypeSchema } from '#db/schema';
 import {
     AuditLogsSearchCriteriaSchema,
     DbMutationSearchCriteriaSchema,
     SelectAuditLogSchema,
     SelectDbMutationAuditLogSchema,
     SelectUnifiedAuditLogSchema
-} from '../repositories/audit-logs-repository';
-import { ErrorResponseSchema, PaginationQuerySchema } from '../utils/schemas/fastify-common';
-import { paginatedResult } from '../utils/schemas/pagination';
+} from '#repositories/audit-logs-repository';
+import { ErrorResponseSchema, PaginationQuerySchema } from '#utils/schemas/fastify-common';
+import { paginatedResult } from '#utils/schemas/pagination';
 import { ActionTypesResponseSchema, auditPaginationQuerySchema } from './schemas/audit-logs';
 
 type Deps = {

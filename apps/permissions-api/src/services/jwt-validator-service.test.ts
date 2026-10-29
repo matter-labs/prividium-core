@@ -1,10 +1,10 @@
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from 'jose';
 import pino from 'pino';
 import { beforeEach, describe, expect } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
-import { Repositories } from '../db/repositories';
-import { UserSources } from '../db/schema';
-import { ForbiddenError } from '../utils/error-types';
+import { Repositories } from '#db/repositories';
+import { UserSources } from '#db/schema';
+import { type Fixture, it } from '#test/unit-test-context';
+import { ForbiddenError } from '#utils/error-types';
 import { JwtValidatorService } from './jwt-validator-service';
 
 const ZONE_ISSUER = 'https://zone.issuer/';

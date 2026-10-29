@@ -1,8 +1,8 @@
 import { z } from 'zod/v4';
-import { userOperationSchema } from '../../../../utils/schemas/user-operation';
-import { ForbiddenRpcError } from '../../../errors';
-import type { JsonRpcResponse } from '../../../json-rpc';
-import type { AuthorizedRpcContext, MethodHandler } from '../../../rpc-service';
+import { ForbiddenRpcError } from '#rpc/errors';
+import type { JsonRpcResponse } from '#rpc/json-rpc';
+import type { AuthorizedRpcContext, MethodHandler } from '#rpc/rpc-service';
+import { userOperationSchema } from '#utils/schemas/user-operation';
 import { isBundlerContext } from './utils/is-bundler-context';
 import { validateUserOpPermissions } from './utils/validate-user-op';
 

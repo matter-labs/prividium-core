@@ -2,18 +2,18 @@ import Fastify from 'fastify';
 import { serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fastify-type-provider-zod';
 import pino from 'pino';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { FastifyServer } from '../build-app';
+import type { FastifyServer } from '#build-app';
 import {
     FORBIDDEN_ERROR_CODE,
     INVALID_REQUEST_ERROR_CODE,
     METHOD_NOT_FOUND_ERROR_CODE,
     UNAUTHORIZED_ERROR_CODE
-} from '../rpc/constants';
-import { ForbiddenRpcError } from '../rpc/errors';
-import { MAX_RPC_BATCH_SIZE } from '../rpc/json-rpc';
-import type { Authorizer } from '../rpc/permissions';
-import type { ExternalRpc } from '../rpc/target-rpc';
-import { UnauthorizedError } from '../utils/error-types';
+} from '#rpc/constants';
+import { ForbiddenRpcError } from '#rpc/errors';
+import { MAX_RPC_BATCH_SIZE } from '#rpc/json-rpc';
+import type { Authorizer } from '#rpc/permissions/index';
+import type { ExternalRpc } from '#rpc/target-rpc';
+import { UnauthorizedError } from '#utils/error-types';
 import { type RegularRpcContext, type RegularRpcRoutesOptions, regularRpcRoutes } from './regular-rpc-routes';
 
 const apps: FastifyServer[] = [];

@@ -1,7 +1,7 @@
 import { type Hex, pad } from 'viem';
 import { describe, expect } from 'vitest';
 import { z } from 'zod';
-import { rpcUnitTest } from '../../../../test/rpc/rpc-unit-test-utils';
+import { rpcUnitTest } from '#test/rpc/rpc-unit-test-utils';
 import { eth_getLogs } from './eth_getLogs';
 
 describe('rpc method: eth_getBlockByNumber', () => {

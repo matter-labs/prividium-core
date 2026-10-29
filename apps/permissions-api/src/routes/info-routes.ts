@@ -1,4 +1,4 @@
-import type { FastifyServer } from '../build-app';
+import type { FastifyServer } from '#build-app';
 import { InfoSchema } from './schemas/info';
 
 type Deps = {

@@ -1,18 +1,14 @@
 import { type ChainAddress, chainAddressListIncludes } from '@repo/api-kit';
 import { and, count, eq, inArray, isNull, like, not, or, sql } from 'drizzle-orm';
-import type { TxType } from '../db';
-import { extractForeignKeyConstraintProblem, isForeignKeyConstraintError, isUniqueConstraintError } from '../db/errors';
-import { organizationsTable, rolesTable, UserSources, userRolesTable, usersTable, walletsTable } from '../db/schema';
-import { getFirstOrThrow } from '../db/utils';
-import {
-    CORE_PERMISSION_CATALOG,
-    type PermissionCheck,
-    UNCHECKED_PERMISSIONS
-} from '../permissions/permission-catalog';
-import { EntityAlreadyExistsError, EntityNotFound, InvalidInputError, UnexpectedDbError } from '../utils/error-types';
-import { belongsToDeletedOrganization } from '../utils/organization-membership';
-import type { PaginatedResult, PaginationParams } from '../utils/schemas/pagination';
-import { assertNotWatchdog } from '../utils/watchdog';
+import { extractForeignKeyConstraintProblem, isForeignKeyConstraintError, isUniqueConstraintError } from '#db/errors';
+import type { TxType } from '#db/index';
+import { organizationsTable, rolesTable, UserSources, userRolesTable, usersTable, walletsTable } from '#db/schema';
+import { getFirstOrThrow } from '#db/utils';
+import { CORE_PERMISSION_CATALOG, type PermissionCheck, UNCHECKED_PERMISSIONS } from '#permissions/permission-catalog';
+import { EntityAlreadyExistsError, EntityNotFound, InvalidInputError, UnexpectedDbError } from '#utils/error-types';
+import { belongsToDeletedOrganization } from '#utils/organization-membership';
+import type { PaginatedResult, PaginationParams } from '#utils/schemas/pagination';
+import { assertNotWatchdog } from '#utils/watchdog';
 import { BaseRepository } from './base-repository';
 import type { BareRole, Role } from './roles-repository';
 

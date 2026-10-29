@@ -1,10 +1,10 @@
 import type { FastifyRequest } from 'fastify';
 import type { Address, Hex } from 'viem';
-import type { MethodAccessType } from '../../db/schema';
-import type { SystemPermission } from '../../permissions/system-permissions';
-import type { AuthorizationResult } from '../../services/authorization-service';
-import type { AddressSet } from '../address-set';
-import type { GetLogsFilter } from '../methods/handlers';
+import type { MethodAccessType } from '#db/schema';
+import type { SystemPermission } from '#permissions/system-permissions';
+import type { AddressSet } from '#rpc/address-set';
+import type { GetLogsFilter } from '#rpc/methods/handlers/index';
+import type { AuthorizationResult } from '#services/authorization-service';
 
 export type LogData = { address: Hex; topics: Hex[] };
 

@@ -1,5 +1,5 @@
 import { lt } from 'drizzle-orm';
-import { siweConsumedNoncesTable } from '../db/schema';
+import { siweConsumedNoncesTable } from '#db/schema';
 import { BaseRepository } from './base-repository';
 
 export class SiweConsumedNoncesRepository extends BaseRepository {

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { DB } from '../db';
-import type { PinoLogger } from '../utils/logger';
+import type { DB } from '#db/index';
+import type { PinoLogger } from '#utils/logger';
 import { HealthCheckService } from './health-check-service';
 
 function buildService(execute: () => Promise<unknown>) {

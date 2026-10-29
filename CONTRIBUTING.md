@@ -112,8 +112,7 @@ docs: update readme
 `refactor`, `test`) release nothing.
 
 A major bump needs the `!` suffix in the pull request title (`feat!: drop the v1 session endpoint`). Only the title
-reaches the squash commit, so a `BREAKING CHANGE:` footer in the pull request body does not bump the version; CI fails a
-pull request that declares one without the `!` marker.
+reaches the squash commit, so a `BREAKING CHANGE:` footer in the pull request body does not bump the version.
 
 ## Merging
 

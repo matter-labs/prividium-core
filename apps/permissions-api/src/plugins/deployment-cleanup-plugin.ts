@@ -1,10 +1,10 @@
 import { subSeconds } from 'date-fns';
 import { AsyncTask, SimpleIntervalJob } from 'toad-scheduler';
 import type { Address, Hex } from 'viem';
-import { type DB, type Repositories, runWithJobContext } from '../db';
-import type { ExternalRpc } from '../rpc/target-rpc';
-import { areHexEqual } from '../utils/hex';
-import type { PinoLogger } from '../utils/logger';
+import { type DB, type Repositories, runWithJobContext } from '#db/index';
+import type { ExternalRpc } from '#rpc/target-rpc';
+import { areHexEqual } from '#utils/hex';
+import type { PinoLogger } from '#utils/logger';
 
 const STALE_PENDING_REASON = 'TTL sweep: deploy tx did not land within the pending window';
 const JOB_ID = 'deployment-cleanup';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { TestExternalRpc } from '../../../test/rpc/test-external-rpc';
-import type { TargetChainType } from '../../utils/target-chain';
+import { TestExternalRpc } from '#test/rpc/test-external-rpc';
+import type { TargetChainType } from '#utils/target-chain';
 import { evmChain, evmChainDefinition, evmChainModule } from './index';
 import { ZKSYNC_SYSTEM_CONTRACTS } from './system-contracts';
 

@@ -1,10 +1,10 @@
 import { pino } from 'pino';
 import { type Address, type Hex, pad, parseEther } from 'viem';
 import { afterEach, beforeEach, describe, expect, vi } from 'vitest';
-import { type Fixture, it } from '../../test/unit-test-context';
-import { Repositories } from '../db';
-import { faucetClaimsTable } from '../db/schema';
-import { type User, UsersRepository } from '../repositories/users-repository';
+import { Repositories } from '#db/index';
+import { faucetClaimsTable } from '#db/schema';
+import { type User, UsersRepository } from '#repositories/users-repository';
+import { type Fixture, it } from '#test/unit-test-context';
 import { FaucetService, type FaucetServiceConfig } from './faucet-service';
 
 const TEST_TX_HASH = pad('0x01', { size: 32 });

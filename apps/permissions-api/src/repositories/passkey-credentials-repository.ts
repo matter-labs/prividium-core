@@ -1,5 +1,5 @@
 import { asc, count, desc, eq } from 'drizzle-orm';
-import { passkeyCredentialsTable } from '../db/schema';
+import { passkeyCredentialsTable } from '#db/schema';
 import { EntityRepository } from './entity-repository';
 
 const PasskeyCredentialsRepositoryBase = EntityRepository({
