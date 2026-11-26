@@ -84,7 +84,7 @@
         "dotenv": "^16.4.5",
         "drizzle-orm": "^0.45.2",
         "drizzle-zod": "^0.8.3",
-        "fastify": "^5.12.5",
+        "fastify": "^5.12.6",
         "fastify-type-provider-zod": "^6.1.0",
         "ipaddr.js": "^2.3.0",
         "jose": "^6.0.11",
